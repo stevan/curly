@@ -123,19 +123,25 @@ comparison: *in*, *out*, or *n/a*.
 | Ending a sub in `if`, `unless`, a loop, a block, a statement with a modifier or `try`, and using its value | Fault | 8 | | D18, T145: perl returns the condition, or the `try`'s value |
 | `wantarray` | Cut | | in | D18 |
 | `die`, `try`, `catch` | In | 15 | in | D141 to D143: perl's message byte for byte, `catch ($e)` always, `return`, `last` and `next` as anywhere; a fault is not caught (D13). `die` never tested or a left operand, and `X or die` as a statement refused (D146); a message with a line in it not in a statement over several lines or a `while`'s test (D150); an uncaught `die` after an underflow faults (D151) |
-| `finally`, `defer` | Later | 21 | out | D144, T313: perl 5.42 warns that `finally` is experimental, and has no `defer` without `use feature`; with files |
+| `finally`, `defer` | Later | | out | D144, T313, D221: perl 5.42 warns that `finally` is experimental, and has no `defer` without `use feature`; step 21 found nothing that needs them |
 | `eval BLOCK`, `$@` | Cut | | out | D20: `try` |
 | `eval STRING` | Cut | | out | D20 |
 | `do BLOCK` | Later | 5 | | Small; when wanted |
 | `do BLOCK while COND` | Later | | | D58: left out at step 6, for the step that takes `do BLOCK`. It runs the block first, and is not a loop to perl: `last` in it leaves the loop round it (T64) |
 | `...` as a statement | In | 15 | | D145: `die "Unimplemented"`; alone, with no modifier, as perl has it (T315) |
 | `given`, `when`, smartmatch | Cut | | | Not on under `use v5.42` either |
-| `exit` | In | 21 | | |
+| `exit;`, `exit EXPR;`, `exit(EXPR);` | In | 21a | | D217, T506, T507: a statement, with an `if` or `unless`; its argument a named unary operator's, an operator after it refused; the status the low eight bits of a whole number; no `try` catches it. As a value: Cut |
 | `say;`, `print;` with no argument | Cut | | | D85: `$_` is always written |
 | A builtin's brackets and then an operator, `say (1 + 2) * 3;` | Cut | | | D21, T25: perl prints 3 |
 | `say (...)` after one space, not ending on its line, or with a bracket in a string or a comment that perl's count of them trips on | Cut | | | T76, T100: perl warns. `say(...)`, hard against, may run over lines |
 | `(LIST) x N`, a list repeated, where a list is wanted | In | 9 | | D80, T101. After `return` and as a sub's last statement too, from step 10 (T143); a comma list on the left of `x` where one value is wanted: Cut (T168) |
-| `print STDERR ...`, `say STDERR ...` | In | 15 | | 15b, with `warn`: `STDERR` and a list not in brackets of its own (T320); no other handle |
+| `print STDERR ...`, `say STDERR ...` | In | 15 | | 15b, with `warn`: `STDERR` and a list not in brackets of its own (T320) |
+| `print STDOUT ...`, `say STDOUT ...`, `printf STDOUT ...`, `printf STDERR ...` | In | 21a | | D218, T500: a handle beside STDERR; `printf` to either formats. A handle in brackets, `printf(STDOUT ...)`: Cut |
+| `<STDIN>` | In | 21a | | D211, T502, T508: a line or undef where one value is wanted, every line left where a list is; bytes as characters, UTF-8 under `use open` with every malformation a fault; once a line is read, a `die`'s message names it (T516). An element assigned one whose place reads or calls: Cut (D213) |
+| `while (my $l = <STDIN>)`, `while ($x = <STDIN>)` | In | 21a | | D212, T501: tested with `defined`. A readline, or `=` of one, as the test of `until`, a C-style `for`, a modifier, and `while (<STDIN>)`: Cut |
+| `eof(STDIN)` | In | 21a | | D214; `eof()` and `eof` alone: Cut (T509) |
+| `readline`, `<>`, `<<>>`, `<FH>`, a glob `<*.c>` | Cut | | | D211, T513; `<$fh>` is 21b's |
+| `chomp(my $x = EXPR)`, `chomp($x = EXPR)` | In | 21a | | D219, T512 |
 | `1;` ending a module | In | 18 | | Not needed under `use v5.42`; harmless |
 
 ## Operators
@@ -198,7 +204,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `&$f()`, `&{$f}()`, `->&*`, `&name` | Cut | | D21, D165 |
 | `$f(...)` | Cut | | Not perl's (a file handle to perl, which dies) |
 | A string as a name (symbolic reference) | Cut | | strict refs: perl dies too |
-| File tests, `-e` and the rest | Later | 21 | |
+| File tests, `-e` and the rest | Later | 21c | |
 | `==` and `!=` between two references | In | 13a | D112: identity (T241) |
 | A reference where a number is wanted: arithmetic, `< <= > >= <=>`, `==` beside a non-reference, `++`, an index, a count | Fault | 13a | D112: perl takes the address (T241, T42) |
 | A reference as a string: `.`, `say`, a string, a key, `eq`, `length`, `join`, `sort` with no block | Fault | 13a | D112 |
@@ -279,7 +285,7 @@ Opal's notation, `docs/BUILTINS.md`.
 | `say`, `print` to stdout | In | 0, 3 |
 | `length`, `uc`, `lc`, `ord`, `chr`, with brackets or as named unary operators (D41); `substr` (reading, 2 or 3 arguments) and `index` (2 or 3), in brackets | In | 3 |
 | `sprintf`, `printf` to stdout | In | 16b | D124 to D128, D131. The format a literal; fifteen conversions, five flags, widths, precisions, stars; the count checked; a value past what perl converts exactly, or a negative zero to `%e %f %g`, a fault (T265, T267, T282) |
-| A format that is not a literal (T22); `%i %D %U %O %F %a %n %p %v`, `%2$s`, size letters; a width on `%c` (T277); `printf` to a handle | Cut; the handle Later | 21 | D124, D125, D131 |
+| A format that is not a literal (T22); `%i %D %U %O %F %a %n %p %v`, `%2$s`, size letters; a width on `%c` (T277) | Cut | | D124, D125, D131; `printf` to STDOUT and STDERR is in since 21a (D218) |
 | `ucfirst`, `lcfirst`, `rindex`, `chomp` and `chop` of a variable | In | 16c |
 | `substr` with 4 arguments, `reverse` of a string where one value is wanted | Later | 16d | D120 |
 | `uc`, `lc` of a character past ASCII (T45, until perl's tables are in) | Fault | 3 |
@@ -301,8 +307,12 @@ Opal's notation, `docs/BUILTINS.md`.
 | `rand`, `srand`, `time`, `localtime`, `gmtime`, `sleep` | Later | 22 |
 | `split`, `m//`, `s///`, `tr///`, `qr//`, `quotemeta` | In | 19, 20 |
 | `die`, `warn` | In | 15 | D142, D148: list operators; `warn` is `true`. One reference alone is thrown as itself; uncaught, among several values, or in a `warn`, D112's fault |
-| `open` with three arguments, `close`, `readline` and `<$fh>`, `eof`, `print {$fh}`, `binmode`, `opendir` and the directory calls, `unlink`, `rename`, `mkdir`, `stat` | Later | 21 |
-| `@ARGV`, `%ENV`, `$0`, `$!` in a message | Later | 21 |
+| `open` with three arguments, `close`, `<$fh>`, `eof($fh)`, `print {$fh}`, `binmode` | Later | 21b |
+| `opendir` and the directory calls, `unlink`, `rename`, `mkdir`, `stat` | Later | 21c |
+| `@ARGV` | In | 21a | D215, T503: an array, filled as the program starts, each argument its bytes; `my @ARGV`: Cut (T505) |
+| `%ENV` | In | 21a | D216, T503, T504: a hash, filled as the program starts, read-only (a change faults); `my %ENV`: Cut (T505) |
+| `$0` | Cut | | T510: the path perl was given |
+| `$!` in a message | Later | 21b |
 | `system`, backticks, `exec`, `fork`, `wait`, `kill` | Later | a library, when proposed |
 | Sockets, `getpw*` and the system databases, `select` on handles, `ioctl`, `fcntl` | Later | a library, if ever |
 | `pack`, `unpack` | Later | with bytes |

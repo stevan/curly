@@ -1,0 +1,3 @@
+before
+fault: undef where a number is wanted at t/4757-fault-exit-undef.pl line 6.
+exit: 1

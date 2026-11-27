@@ -1,0 +1,2 @@
+t/4815-io-double-diamond.pl:4:9: <<>> reads the files named in @ARGV, or stdin, and is not in the language (D211): read stdin with <STDIN>
+exit: 1

@@ -2762,9 +2762,106 @@ Its value is `true`.
     warn "skipping line $n\n" if $line eq "";
 
 `say STDERR LIST;` and `print STDERR LIST;` print to stderr as `say`
-and `print` print to stdout. `STDERR` is the one file handle, and its
-list is not in brackets of its own. What goes to stderr follows
-`say`'s rules for characters past ASCII: it needs `use open`.
+and `print` print to stdout, and `printf STDERR FORMAT, LIST;` prints
+what `sprintf` makes there. `STDOUT` may be written the same way, and
+is where `say` goes anyway. The list is not in brackets of its own, and
+the handle is not in brackets either: `printf STDOUT "%d\n", $n;`,
+never `printf(STDOUT ...)`. What goes to stderr follows `say`'s rules
+for characters past ASCII: it needs `use open`.
+
+## The outside
+
+A program reads its arguments, its environment and its stdin, and it
+may say what status it exits with. Files are to come.
+
+### Reading stdin
+
+**`<STDIN>`** reads stdin. Where one value is wanted it is the next
+line, its newline kept (the last line of the input may have none), or
+undef when no line is left, and undef every time after that:
+
+    my $name = <STDIN>;
+    chomp($name);
+    say "hello, $name";
+
+Where a list is wanted, it is every line that is left, read at once:
+on the right of a list assignment, among a call's arguments, in the
+list of a `for`, in a `map`'s block, after `say` and `print`, in
+brackets before `x`. That is the split an array has between its count
+and its elements, in the same places.
+
+    my @lines = <STDIN>;
+    say scalar(@lines), " lines";
+
+To read a line at a time, test the line in a `while`:
+
+    while (my $line = <STDIN>) {
+        chomp($line);
+        say length($line);
+    }
+
+There, and only there, the test is whether a line was read, not
+whether it is true, as perl has it: a last line `0` with no newline is
+read. A `<STDIN>` alone in a loop's test is refused (perl would store
+the line in its own `$_`), and so is a line read in the test of
+`until`, of a `for (;;)`, or of a loop modifier: write the `while`.
+Anywhere else a line is tested as any string is, so `if (my $l =
+<STDIN>)` is false for a line `0`.
+
+`chomp(my $line = <STDIN>);` reads and chomps in one statement, and
+`chomp($line = <STDIN>);` does it to a variable declared before.
+
+**`eof(STDIN)`** is true when no line is left. It is written with its
+brackets and `STDIN` in them.
+
+A line is bytes. Without `use open ':std', ':encoding(UTF-8)';` each
+byte is one character, so `é` read is two characters; with it, the
+input is UTF-8, and what is not UTF-8, a surrogate, a noncharacter, or
+a character cut short by the end of the input, is the fault
+`malformed UTF-8 read`. A line read with its newline is a number where
+a number is wanted, as perl has it.
+
+Once a line has been read, the message a `die` or a `warn` makes for
+itself names the handle and how many lines it has given, as perl's
+does: `oops at prog.pl line 7, <STDIN> line 2.`
+
+An element may be assigned a line, `$lines[$n] = <STDIN>;`, but not
+when working out which element would read a line or call a sub: perl
+works the element out first and reads after, which is the other way
+round from every other assignment.
+
+`readline`, `<>`, `<<>>`, a bareword handle such as `<FH>`, and a glob
+such as `<*.txt>` are not in the language.
+
+### @ARGV
+
+**`@ARGV`** holds the program's arguments, each a string of its bytes,
+one character to a byte. It is an array like any other, and the
+program may change it: `my $first = shift @ARGV;`. A program does not
+declare it, and may not declare an `@ARGV` of its own.
+
+### %ENV
+
+**`%ENV`** holds the environment, each name and value a string of its
+bytes. It is read-only: a store, a `delete` or an assignment to it is
+the fault `%ENV is read-only`. Its keys are in the order the
+environment had them; sort them, as for any hash, before printing.
+
+    my $home = $ENV{HOME} // "nowhere";
+
+### exit
+
+**`exit;`** and **`exit EXPR;`** end the program there, with status 0
+or the low eight bits of the whole number given (`exit 256` is 0,
+`exit -1` is 255), after what it printed. It is a statement, with an
+`if` or `unless`:
+
+    exit 1 unless @ARGV;
+
+Its argument is a named unary operator's: `exit 1 + 1` exits 2, and an
+operator that binds more loosely after it is refused, `exit $x || 1`;
+write `exit($x || 1)`. A `try` does not catch an `exit`, and it leaves
+from anywhere, a sub or a `sort`'s block too.
 
 ## Memory
 
@@ -2795,7 +2892,7 @@ and exit status 2.
 ## When a program stops
 
 A program that reaches its end exits with status 0, having printed
-what it printed.
+what it printed, and one that says `exit` with the status it gives.
 
 A **fault** stops it early: whatever it had printed, then one line on
 stderr,

@@ -1,0 +1,2 @@
+t/4847-io-chomp-assign-list.pl:4:7: chomp(...) takes one scalar variable, or the assignment of one, chomp(my $x = ...) (D219)
+exit: 1

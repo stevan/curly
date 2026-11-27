@@ -1,0 +1,2 @@
+t/4816-io-bareword-handle.pl:4:9: <FH>: a bareword file handle, which is not in the language (D211); stdin is read with <STDIN>
+exit: 1

@@ -1,0 +1,7 @@
+WRONG: #69 'use v5.42;\ntry { my $l = <STDIN>; die $l } catch ($e) { print "caught $e" }\n' stdin=b'0'
+  perl: (0, b'caught 0 at TMP/p69_0.pl line 2, <STDIN> line 1.\n', b'')
+  ours: (0, b'caught 0 at TMP/p69_0.pl line 2.\n', b'')
+WRONG: #69 'use v5.42;\nuse open \':std\', \':encoding(UTF-8)\';\ntry { my $l = <STDIN>; die $l } catch ($e) { print "caught $e" }\n' stdin=b'0'
+  perl: (0, b'caught 0 at TMP/p69_1.pl line 3, <STDIN> line 1.\n', b'')
+  ours: (0, b'caught 0 at TMP/p69_1.pl line 3.\n', b'')
+{'same': 860, 'fault': 90, 'refused': 70, 'WRONG': 2}

@@ -39,7 +39,13 @@ export type Binary = { kind: 'binary'; op: string; left: Expr; right: Expr; pos:
 // against a scalar on the left of `=`, later).
 export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Step | Unary | Binary | Ternary | Apply | Invoke
     | ArrayVar | MyArray | Elem | LastIndex | List | Slice | ArrayOp | ListAssign | ListOp | Binder | Sort | HashOp
-    | Chain | Anon | Ref | Deref | Sderef | AnonSub | CallRef | SubRef | CurSub;
+    | Chain | Anon | Ref | Deref | Sderef | AnonSub | CallRef | SubRef | CurSub | Readline | StdinEof;
+
+// `<STDIN>` (step 21a; D211): the next line, or undef, where one value is
+// wanted, and every line that is left where a list is, as an array is its
+// count or its elements. `eof(STDIN)` (D214).
+export type Readline = { kind: 'readline'; pos: Pos; bracketed?: true };
+export type StdinEof = { kind: 'stdineof'; pos: Pos; bracketed?: true };
 
 // A sub with no name, where a value may begin (step 14; D161): `sub
 // (PARAMETERS) { ... }` and `sub { ... }`. Its value is a reference to the
@@ -188,8 +194,12 @@ export type Use = { kind: 'use'; version: string; pos: Pos };
 export type Pragma = { kind: 'pragma'; name: string; args: readonly Expr[]; pos: Pos };
 
 // A builtin that is a statement, `say` and `print`, and its arguments.
-// With `stderr`, `say STDERR LIST;` (15b).
-export type Call = { kind: 'call'; name: string; args: readonly Expr[]; stderr?: true; pos: Pos };
+// With `handle`, `say STDERR LIST;` (15b), and STDOUT, and `printf` to
+// either (step 21a; D218).
+export type Call = { kind: 'call'; name: string; args: readonly Expr[]; handle?: string; pos: Pos };
+
+// `exit;` and `exit EXPR;` (step 21a; D217).
+export type Exit = { kind: 'exit'; value?: Expr; pos: Pos };
 
 // An expression as a statement: an assignment, a `++` or `--`, a `my`.
 export type Do = { kind: 'do'; expr: Expr; pos: Pos };
@@ -248,7 +258,7 @@ export type Return = { kind: 'return'; value?: Expr; pos: Pos };
 export type Try = { kind: 'try'; body: readonly Stmt[]; var: My; handler: readonly Stmt[]; pos: Pos };
 
 export type Loop = While | For | Foreach;
-export type Stmt = Use | Pragma | Call | Do | Block | If | While | For | Foreach | Jump | Sub | Return | Try;
+export type Stmt = Use | Pragma | Call | Do | Block | If | While | For | Foreach | Jump | Sub | Return | Try | Exit;
 
 // `end` is where the file ends, for a diagnostic about what isn't there.
 export type Program = { kind: 'program'; body: readonly Stmt[]; end: Pos };

@@ -48,6 +48,9 @@ import { listSubs } from './shapes.ts';
 // has every node that names one: an array, an element, a slice, `$#x`, a
 // builtin that takes one.
 export type Resolution = {
+    // `@ARGV` and `%ENV` (step 21a): the declarations no `my` made, to the
+    // name of each.
+    builtins: ReadonlyMap<number, string>;
     of: ReadonlyMap<Expr, number>;
     names: readonly string[];
     isArray: readonly boolean[];
@@ -127,6 +130,7 @@ export const resolve = (program: Program): Resolution => {
     const hash = (e: Expr, name: string, counted = false): void => {
         // (A builtin's hash is at its own place, after the word.)
         const at = e.kind === 'hashop' ? e.at : e.pos;
+        if (name === 'ENV') builtin(name, true);
         const found = [...scopes].reverse().find(scope => scope.has('%' + name));
         if (found === undefined) return refuse(`%${name} is not declared: my %${name}`, at);
         of.set(e, found.get('%' + name)!);
@@ -141,6 +145,7 @@ export const resolve = (program: Program): Resolution => {
     // stands in holds the reference, which no change to the array changes.
     const array = (e: Expr, name: string, counted = false): void => {
         if ((e.kind === 'array' || e.kind === 'elem' || e.kind === 'slice') && e.hash) return hash(e, name, counted);
+        if (name === 'ARGV') builtin(name, false);
         const found = [...scopes].reverse().find(scope => scope.has('@' + name));
         if (found === undefined) {
             // In a string, what was read may not be what was meant.
@@ -213,6 +218,25 @@ export const resolve = (program: Program): Resolution => {
         called.set(s.name, n + 1);
     }
     const calls = new Map<Invoke, number>();
+
+    // `@ARGV` and `%ENV` (step 21a; D215, D216): the program does not
+    // declare them. Each is a file variable, made the first time it is
+    // named, wherever that is, and filled as the program starts.
+    const builtins = new Map<number, string>();
+    const builtin = (name: string, hash: boolean): void => {
+        const k = (hash ? '%' : '@') + name;
+        if (fileScope.has(k)) return;
+        const id = names.length;
+        names.push(name);
+        isArray.push(true);
+        isHash.push(hash);
+        fileScope.set(k, id);
+        owner[id] = 0;
+        fileSlots.add(id);
+        slots[id] = file;
+        file += 1;
+        builtins.set(id, name);
+    };
 
     // A declaration comes into scope: a file variable in a slot of its
     // own, any other at its depth among those in scope.
@@ -306,6 +330,11 @@ export const resolve = (program: Program): Resolution => {
         }
         case 'my':
         case 'myarray':
+            // perl takes `my @ARGV` and `my %ENV` in silence, and the
+            // program's own then hides perl's (T505).
+            if (e.kind === 'myarray' && ((e.name === 'ARGV' && !e.hash) || (e.name === 'ENV' && e.hash))) {
+                refuse(`my ${e.hash ? '%' : '@'}${e.name}: perl takes it, and the program's own then hides the ${e.hash ? 'environment' : 'arguments'} (D${e.hash ? 216 : 215}); give it another name`, e.pos);
+            }
             of.set(e, names.length);
             isArray.push(e.kind === 'myarray');
             isHash.push(e.kind === 'myarray' && e.hash === true);
@@ -554,7 +583,7 @@ export const resolve = (program: Program): Resolution => {
     const statement = (s: Stmt): void => {
         switch (s.kind) {
         case 'sub': return function_(s);
-        case 'return': return s.value === undefined ? undefined : whole(s.value);
+        case 'return': case 'exit': return s.value === undefined ? undefined : whole(s.value);
         case 'call': return s.args.forEach(a => whole(a));
         case 'do': return whole(s.expr);
         case 'block':
@@ -683,6 +712,6 @@ export const resolve = (program: Program): Resolution => {
         if (owner[id] === 0 && !fileSlots.has(id)) slots[id]! += file;
     }
     frames[0] = file + variables;
-    return { of, names, isArray, isHash, slots, owner, frames, file, fileIds: fileSlots, subs, calls, lists: listSubs(subs, calls, targets), loops, jumps, each, readonly, taken,
+    return { builtins, of, names, isArray, isHash, slots, owner, frames, file, fileIds: fileSlots, subs, calls, lists: listSubs(subs, calls, targets), loops, jumps, each, readonly, taken,
         anonOf, parents, captures, captured, constants, subrefs, targets, capturedAt, loopVars };
 };

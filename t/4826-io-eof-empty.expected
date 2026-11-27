@@ -1,0 +1,2 @@
+t/4826-io-eof-empty.pl:4:5: eof() is the files named in @ARGV, or stdin, to perl, and not in the language (D214): eof(STDIN)
+exit: 1

@@ -1,0 +1,2 @@
+t/4838-io-my-argv.pl:4:1: my @ARGV: perl takes it, and the program's own then hides the arguments (D215); give it another name
+exit: 1

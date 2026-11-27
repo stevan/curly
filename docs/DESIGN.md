@@ -347,14 +347,22 @@ step, roughly in the order it will matter:
    copy, and what the loop froze stays frozen for good; refused when
    the loop's list names a scalar variable (D166).
 9. **`finally` and `defer`; how `warn` is tested**: settled, D144
-   and D149 (step 15). Both are refused, to be revisited with files at
-   step 21; a test that writes to stderr is of kind `warns`, and the
-   oracle marks every warning of perl's own.
+   and D149 (step 15). Both are refused, and stay so (D221, step 21);
+   a test that writes to stderr is of kind `warns`, and the oracle
+   marks every warning of perl's own.
+9a. **The outside but files** (step 21a): settled, D211 to D220.
+   What comes in is bytes, a character each, or UTF-8 under `use
+   open` with every malformation a fault; `<STDIN>` is a line or every
+   line, as an array is its count or its elements; `@ARGV` an array
+   and `%ENV` a read-only hash, filled as the program starts; `exit`
+   a statement; one environment for perl and the program in every
+   check. **Handles as values, `print {$fh}` against `print $fh`, and
+   what an error from the system is** are 21b's (D210).
 10. **Modules** (step 18): `package Name;` is decided (D19); imports,
    and how files are found, are not.
 11. **Regex captures** (step 19): `$1`, or only named and returned.
 12. **Bytes**, for binary files, as a type apart from strings (with
-    step 21).
+    step 21b; 21a reads each byte as a character, as perl does).
 13. **The syntax of a type** (step 25); **roles**, refereed by a
     perl with Stevan's roles (D181), his branch ported to 5.42.0
     (D186, `tools/perl-roles/`); the core of the object

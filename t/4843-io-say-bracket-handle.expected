@@ -1,0 +1,2 @@
+t/4843-io-say-bracket-handle.pl:4:5: STDERR stands right after say, print or printf, a blank between and no bracket before it: printf STDERR ...;
+exit: 1

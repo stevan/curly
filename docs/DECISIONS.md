@@ -2597,3 +2597,72 @@ now, a walk that refuses whatever would let a program see the order
 of construction, which would refuse most `ADJUST`s that print and
 every default that reads a variable a default above it changes, and
 is better decided beside the protocol that may change the order.
+
+## Step 21: files and the outside
+
+**D210 to D221. Step 21a, the outside but files: each question
+answered with its recommendation.** *(User, 2026-11-27: "I pre-approve
+all your recommendations, so do not ask me for confirmation and just
+keep building." The recommendations are Fable 5.2's, 2026-11-27; each
+is his to overturn. `PLAN.md`, step 21, has the text and what was
+rejected; `TRAPS.md`, T500 to T515, the programs; `briefs/claims21.py`,
+the claims.)*
+**D210. Step 21 is three sub-steps**: 21a stdin, `@ARGV`, `%ENV`,
+`exit`, STDOUT, `printf` to a handle and one environment for the
+checks; 21b `open`, `close`, handles as values, `<$fh>`, `print
+{$fh}`, `$!`, a clean directory per run; 21c file tests and
+directories. Each is proposed in full, reviewed and built before the
+next. Rejected: one step.
+**D211. `<STDIN>` is the one readline of 21a**: a line, or undef at
+the end, where one value is wanted, and every line that is left where
+a list is, wherever an array is its count or its elements; each byte a
+character without `use open`, UTF-8 with it, and every sequence perl's
+`:encoding(UTF-8)` warns of a fault, `malformed UTF-8 read`, a
+character cut short at the end too, which perl drops in silence
+(T502). `readline`, `<>`, `<<>>`, `<FH>`, `<$fh>` and globs are
+refused. Rejected: `readline(STDIN)` beside it; decoding without `use
+open`.
+**D212. `while (... = <STDIN>) { }` is tested with `defined`, as perl
+tests it; a readline, or `=` of one, as the whole test of `until`, a
+C-style `for` or a loop modifier is refused, and `while (<STDIN>)`
+(perl's global `$_`)** (T501, T511). Elsewhere a line is tested for
+truth. Rejected: following perl into the other shapes.
+**D213. An element assigned a readline is refused when working out
+which element could read a line or call a sub**: perl reads the line
+into the element after working it out, against D80 (T508-order).
+Rejected: generating that assignment in perl's order; refusing every
+element there.
+**D214. `eof(STDIN)`, brackets always**; `eof()` and `eof` alone are
+refused (T509).
+**D215. `@ARGV` is an ordinary array, filled as the program starts**,
+each argument a string of its bytes; `my @ARGV` is refused (T503,
+T505).
+**D216. `%ENV` is a hash filled as the program starts, and read-only**:
+a store, a `delete`, an assignment, through a reference too, is the
+fault `%ENV is read-only`; `my %ENV` is refused (T504, T505). Its keys
+are in the environment's order (D27). Rejected: a writable `%ENV`
+that makes strings of what is stored, as perl's does.
+**D217. `exit` is a statement**: `exit;`, `exit EXPR;`, `exit(EXPR);`,
+with an `if` or `unless`; its argument a named unary operator's, an
+operator after it refused; the status the low eight bits of a whole
+number; stdout and stderr flushed; no `try` catches it (T506, T507).
+Rejected: a fault outside 0 to 255.
+**D218. STDOUT is a handle beside STDERR after `say`, `print` and
+`printf`, and `printf` to either formats** (T500: the compiler took
+`printf STDERR` since the merge of 15b and 16b, and printed the
+format as text). A handle in brackets, `printf(STDOUT ...)`, is
+refused.
+**D219. `chomp(my $x = EXPR);` and `chomp($x = EXPR);`**: the variable
+is assigned what `chomp` makes of the value (T512).
+**D220. One environment for perl and the program in every check**:
+`PATH`, the collector's knobs and the test's `# env:` (perl has its
+seed beside them, T514); `t/oracle/Warned.pm` marks `exit`, so a
+`dies` test that ends by `exit 255` fails; a claim may give perl
+stdin, arguments and an environment. Closes the step-21 items of
+`TRAPS.md`, "The checks themselves", but the clean directory per run,
+which is 21b's. Rejected: the machine's whole environment for the
+program.
+**D221. `finally` and `defer` stay refused** (D144 stands): nothing in
+21a needs cleanup, and 21b's handles are closed when collected or at
+the end. Rejected: taking them now (perl warns of `finally`; `defer`
+needs `use feature`, which D16 cuts).

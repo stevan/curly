@@ -5,7 +5,7 @@ import { refuse } from './errors.ts';
 import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, prefixOp } from './names.ts';
 import type { CallRef, Chain, Deref, Expr, Invoke, My, Pragma, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
 import type { Resolution } from './resolver.ts';
-import { handsOn } from './shapes.ts';
+import { behind, handsOn, readsLine } from './shapes.ts';
 import { checkFormat } from './format.ts';
 import type { Gives } from './shapes.ts';
 
@@ -139,6 +139,8 @@ const plain = (e: Expr): Expr => (e.kind === 'unary' && prefixOp(e.op)?.rt === u
 // does, with no folder of its own.
 const folds = (e: Expr): boolean =>
     e.kind === 'var' || e.kind === 'my' || e.kind === 'assign' || e.kind === 'step' || e.kind === 'invoke' || e.kind === 'interp' ? false
+    // (A line read, step 21a: perl does not warn of `if (my $l = <STDIN>)`.)
+    : e.kind === 'readline' || e.kind === 'stdineof' ? false
     // (A sub's reference, and a call through one: perl does not warn of
     // `if (my $f = sub { 1 })`, step 14.)
     : e.kind === 'anonsub' || e.kind === 'subref' || e.kind === 'cursub' || e.kind === 'callref' ? false
@@ -595,8 +597,17 @@ const notTested = (e: Expr): void => {
 // that may not be worked out.
 // `ctx`: where it stands. `root`: it is a statement's own expression, where
 // an assignment of a list or to an array may stand (D78).
+// perl reads a line into an element after working out which element
+// (T508-order), against D80's order: so working that out may not read a
+// line or call a sub (D213).
+const readsOutside = (e: Expr): boolean => e.kind === 'readline' || e.kind === 'stdineof' || e.kind === 'invoke' || e.kind === 'callref' || parts(e).some(readsOutside);
+
 const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = false): void => {
     checkLiteral(e);
+    if (e.kind === 'assign' && e.op === '=' && behind(e.value).kind === 'readline' && (e.target.kind === 'elem' || e.target.kind === 'chain' || e.target.kind === 'sderef')
+        && parts(e.target).some(readsOutside)) {
+        refuse('a line read into an element whose index, key or reference reads a line or calls a sub: perl works the element out first and then reads, against the order of every other assignment (D213, T508); take the index into a my first', e.pos);
+    }
     if (e.kind === 'binary' && isDie(e.left)) refuse(`a die on the left of '${e.op}': perl warns of a precedence problem, and a die is never worth anything`, plain(e.left).pos);
     if (e.kind === 'ternary') notTested(e.test);
     checkConcat(w, e);
@@ -931,13 +942,25 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         return s.otherwise?.forEach(b => checkStmt(w, b));
     // A loop's test is a test as an `if`'s is (D53, D62), and a `my` under
     // a `while` modifier is as one under `if` (T119).
-    case 'while':
+    case 'while': {
+        // perl tests a line read, or one assigned, with `defined` in a
+        // loop's test (T501): the language in `while (... = <STDIN>) { }`,
+        // and nowhere else (D212).
+        const reads = readsLine(s.test);
+        if (reads === 'bare') refuse("a <STDIN> alone in a loop's test: perl stores each line in its global $_, which is not in the language (D212, T511); write while (my $line = <STDIN>) { ... }", s.test.pos);
+        if (reads !== undefined && (s.modifier || s.negate)) {
+            refuse(`a line read in the test of ${s.negate ? 'until' : 'a while modifier'}: perl tests it with defined in some of these shapes and not others (D212, T501); write while (my $line = <STDIN>) { ... }`, s.test.pos);
+        }
+    }
         notTested(s.test);
         tested(s.test);
         checkExpr(w, s.test, !s.modifier);
         return s.body.forEach(b => checkStmt(w, b, s.modifier === true));
     case 'for':
         s.first.forEach(e => checkPart(w, e, true));
+        if (s.test && readsLine(s.test) !== undefined) {
+            refuse("a line read in the test of a for (;;): perl tests it with defined there (D212, T501); write while (my $line = <STDIN>) { ... }", s.test.pos);
+        }
         if (s.test) {
             notTested(s.test);
             tested(s.test);
@@ -970,6 +993,8 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
     // A list, to a call that wants one (D18): the fault for a call that
     // wants one value is the runtime's.
     case 'return': return s.value === undefined ? undefined : checkExpr(w, s.value, false, 'list');
+    // One value, a whole number (step 21a, D217).
+    case 'exit': return s.value === undefined ? undefined : checkExpr(w, s.value, false, 'scalar');
     // The parser lets a sub stand at the top level only.
     case 'sub': throw new Error('a sub below the top level');
     }
@@ -987,7 +1012,7 @@ const expressions = (s: Stmt, f: (e: Expr) => void): void => {
     switch (s.kind) {
     case 'call': return s.args.forEach(f);
     case 'do': return f(s.expr);
-    case 'return': return s.value === undefined ? undefined : f(s.value);
+    case 'return': case 'exit': return s.value === undefined ? undefined : f(s.value);
     case 'block': return s.body.forEach(b => expressions(b, f));
     case 'if':
         for (const arm of s.arms) {
@@ -1073,7 +1098,7 @@ const changedBy = (names: Resolution): ReadonlySet<number>[] => {
         switch (s.kind) {
         case 'call': return s.args.forEach(a => expr(a, fn));
         case 'do': return expr(s.expr, fn);
-        case 'return': return s.value === undefined ? undefined : expr(s.value, fn);
+        case 'return': case 'exit': return s.value === undefined ? undefined : expr(s.value, fn);
         case 'block': return s.body.forEach(b => stmt(b, fn));
         case 'if':
             for (const arm of s.arms) {

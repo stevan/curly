@@ -60,6 +60,8 @@ test is tested apart, on `t/000-say.pl`.)
 | `same-sort-variable` | `&$sort(keys %h)`: a variable called sort |
 | `same-two-headers` | Two `# args:` lines, which `t/run.sh` and the check read differently |
 | `same-env-seed` | `# env: PERL_HASH_SEED=0`, which would turn the seeds off |
+| `same-env-machine` | A variable of the machine's the test did not set, `HOME`: perl is not given it (step 21, D220) |
+| `same-env-knob` | The collector's knobs are given to perl as to the program (D220) |
 | `same-limit` | A limit that isn't a whole number of seconds |
 | `same-cr-header` | A `# kind:` after a carriage return, which only Python takes for a new line |
 | `dies-ok` | A good `dies` test |
@@ -83,6 +85,7 @@ test is tested apart, on `t/000-say.pl`.)
 | `warns-undef` | An undef in `warn`'s list is a warning of perl's |
 | `warns-died` | A `warns` test that dies: it is a `dies` test |
 | `dies-perl-warns` | A `dies` test in which perl also warns: the hole "The checks themselves" left for step 15 |
+| `dies-exits` | A `dies` test that writes to stderr and exits 255 with no `die`: the hole left for step 21 (D220) |
 | `fault-warned-ok` | A fault after a `warn`, the warn the start of perl's stderr (`.stderr` stands in for it) |
 | `fault-warned-wrong` | A fault after the program wrote to stderr what perl does not |
 | `same-heredoc-ok` | A heredoc, a `q{}` and a `qw()` holding an apostrophe, a `%` and the words `keys` and `values`: none is code (step 16a) |

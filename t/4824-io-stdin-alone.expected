@@ -1,0 +1,2 @@
+t/4824-io-stdin-alone.pl:4:9: STDIN is read by <STDIN>, and asked of by eof(STDIN), and stands nowhere else (D211)
+exit: 1

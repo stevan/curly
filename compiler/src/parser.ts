@@ -807,6 +807,15 @@ export const parse = (tokens: readonly Token[]): Program => {
             return { kind: 'str', text: t.text, value: t.value, pos: t.pos };
         }
         if (t.kind === 'hash') return { kind: 'array', name: t.name, hash: true, pos: t.pos };
+        if (t.kind === 'readline') {
+            // `<STDIN>` (step 21a, D211): a line, or every line where a
+            // list is wanted. perl does not compile a subscript after it.
+            const after = peek();
+            if (after.kind === '[' || after.kind === '{' || (after.kind === 'op' && after.text === '->')) {
+                refuse(`${show(after)} after <STDIN>: take the line into a my first, or the lines into an array`, after.pos);
+            }
+            return { kind: 'readline', pos: t.pos };
+        }
         if (t.kind === 'qw') {
             // `qw(a b)` is `('a', 'b')`, a bracketed list (step 16a, D122;
             // T260), and may be sliced as one.
@@ -963,6 +972,23 @@ export const parse = (tokens: readonly Token[]): Program => {
         }
         const name = t.kind === 'word' ? NAMES.get(t.text) : undefined;
         if (name?.kind === 'constant' || name?.kind === 'unary' || name?.kind === 'function' || name?.kind === 'statement') return apply(t);
+        // `eof(STDIN)` (step 21a, D214): brackets always, and STDIN in them.
+        // `eof()` is the files of @ARGV to perl, and `eof` alone the handle
+        // read last (T509).
+        if (name?.kind === 'eof') {
+            const open = next();
+            if (open.kind !== '(') return refuse(`eof is written eof(STDIN) here: eof alone is the handle perl read last (D214)`, t.pos);
+            const h = next();
+            if (h.kind === ')') return refuse('eof() is the files named in @ARGV, or stdin, to perl, and not in the language (D214): eof(STDIN)', t.pos);
+            if (h.kind !== 'word' || NAMES.get(h.text)?.kind !== 'stdin' || peek().kind !== ')') return refuse('eof takes STDIN here, eof(STDIN): other handles are step 21b\'s (D214)', h.pos);
+            next();
+            return { kind: 'stdineof', pos: t.pos };
+        }
+        // A handle where a value is wanted (step 21a, D218): perl reads
+        // `printf(STDOUT ...)` as a handle and a list, which the language
+        // writes without the bracket.
+        if (name?.kind === 'handle') return refuse(`${t.text} stands right after say, print or printf, a blank between and no bracket before it: printf ${t.text} ...;`, t.pos);
+        if (name?.kind === 'stdin') return refuse('STDIN is read by <STDIN>, and asked of by eof(STDIN), and stands nowhere else (D211)', t.pos);
         if (name?.kind === 'arrayop') return arrayOp(t);
         if (name?.kind === 'hashop') return hashOp(t);
         if (name?.kind === 'listop') return listOp(t);
@@ -970,7 +996,7 @@ export const parse = (tokens: readonly Token[]): Program => {
         if (name?.kind === 'sort') return sort(t);
         // perl takes `$done and last` and `$x ? last : next` (T120), and
         // `my $x = return 5;` (T139).
-        if (name?.kind === 'jump' || name?.kind === 'return') {
+        if (name?.kind === 'jump' || name?.kind === 'return' || name?.kind === 'exit') {
             return refuse(`${t.text} is a statement, not a value: write '${t.text} if ...;' or '${t.text} unless ...;'`, t.pos);
         }
         // A sub with no name (step 14; D161): its signature, or its block
@@ -1202,6 +1228,26 @@ export const parse = (tokens: readonly Token[]): Program => {
         // `return;` and `return VALUE;` (D72). What follows the value may
         // be a modifier, and no operator: `return $v or 9;` is `(return
         // $v) or 9` to perl, which warns (T139).
+        if (name?.kind === 'exit') {
+            // `exit;`, `exit EXPR;`, `exit(EXPR);` (step 21a, D217): a
+            // statement, its argument a named unary operator's, as perl
+            // has it: `exit 2 < 3` exits 2, and perl warns (T506).
+            next();
+            const open = peek();
+            if (ends(open) || isModifier(open)) return { kind: 'exit', pos: head.pos };
+            let value: Expr;
+            if (open.kind === '(') {
+                next();
+                value = peek().kind === ')' ? { kind: 'int', text: '0', value: 0n, pos: open.pos } : bracketed();
+            } else {
+                value = expression(NAMED_UNARY_ROW);
+            }
+            const after = peek();
+            if (!ends(after) && !isModifier(after)) {
+                refuse(`${show(after)} after exit's argument: exit takes only what binds more tightly than a named unary operator, and perl warns of the rest; bracket the argument, exit(...)`, after.pos);
+            }
+            return { kind: 'exit', value, pos: head.pos };
+        }
         if (name?.kind === 'return') {
             next();
             if (!inSub) refuse("return outside a sub: perl dies there, when it gets to it", head.pos);
@@ -1223,6 +1269,7 @@ export const parse = (tokens: readonly Token[]): Program => {
             // a list that is not in brackets of its own.
             const handle = peek();
             const stderr = handle.kind === 'word' && NAMES.get(handle.text)?.kind === 'handle';
+            if (handle.kind === 'word' && NAMES.get(handle.text)?.kind === 'stdin') refuse(`${head.text} STDIN: stdin is read, not written`, handle.pos);
             if (stderr) {
                 next();
                 const after = peek();
@@ -1236,7 +1283,7 @@ export const parse = (tokens: readonly Token[]): Program => {
             if (after.kind === 'op' && infixOp(after.text)) {
                 refuse(`'${after.text}' after ${head.text}'s argument: it binds more loosely than ${head.text} does, and joins what ${head.text} returns, to perl; bracket the argument, ${head.text}(... ${after.text} ...)`, after.pos);
             }
-            return stderr ? { kind: 'call', name: head.text, args, stderr: true, pos: head.pos } : { kind: 'call', name: head.text, args, pos: head.pos };
+            return stderr ? { kind: 'call', name: head.text, args, handle: handle.text, pos: head.pos } : { kind: 'call', name: head.text, args, pos: head.pos };
         }
         if (name?.kind === 'changer') {
             // `chomp($x);` and `chop $x;` (step 16c, D130): `$x` assigned
@@ -1245,6 +1292,20 @@ export const parse = (tokens: readonly Token[]): Program => {
             // character taken.
             next();
             const open = peek().kind === '(' ? next() : undefined;
+            // `chomp(my $x = EXPR);` and `chomp($x = EXPR);` (step 21a,
+            // D219): the assignment, and then the chomp of the variable.
+            const first = peek();
+            const declares = first.kind === 'word' && NAMES.get(first.text)?.kind === 'my';
+            if (open !== undefined && head.text === 'chomp' && (declares || (first.kind === 'var' && tokens[i + 1]?.kind === 'op' && tokens[i + 1]!.text === '='))) {
+                const assigned = expression(COMMA_ROW);
+                if (assigned.kind !== 'assign' || assigned.op !== '=' || (assigned.target.kind !== 'my' && assigned.target.kind !== 'var')) {
+                    return refuse(`${head.text}(...) takes one scalar variable, or the assignment of one, ${head.text}(my $x = ...) (D219)`, first.pos);
+                }
+                if (next().kind !== ')') return refuse(`${head.text}(...) takes one scalar variable, or the assignment of one, ${head.text}(my $x = ...) (D219)`, first.pos);
+                // The variable assigned what the chomp makes of the value:
+                // one statement, so that a `my` is the enclosing block's.
+                return { kind: 'do', expr: { ...assigned, value: { kind: 'apply', name: head.text, args: [assigned.value], pos: head.pos } }, pos: head.pos };
+            }
             const v = next();
             const one = `${head.text} takes one scalar variable here, ${head.text}($x): its value, an array, a hash, an element and $_ are not in the language (D130)`;
             if (v.kind !== 'var') return refuse(one, v.pos);

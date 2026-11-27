@@ -1,0 +1,2 @@
+t/4820-io-readline-word.pl:4:9: expected a value, found 'readline'
+exit: 1

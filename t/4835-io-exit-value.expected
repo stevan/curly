@@ -1,0 +1,2 @@
+t/4835-io-exit-value.pl:4:9: exit is a statement, not a value: write 'exit if ...;' or 'exit unless ...;'
+exit: 1

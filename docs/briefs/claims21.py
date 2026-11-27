@@ -127,4 +127,12 @@ STEP21 = [
     # T515: STDIN in a loop's test with a readline under `use open`, and
     # several lines in one read, a character past ASCII in each.
     c('T515', 'PLAN 21', OPEN + 'while (my $l = <STDIN>) { print length($l), $l }', stdin='é\n☺'.encode(), out='2é\n1☺'),
+    # T516, found by the review (the builder's own pass): once a line has
+    # been read, a die's or a warn's message names the handle and how many
+    # lines it has given; not after eof alone, nor after a read that found
+    # nothing.
+    c('T516', 'TRAPS; PLAN 21, the review', 'my $l = <STDIN>; warn "w"; my $m = <STDIN>; my $n = <STDIN>; warn "w2"; die "d";', stdin=b'a\nb\n', exit=255, err=r'^w at claim\.pl line 2, <STDIN> line 1\.\nw2 at claim\.pl line 2, <STDIN> line 2\.\nd at claim\.pl line 2, <STDIN> line 2\.\n$'),
+    c('T516-none', 'TRAPS; PLAN 21, the review', 'say eof(STDIN) ? 1 : 0; my $l = <STDIN>; die "d";', stdin=b'', out='1\n', exit=255, err=r'^d at claim\.pl line 2\.\n$'),
+    c('T516-list', 'TRAPS; PLAN 21, the review', 'my @l = <STDIN>; my $e; try { die "t" } catch ($x) { $e = $x } print $e;', stdin=b'a\nb\nc', out='t at claim.pl line 2, <STDIN> line 3.\n'),
+    c('T516-newline', 'TRAPS; PLAN 21, the review', 'my $l = <STDIN>; die "x\\n";', stdin=b'a\n', exit=255, err=r'^x\n$'),
 ]

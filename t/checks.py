@@ -264,9 +264,17 @@ def run_perl(flags, path, hdr, seed, limit):
     """perl on a test, from the repository's root and by the path the
     compiler is given, with the test's stdin, arguments and environment
     and nothing else of this process's. None if it didn't end in time."""
-    env = {'PATH': os.environ.get('PATH', ''), 'PERL_HASH_SEED': str(seed)}
-    env.update(pair.split('=', 1) for pair in words(hdr.get('env', '')))
+    env = {**program_environment(hdr), 'PERL_HASH_SEED': str(seed)}
     return run_capped([PERL, *flags, path, *words(hdr.get('args', ''))], env, printf_b(hdr.get('stdin', '')), limit)
+
+def program_environment(hdr):
+    """The one environment perl and the compiled program are both given
+    (D220): PATH, the collector's knobs, and the test's `# env:`, nothing
+    else of this machine's. perl has its seed beside them (T514), and the
+    program what the sanitizers are told, which is no part of it."""
+    env = {'PATH': os.environ.get('PATH', ''), **knobs()}
+    env.update(pair.split('=', 1) for pair in words(hdr.get('env', '')))
+    return env
 
 def clip(data, n=300):
     text = data.decode('utf-8', 'replace')
@@ -598,6 +606,8 @@ def perl_says(path, hdr, kind, limit):
     marked = None if kind == 'same' else run_perl(['-I' + os.path.join(ROOT, 't', 'oracle'), '-MWarned'], path, hdr, SEEDS[0], limit)
     if marked is not None and b'PERL WARNED: ' in marked.stderr:
         return f'perl warned as it ran, so the language should fault or refuse (D15): {clip(marked.stderr)}', None
+    if kind == 'dies' and marked is not None and b'PERL EXITED: ' in marked.stderr:
+        return 'perl ended by exit, not by an uncaught die: a dies test is a die (D12, D220)', None
     if len(set(outputs)) > 1:
         return 'perl\'s output changes from run to run: with the hash seed, or with something else D14 lists', None
     return None, outputs[0]
@@ -618,9 +628,8 @@ def program_stdout(path, hdr, errors=False):
     c = subprocess.run(['node', 'bin/curlyc.ts', '-o', binary, path], capture_output=True)
     if c.returncode != 0:
         return f'it does not compile: {clip(c.stderr)}', None
-    env = dict(os.environ)
-    env.update(knobs())
-    env.update(pair.split('=', 1) for pair in words(hdr.get('env', '')))
+    env = program_environment(hdr)
+    env.update({k: v for k, v in os.environ.items() if k in ('ASAN_OPTIONS', 'UBSAN_OPTIONS', 'LSAN_OPTIONS')})
     r = run_capped([binary, *words(hdr.get('args', ''))], env, printf_b(hdr.get('stdin', '')), int(os.environ.get('TIMEOUT', '60')))
     if r is None:
         return ('the compiled program did not finish', None, None) if errors else ('the compiled program did not finish', None)

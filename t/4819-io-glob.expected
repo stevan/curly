@@ -1,0 +1,2 @@
+t/4819-io-glob.pl:4:9: '<' where a value begins is a readline or a glob to perl, and only <STDIN> is in the language (D211)
+exit: 1

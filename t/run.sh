@@ -44,6 +44,21 @@ header() {
         { exit }' "$2"
 }
 
+# What a test's program is given of this process's environment, and
+# nothing else (D220): PATH, and the knobs of t/knobs.sh, as perl is given
+# them by t/checks.py, so that no test reads the machine; and what the
+# sanitizers are told, which is no part of the program. The test's own
+# `# env:` comes after.
+environment() {
+    printf 'PATH=%s' "$PATH"
+    for knob in $(sed -n 's/^: "\${\([A-Z_]*\)=.*/\1/p' t/knobs.sh); do
+        eval "printf ' %s=%s' $knob \"\$$knob\""
+    done
+    for v in ASAN_OPTIONS UBSAN_OPTIONS LSAN_OPTIONS; do
+        eval "[ -n \"\${$v+x}\" ] && printf ' %s=%s' $v \"\$$v\""
+    done
+}
+
 # The watchdog leaves a file to say it killed the test, since its own
 # output can't go down the pipe to diff: diff would wait for it.
 output() {
@@ -52,7 +67,7 @@ output() {
     # What it prints goes to a file, which is what the limit is on. stdout
     # and stderr apart, and then stdout first: perl's order for a `dies` or
     # a `warns` test, whatever the two buffers did (D149).
-    ( ulimit -f "$OUTPUT_BLOCKS"; exec env $4 "./$1" $3 <"$2" >"$1.output" 2>"$1.errors" ) &
+    ( ulimit -f "$OUTPUT_BLOCKS"; exec env -i $(environment) $4 "./$1" $3 <"$2" >"$1.output" 2>"$1.errors" ) &
     set +f
     pid=$!
     ( sleep "$TIMEOUT" && : >"$1.killed" && kill "$pid" ) >/dev/null 2>&1 &

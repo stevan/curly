@@ -1,0 +1,2 @@
+t/4805-io-until-modifier.pl:5:20: a line read in the test of until: perl tests it with defined in some of these shapes and not others (D212, T501); write while (my $line = <STDIN>) { ... }
+exit: 1

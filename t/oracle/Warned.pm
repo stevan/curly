@@ -4,7 +4,7 @@
 # marked, so that a `dies` or a `warns` test in which perl itself warned
 # fails the check. `warn` is overridden to say which warnings are the
 # program's; an undef among its arguments is perl's own warning too
-# (`Use of uninitialized value in warn`).
+# (`Use of uninitialized value in warn`). And every `exit` is marked too.
 package Warned;
 our $own = 0;
 BEGIN {
@@ -14,5 +14,11 @@ BEGIN {
         CORE::warn(@_);
     };
     $SIG{__WARN__} = sub { print STDERR ($own ? '' : 'PERL WARNED: '), $_[0] };
+    # And `exit` is marked (step 21; D220): a `dies` test is an uncaught
+    # `die`, and a program that writes to stderr and exits 255 is not one.
+    *CORE::GLOBAL::exit = sub {
+        print STDERR "PERL EXITED: with exit\n";
+        CORE::exit(@_ ? $_[0] : 0);
+    };
 }
 1;

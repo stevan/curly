@@ -1,0 +1,2 @@
+t/4825-io-print-to-stdin.pl:4:7: print STDIN: stdin is read, not written
+exit: 1

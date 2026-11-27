@@ -85,6 +85,9 @@ static void release(rt_ctx *cx) {
     cx->dead = NULL;
     free(cx->marks);
     cx->marks = NULL;
+    free(cx->read_buf);
+    cx->read_buf = NULL;
+    cx->read_room = 0;
     cx->marking = cx->mark_room = 0;
 }
 
@@ -225,7 +228,12 @@ static uint64_t knob(const char *name, uint64_t most) {
 }
 
 int rt_run(void (*body)(rt_ctx *cx), const char *file) {
-    rt_ctx cx = { .file = file, .threshold = FIRST_COLLECTION };
+    return rt_run_args(body, file, 0, NULL);
+}
+
+// With the program's arguments, for `@ARGV` (step 21).
+int rt_run_args(void (*body)(rt_ctx *cx), const char *file, int argc, char **argv) {
+    rt_ctx cx = { .file = file, .threshold = FIRST_COLLECTION, .argc = argc, .argv = argv };
     cx.stress = knob("CURLY_GC_STRESS", UINT32_MAX);
     cx.poison = knob("CURLY_GC_POISON", 1);
     cx.cap = knob("CURLY_HEAP_CAP", (uint64_t)1 << 62);
@@ -1701,3 +1709,4 @@ void rt_internal(rt_ctx *cx, const char *what) {
 #include "unwind.c"
 #include "format.c"
 #include "strfn.c"
+#include "io.c"

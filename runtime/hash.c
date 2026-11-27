@@ -24,6 +24,7 @@ static rt_array *hash_of(rt_ctx *cx, rt_value v) {
 
 static rt_array *hash_changing(rt_ctx *cx, rt_value v) {
     rt_array *h = hash_of(cx, v);
+    if (h->frozen & RT_FROZEN_READONLY) rt_fault(cx, "%ENV is read-only");
     if (h->frozen != 0) rt_fault(cx, "a hash was changed while a foreach is over it");
     return h;
 }

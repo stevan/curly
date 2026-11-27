@@ -194,11 +194,19 @@ typedef struct rt_ctx {
     struct rt_array **marks;
     uint64_t marking;       // how many are on it
     uint64_t mark_room;     // and how many it has room for
+    // Step 21 (io.c): the program's arguments, and the bytes of the last
+    // line read from stdin, kept here so that a fault leaves none to free.
+    int argc;
+    char **argv;
+    char *read_buf;
+    size_t read_room;
+    uint64_t stdin_lines;   // how many lines have been read: perl's `$.` for STDIN, which a `die` names
 } rt_ctx;
 
 // Run a compiled program: make its context, call its body, return the
 // status main should. The generated C's main is this and nothing else.
 int rt_run(void (*body)(rt_ctx *cx), const char *file);
+int rt_run_args(void (*body)(rt_ctx *cx), const char *file, int argc, char **argv);
 
 // Open a frame of `count` slots, all holding no value, and close it: the
 // newest must be the one closed.
@@ -546,4 +554,20 @@ void rt_fault(rt_ctx *cx, const char *what) __attribute__((noreturn));
 // `internal: WHAT at FILE line N.` on stderr, after what the program
 // printed, and exit status 2. Never the program's doing.
 void rt_internal(rt_ctx *cx, const char *what) __attribute__((noreturn));
+// Step 21 (io.c): the outside. `rt_readline` is the next line of stdin or
+// undef, and `rt_list_add_lines` every line that is left; `rt_eof_stdin`
+// is `eof(STDIN)`; `rt_argv` and `rt_environ` fill `@ARGV` and `%ENV`,
+// in slots, as the program starts, `%ENV` then read-only; `rt_exit`
+// flushes and exits with the low eight bits of a whole number; and
+// `rt_printf_err` is `printf STDERR`.
+// A hash with this bit in its count of freezes may not be changed at all
+// (D216): `%ENV`.
+#define RT_FROZEN_READONLY ((uint64_t)1 << 61)
+rt_value rt_readline(rt_ctx *cx);
+void rt_list_add_lines(rt_ctx *cx, rt_value list);
+rt_value rt_eof_stdin(rt_ctx *cx);
+void rt_argv(rt_ctx *cx, rt_value *argv);
+void rt_environ(rt_ctx *cx, rt_value *env);
+void rt_exit(rt_ctx *cx, rt_value status) __attribute__((noreturn));
+void rt_printf_err(rt_ctx *cx, rt_value list);
 #endif

@@ -1,0 +1,12 @@
+6
+one 2 three-3 0 -x 1.5
+5
+one|1.5
+3.5
+one 5
+2,three-3,0,-x,1.5,last
+171234
+2+three-3+0+-x+1.5+last
+-x 0 1.5 2 last three-3
+undef
+0

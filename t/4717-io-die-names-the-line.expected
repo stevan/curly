@@ -1,0 +1,6 @@
+before at t/4717-io-die-names-the-line.pl line 7.
+one at t/4717-io-die-names-the-line.pl line 10, <STDIN> line 1.
+after at t/4717-io-die-names-the-line.pl line 14, <STDIN> line 2.
+with a newline
+uncaught at t/4717-io-die-names-the-line.pl line 18, <STDIN> line 2.
+exit: 255

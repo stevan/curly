@@ -1,0 +1,13 @@
+one
+[]
+42
+a=b
+there
+not
+undef
+default
+CURLY_IO_A CURLY_IO_EMPTY CURLY_IO_EQ CURLY_IO_N
+the value: one
+changed one
+41
+path

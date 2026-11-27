@@ -852,6 +852,42 @@ Every program is kept there and is a row of `briefs/claims17.py`
 | T436 | `field $y :param` on one line, `= die "no y";` on the next (15) | `no y at ... line 4.`, the field's first line | 17a | A field's declaration is a statement to D150 (D178) |
 | T437 | `grep { $self->drop } @a`, `drop` shifting the field `@a` (17) | perl dies of a segmentation fault | 17a | No test asks perl for it (T194's kin) |
 
+## Found proposing step 21
+
+Each a row of `briefs/claims21.py`, which may give perl its stdin,
+arguments and environment. D210 to D221 answer them.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T500 | `printf STDERR "%d-%s\n", 5, "a";` | `5-a` on stderr; the compiler took it since the merge of 15b and 16b and wrote `%d-%s` and the values after it: a WRONG | 21a | `printf` to a handle formats (D218); 4713 |
+| T501 | `while (my $l = <STDIN>)`, `while ($l = <STDIN>)`, with brackets or `+`, an element on the left, `for (;$l = <STDIN>;)`, `... while $l = <STDIN>`, a last line `0` | `[0]` read: perl tests these with `defined`; not `until ($l = <STDIN>)`, `if (my $l = <STDIN>)`, `$go && ($l = <STDIN>)` | 21a | `defined` in the block `while`, the other loop shapes refused (D212); 4700, 4716, 4800 to 4808 |
+| T502 | A line `\xC3\xA9` without `use open`; with it `\xE9`, a surrogate, past U+10FFFF, an overlong form, U+FFFF, U+FDD0; `\xC3` at the end of the input | `2` and `195`; with `use open` a warning for each; the cut character dropped in silence (`a\xC3` reads `a`, `\xC3` alone undef) | 21a | Bytes as characters; under `use open` every one a fault (D211); 4707, 4708, 4740 to 4749 |
+| T503 | `@ARGV` and `%ENV` holding `é` | `2`: bytes, `use open` or not | 21a | Bytes as characters (D215, D216) |
+| T504 | `$ENV{Z} = [1]; say ref $ENV{Z};` | the empty string: a store to `%ENV` is made a string | 21a | `%ENV` read-only (D216); 4750 to 4755, 4762 |
+| T505 | `my @ARGV = (5);`, `my %ENV;` | taken in silence, the arguments and the environment hidden | 21a | Refused (D215, D216); 4838 to 4840 |
+| T506 | `exit 256`, `exit -1`, `exit 2**40 + 5`, `exit 1.9`, `exit 1 + 1`, `exit 2 < 3`, `exit 0 \|\| 3` | `0`, `255`, `5`, `1`, `2`; `2` and `0` with a warning: exit is a named unary operator | 21a | The low eight bits; an operator after the argument refused (D217); 4720 to 4733, 4831 to 4834 |
+| T507 | `try { exit 4 } catch ($e) { say "caught" }`; `exit` in a sub in a `map` | exits 4, nothing caught; exits | 21a | No `try` sees it (D217); 4727, 4728, 4733 |
+| T508 | `f(<STDIN>)`, `my ($p, $q) = <STDIN>`, `(<STDIN>) x 2`, `map { <STDIN> } ...`, and **`$h{<STDIN>} = <STDIN>`** | every line that is left where a list is; and the key read first, where `$h{k()} = v()` calls `v` first (D80): perl reads the line into the element it has worked out | 21a | A readline is a list where an array is one (D211); the element refused when working it out reads or calls (D213); 4701 to 4706, 4809 to 4813 |
+| T509 | `eof()`, `eof` | `eof()` is the files of `@ARGV`, or stdin; `eof` the handle read last | 21a | `eof(STDIN)` only (D214); 4709, 4826 to 4830 |
+| T510 | `say $0;` | the path perl was given, which is not the compiled program's | 21a | Refused (D211); 4841 |
+| T511 | `while (<STDIN>) { print "[$_]" }` | stores each line in perl's global `$_` | 21a | Refused (D212); 4800, 4801, 4806 |
+| T512 | `chomp(my $l = <STDIN>);` | the line less its newline; at the end of the input `Use of uninitialized value $l in chomp` | 21a | In (D219); 4714, 4760 |
+| T513 | `readline(STDIN)`, `<*.x>`, `<>`, `<FH>` | a line; a glob; the files of `@ARGV` or stdin; refused under `use v5.42` | 21a | Refused but `<STDIN>` (D211); 4814 to 4820 |
+| T514 | `say exists $ENV{PERL_HASH_SEED} ? 1 : 0;` under the oracle | `1`: the oracle's perl has its seed in `%ENV` | 21a | One environment for both, the seed aside (D220) |
+| T515 | `use open`, `while (my $l = <STDIN>) { print length($l), $l }`, `é` and `☺` | each line's characters | 21a | 4708 |
+
+## Found by the review of step 21
+
+The builder's own pass (no second agent could be started in the session
+that built 21a): `briefs/step21-review/contexts.py`, 74 places a
+readline stands, with and without `use open`, each under seven inputs,
+held to perl. Its first run, `first-run.txt`: 860 the same, 90 faults,
+70 refusals, and one WRONG under both `use open`s.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T516 | `my $l = <STDIN>; try { die $l } catch ($e) { print "caught $e" }` with stdin `0` | `caught 0 at FILE line 2, <STDIN> line 1.`: once a line has been read, a message of `die` or `warn` names the handle and how many lines it has given (not after `eof` alone, nor a read that found nothing) | 21a | Agree: the runtime counts the lines read and the message says so (D211); 4717, 4718 |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only
@@ -921,7 +957,9 @@ Every program is kept there and is a row of `briefs/claims17.py`
     not the program's own `warn` marked (`t/oracle/Warned.pm`, which
     overrides `warn` to tell the two apart), and `t/checks/dies-perl-warns`
     goes red if the mark is not looked for. One that exits 255 without
-    a `die` would need `exit`, which is step 21's.
+    a `die` would need `exit`, which is step 21's. **Closed at step 21a** (D220):
+    `Warned.pm` marks `exit`, and `t/checks/dies-exits` goes red if the
+    mark is not looked for.
   - A test that writes a file leaves it for the next of perl's nine
     runs (one to compile, eight seeds), so the check fails it the
     first time, blaming the seed, and passes it ever after. Step 21:
@@ -930,6 +968,12 @@ Every program is kept there and is a row of `briefs/claims17.py`
     for stdin; the compiled program gets the whole environment and a
     file. `%ENV`, `-t`, `localtime` and `time` show the difference.
     Steps 21 and 22: one environment for both, and `TZ` pinned.
+    **Closed at step 21a for the environment** (D220): perl and the
+    program are given `PATH`, the knobs and the test's `# env:`, perl
+    its seed beside them; `t/checks/same-env-machine` and
+    `same-env-knob` go red if either sees more. stdin is a pipe for
+    perl and a file for the program still (`-t` is not in the
+    language); `TZ` is step 22's.
   - `-CSDA` is not `perl FILE` for a character past ASCII: closed at
     step 3 (D39).
   - A `new` test is not checked at all. The first two are step 12a's,

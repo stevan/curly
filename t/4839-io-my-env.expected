@@ -1,0 +1,2 @@
+t/4839-io-my-env.pl:4:1: my %ENV: perl takes it, and the program's own then hides the environment (D216); give it another name
+exit: 1

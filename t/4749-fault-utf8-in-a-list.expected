@@ -1,0 +1,3 @@
+start
+fault: malformed UTF-8 read at t/4749-fault-utf8-in-a-list.pl line 7.
+exit: 1

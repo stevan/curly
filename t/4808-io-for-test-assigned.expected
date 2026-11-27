@@ -1,0 +1,2 @@
+t/4808-io-for-test-assigned.pl:5:20: a line read in the test of a for (;;): perl tests it with defined there (D212, T501); write while (my $line = <STDIN>) { ... }
+exit: 1

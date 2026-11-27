@@ -44,6 +44,8 @@ export type Token =
     // one, `${ EXPR }` (step 13c).
     | { kind: 'cast'; text: '@' | '%' | '$#' | '$'; pos: Pos }
     | { kind: 'op'; text: string; pos: Pos }
+    // `<STDIN>`, the one readline of step 21a (D211).
+    | { kind: 'readline'; text: string; pos: Pos }
     | { kind: 'eof'; text: string; pos: Pos };
 
 // An index in a string (D91): a whole number, with a minus or without, or
@@ -601,7 +603,7 @@ export const lex = (src: string): Token[] => {
             return target?.kind === 'var' || target?.kind === ']' || (target?.kind === '}' && (target.subscript === true || target.deref === true))
                 || (target?.kind === 'op' && target.text === '->$*');
         }
-        return last?.kind === 'int' || last?.kind === 'num' || last?.kind === 'str' || last?.kind === 'qw' || last?.kind === ')' || last?.kind === 'var'
+        return last?.kind === 'int' || last?.kind === 'num' || last?.kind === 'str' || last?.kind === 'qw' || last?.kind === ')' || last?.kind === 'var' || last?.kind === 'readline'
             || last?.kind === ']' || last?.kind === 'array' || last?.kind === 'lastindex' || last?.kind === 'hash'
             || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true || last.sub === true))
             || (last?.kind === 'op' && WHOLE.has(last.text))
@@ -915,8 +917,24 @@ export const lex = (src: string): Token[] => {
             && !(tokens.at(-1)?.kind === 'word' && NAMES.get(tokens.at(-1)!.text)?.kind === 'sub')) {
             // (`sub q(...)` names a sub, which the parser refuses: T28.)
             quoteLike(start);
+        } else if (c === '<' && src.startsWith('<<>>', i) && !afterValue()) {
+            refuse("<<>> reads the files named in @ARGV, or stdin, and is not in the language (D211): read stdin with <STDIN>", start);
         } else if (c === '<' && src[i + 1] === '<' && !afterValue()) {
             hereDoc(start);
+        } else if (c === '<' && !afterValue()) {
+            // Where a value may begin, `<` begins a readline or a glob to
+            // perl (step 21a, D211): `<STDIN>` alone is in.
+            if (src.startsWith('<STDIN>', i)) {
+                for (let k = 0; k < '<STDIN>'.length; k++) take();
+                push({ kind: 'readline', text: '<STDIN>', pos: start });
+                continue;
+            }
+            const close = src.indexOf('>', i);
+            const inside = close < 0 ? '' : src.slice(i + 1, close);
+            if (inside === '') refuse("<> reads the files named in @ARGV, or stdin, and is not in the language (D211): read stdin with <STDIN>", start);
+            if (inside.startsWith('$')) refuse(`<${inside}> reads a file handle, which is step 21b's: stdin is read with <STDIN>`, start);
+            if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(inside)) refuse(`<${inside}>: a bareword file handle, which is not in the language (D211); stdin is read with <STDIN>`, start);
+            refuse("'<' where a value begins is a readline or a glob to perl, and only <STDIN> is in the language (D211)", start);
         } else if (isWordStart(c)) {
             const operator = afterValue();
             let text = run(isWord);

@@ -66,7 +66,14 @@ export type Name =
     | { kind: 'try' }
     | { kind: 'catch' }
     | { kind: 'yada' }
-    | { kind: 'handle'; say: string; print: string }
+    | { kind: 'handle'; say: string; print: string; printf: string }
+    // Step 21a (D211, D214, D217, D218): `STDIN`, read by `<STDIN>` and
+    // asked of by `eof(STDIN)`, and nowhere else; `eof`; `exit`, a
+    // statement whose argument is a named unary operator's. STDOUT is a
+    // `handle` beside STDERR.
+    | { kind: 'stdin' }
+    | { kind: 'eof'; rt: string }
+    | { kind: 'exit'; rt: string }
     // `chomp` and `chop` (step 16c, D130): a statement on one scalar
     // variable, built as the variable assigned what `rt` makes of it.
     | { kind: 'changer'; rt: string }
@@ -132,7 +139,11 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['try', { kind: 'try' }],
     ['catch', { kind: 'catch' }],
     ['...', { kind: 'yada' }],
-    ['STDERR', { kind: 'handle', say: 'rt_say_err_list', print: 'rt_print_err_list' }],
+    ['STDERR', { kind: 'handle', say: 'rt_say_err_list', print: 'rt_print_err_list', printf: 'rt_printf_err' }],
+    ['STDOUT', { kind: 'handle', say: 'rt_say_list', print: 'rt_print_list', printf: 'rt_printf' }],
+    ['STDIN', { kind: 'stdin' }],
+    ['eof', { kind: 'eof', rt: 'rt_eof_stdin' }],
+    ['exit', { kind: 'exit', rt: 'rt_exit' }],
     ['index', { kind: 'function', min: 2, rt: ['rt_index2', 'rt_index3'] }],
     ['rindex', { kind: 'function', min: 2, rt: ['rt_rindex2', 'rt_rindex3'] }],
     ['chomp', { kind: 'changer', rt: 'rt_chomp' }],

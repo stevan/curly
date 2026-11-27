@@ -1,2 +1,1 @@
-t/2788-format-printf-to-a-handle.pl:4:8: expected a value, found 'STDOUT'
-exit: 1
+a

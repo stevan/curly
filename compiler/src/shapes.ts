@@ -42,6 +42,8 @@ export const shaped = (in_: Expr, gives: Gives): boolean => {
     case 'hashop': return e.op === 'keys' || e.op === 'values' || e.keys !== undefined;
     case 'binder': return true;
     case 'sort': return true;
+    // Every line that is left, to a list (step 21a, T508).
+    case 'readline': return true;
     case 'ternary': return shaped(e.then, gives) || shaped(e.else, gives);
     case 'binary': return isRange(e) || isRepeat(e) || (infixOp(e.op)?.when !== undefined && shaped(e.right, gives));
     default: return false;
@@ -91,4 +93,13 @@ export const listSubs = (subs: readonly Sub[], calls: ReadonlyMap<Invoke, number
         }
     }
     return lists;
+};
+
+// A loop's test that perl tests with `defined` (step 21a; T501, D212): a
+// readline, or `=` of one, behind any brackets and unary plus.
+export const readsLine = (in_: Expr): 'bare' | 'assigned' | undefined => {
+    const e = behind(in_);
+    if (e.kind === 'readline') return 'bare';
+    if (e.kind === 'assign' && e.op === '=' && behind(e.value).kind === 'readline') return 'assigned';
+    return undefined;
 };

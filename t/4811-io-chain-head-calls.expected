@@ -1,0 +1,2 @@
+t/4811-io-chain-head-calls.pl:7:10: a line read into an element whose index, key or reference reads a line or calls a sub: perl works the element out first and then reads, against the order of every other assignment (D213, T508); take the index into a my first
+exit: 1

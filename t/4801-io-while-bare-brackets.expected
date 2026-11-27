@@ -1,0 +1,2 @@
+t/4801-io-while-bare-brackets.pl:4:9: a <STDIN> alone in a loop's test: perl stores each line in its global $_, which is not in the language (D212, T511); write while (my $line = <STDIN>) { ... }
+exit: 1

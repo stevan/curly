@@ -36,7 +36,7 @@ import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
 import type { ArrayOp, Binder, CallRef, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
-import { handsOn, shaped } from './shapes.ts';
+import { handsOn, readsLine, shaped } from './shapes.ts';
 import type { Gives } from './shapes.ts';
 
 // The context an expression is worked out in (D18): one of perl's three,
@@ -150,7 +150,7 @@ const isRepeat = (e: Expr): boolean => e.kind === 'binary' && infixOp(e.op)?.lis
 // What is more values than one, or fewer, where a list is wanted.
 const listy = (in_: Expr): boolean => {
     const e = through(in_);
-    return e.kind === 'array' || (e.kind === 'deref' && !e.last) || e.kind === 'list' || isRange(e) || isRepeat(e)
+    return e.kind === 'array' || (e.kind === 'deref' && !e.last) || e.kind === 'list' || isRange(e) || isRepeat(e) || e.kind === 'readline'
         || e.kind === 'slice'
         || (e.kind === 'arrayop' && e.op === 'splice')
         || (e.kind === 'listop' && e.op === 'reverse')
@@ -217,6 +217,9 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
         b.lines.push(`rt_list_add_${e.op}(cx, ${list}, ${c});`);
     } else if (e.kind === 'list') {
         e.items.forEach(item => addItem(item, list, b, strict));
+    } else if (e.kind === 'readline') {
+        // Where a list is wanted, every line that is left (T508).
+        b.lines.push(`rt_list_add_lines(cx, ${list});`);
     } else if (e.kind === 'binary' && isRange(e)) {
         const from = genExpr(e.left, b);
         const to = genExpr(e.right, b);
@@ -545,6 +548,10 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         return { c: name.c, place: false };
     }
     case 'var': return { c: variable(b, e), place: true };
+    // `<STDIN>` where one value is wanted: the next line, or undef (step
+    // 21a, D211); `eof(STDIN)` (D214).
+    case 'readline': return temp(b, 'rt_readline(cx)');
+    case 'stdineof': return temp(b, 'rt_eof_stdin(cx)');
     // `my $x`: an undef, each time the `my` is reached, whatever the slot
     // held for a variable before it.
     // One whose reference is taken is a new cell (step 13c; T240).
@@ -1029,9 +1036,10 @@ const genStmt = (s: Stmt, out: Out): string[] => {
     case 'call': {
         const name = NAMES.get(s.name);
         if (name?.kind !== 'statement') throw new Error(`no runtime function for ${s.name}`);
-        // `say STDERR LIST` (15b).
-        const handle = NAMES.get('STDERR');
-        const rt = s.stderr && handle?.kind === 'handle' ? (s.name === 'say' ? handle.say : handle.print) : name.rt;
+        // `say STDERR LIST` (15b), and STDOUT, and `printf` to either
+        // (step 21a, D218).
+        const handle = s.handle === undefined ? undefined : NAMES.get(s.handle);
+        const rt = handle?.kind === 'handle' ? (s.name === 'say' ? handle.say : s.name === 'printf' ? handle.printf : handle.print) : name.rt;
         // A block of its own keeps each statement's temporaries out of the
         // next one's way: a C compiler is slow over ten thousand locals in
         // one scope.
@@ -1052,7 +1060,10 @@ const genStmt = (s: Stmt, out: Out): string[] => {
     // the loop's line, and under a modifier the statement's, which is
     // where the node is (D62).
     case 'while': {
-        const test = genWhole(s.test, s.pos.line, out, c => [`if (${s.negate ? 'rt_is_true' : 'rt_is_false'}(cx, ${c})) break;`]);
+        // `while (my $line = <STDIN>)` is tested with `defined`, as perl
+        // tests it (D212, T501); the checker refuses the other shapes.
+        const defined = readsLine(s.test) === 'assigned';
+        const test = genWhole(s.test, s.pos.line, out, c => [`if (${defined ? 'rt_is_undef' : s.negate ? 'rt_is_true' : 'rt_is_false'}(cx, ${c})) break;`]);
         const id = out.names.loops.get(s);
         return [
             'for (;;) {',
@@ -1178,6 +1189,14 @@ const genStmt = (s: Stmt, out: Out): string[] => {
     // The value into the C local that is returned, and out by the one
     // way there is. `return;` is undef to a scalar, and to a list it is
     // nothing at all, which the language can't yet say (D71).
+    // `exit` (step 21a, D217): the process ends there, and nothing is
+    // given back or thawed.
+    case 'exit':
+        if (s.value === undefined) return ['{', ...indent([`cx->line = ${s.pos.line};`, 'rt_exit(cx, rt_int(0));']), '}'];
+    {
+        const whole = genWhole(s.value, s.pos.line, out, c => [`rt_exit(cx, ${c});`]);
+        return [...whole.vars, '{', ...indent(whole.code), '}'];
+    }
     case 'return': {
         if (s.value === undefined) {
             return ['{', ...indent([`cx->line = ${s.pos.line};`, 'r = want == RT_LIST ? rt_absent() : rt_undef();', ...leaving(out), 'goto done;']), '}'];
@@ -1304,6 +1323,9 @@ export const generate = (program: Program, names: Resolution, file: string): str
         // included, and reached by the subs through the context (T134).
         ...names.names.flatMap((_, id) => (names.owner[id] === 0 && names.slots[id]! < names.file && isFileSlot(names, id)
             ? [`    f[${names.slots[id]}] = ${names.isHash[id] ? 'rt_hash_new(cx)' : names.isArray[id] ? 'rt_array_new(cx)' : 'rt_undef()'};`,
+                // `@ARGV` and `%ENV`, filled (step 21a; D215, D216).
+                ...(names.builtins.get(id) === 'ARGV' ? [`    rt_argv(cx, &f[${names.slots[id]}]);`] : []),
+                ...(names.builtins.get(id) === 'ENV' ? [`    rt_environ(cx, &f[${names.slots[id]}]);`] : []),
                 // One whose reference is taken has one cell from the start
                 // (step 13c; T255).
                 ...(inCell(names, id) ? [`    rt_cell_wrap(cx, &f[${names.slots[id]}]);`] : [])] : [])),
@@ -1314,8 +1336,8 @@ export const generate = (program: Program, names: Resolution, file: string): str
         '    rt_leave(cx, &frame);',
         '}',
         '',
-        'int main(void) {',
-        `    return rt_run(curly_main, ${cString(file)});`,
+        'int main(int argc, char **argv) {',
+        `    return rt_run_args(curly_main, ${cString(file)}, argc, argv);`,
         '}',
         '',
     ].join('\n');

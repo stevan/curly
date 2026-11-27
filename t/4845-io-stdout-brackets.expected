@@ -1,0 +1,2 @@
+t/4845-io-stdout-brackets.pl:4:12: say STDOUT (...): write the list without brackets of its own, say STDOUT ...;
+exit: 1

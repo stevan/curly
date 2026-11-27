@@ -1,0 +1,2 @@
+t/4834-io-exit-comma.pl:4:7: ',' after exit's argument: exit takes only what binds more tightly than a named unary operator, and perl warns of the rest; bracket the argument, exit(...)
+exit: 1

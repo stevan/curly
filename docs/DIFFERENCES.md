@@ -11,7 +11,7 @@ strings, booleans, variables, control, subs, arrays and lists, `map`,
 `grep`, `sort`, interpolation, hashes, references to arrays, hashes and
 scalars, with elements, the whole container and the scalar through them, in code and in strings, subs with no name and closures, `die`, `try`, `catch` and `warn`, and `q`,
 `qq`, `qw`, heredocs, `sprintf`, `printf` and the rest of the string
-builtins. What is decided and not built is at the end.
+builtins; and from step 21a stdin, `@ARGV`, `%ENV` and `exit`. What is decided and not built is at the end.
 
 ## How this file is kept
 
@@ -128,6 +128,9 @@ every one under both.
 | `my %h = (a => 1, b => 2); for my $k (sort keys %h) { delete $h{$k}; } say scalar(%h);` | `0` | Same |
 | `my %h = ("a b" => 1); say "$h{'a b'}";` | `1` | Refused |
 | `my %h = (a => 1); my $k = "a"; say "$h{a} $h{$k}";` | `1 1` | Same |
+| `while (<STDIN>) { print; }` | nothing, stdin being empty | Refused |
+| `my $l = <STDIN>; say defined $l ? "line" : "undef";` | `undef` | Same |
+| `$ENV{CURLY_X} = 1; say $ENV{CURLY_X};` | `1` | Fault: `%ENV is read-only` |
 | `my $r = {a => [1, 2]}; say "$r->{a}[1] @{$r->{a}} $r->{a}->$#*";` | `2 1 2 1` | Same |
 | `my @l = (1, 2); say "count: @{[ scalar(@l) ]}";` | `count: 2` | Refused |
 | `my $h = {}; say "<$h->{a}{b}>";` | `<>`, and warns | Fault: `undef where a reference is wanted` |
@@ -211,7 +214,9 @@ is where the feel changes.
 | `BEGIN`, `eval STRING`, a `require` at run time, `do FILE`, `__DATA__` | Cut: the compiler sees the whole program before any of it runs | idiom | sometimes | layout | D20 |
 | A dereference without braces: `@$r`, `%$r`, `$$r`, `$$r[0]`, `$#$r`, the commonest spelling in old Perl | The arrow: `$r->[0]`, `$r->{k}`; for the whole container `$r->@*` or `@{ $r }`, and for a scalar `$r->$*` or `${ $r }`. (237 of the 795 census programs that wait for references use a spelling without braces) | idiom | often | data, old code | D108 |
 | `open(...) or die "...";`, `$ok or die "...";`: a statement joined to `die` by a word operator | Refused, as every statement joined by one is: `die "..." unless $ok;` (a guess: files, at step 21, will make it common) | idiom | sometimes | errors | D146 |
-| `chomp(my $line = <STDIN>)`, `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131 |
+| `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;`, or of its assignment, `chomp(my $line = <STDIN>);` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131, D219 |
+| `while (<STDIN>) { chomp; ... }`, `print while <STDIN>;`: each line in `$_` | Refused: `while (my $line = <STDIN>) { chomp($line); ... }`, which perl tests with `defined` as it does the other | idiom | often | loops | D212 |
+| `while (<>) { ... }`: the files named in `@ARGV`, or stdin | Refused, and `<<>>` too; `<STDIN>` reads stdin, and files are step 21b's | idiom | sometimes | loops | D211 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
 | Code in a string: `"@{[ scalar(@a) ]}"`, `"${\ join(",", @a) }"`, and anything in `"@{ ... }"` but a scalar variable and its subscripts | Refused: work the value out first, into a `my`, and put that in the string | idiom | sometimes | strings | D111 |
 
@@ -272,6 +277,10 @@ someone.
 |---|---|---|---|---|---|
 | String increment: `"aa"++` is `"ab"`, `"Az"++` is `"Ba"` | Fault. A numeric string that is stepped becomes a number | idiom | rarely | strings | D52 |
 | A list assignment has a value, its right side's count: `my $n = () = f();`, `if ((my @r = f()))` | A statement, and refused as a value | idiom | rarely | data | D78 |
+| `$ENV{TZ} = "UTC";`, `delete $ENV{X}`: a change to the environment, for a child process | `%ENV` is read-only: a change is a fault (a guess: there are no child processes yet) | habit | rarely | data | D216 |
+| `eof()` for the end of `<>`'s files, `eof` alone for the handle read last | `eof(STDIN)` | habit | rarely | loops | D214 |
+| `$0`, the program's own name | Refused: the compiled program's path is not perl's | habit | rarely | printing | D211 |
+| `printf(STDERR "%s\n", $x)`, a handle inside the brackets | `printf STDERR "%s\n", $x;` | habit | rarely | printing | D218 † |
 | A bare block is a loop that runs once: `{ ...; last if $x; ... }` | A scope and nothing else; an unlabelled `last` nearest one is refused. Label the loop that is meant | idiom | rarely | control | D59 † |
 | The flip-flop, `..` where one value is wanted; a range of strings, `"a" .. "e"` | Refused; a string as the end of a range is a fault | idiom | rarely | control, data | D80 |
 | `redo`, `goto`, `continue` blocks | Cut | idiom | rarely | control | D62 |
@@ -300,7 +309,7 @@ someone.
 | No limit on recursion | `recursion too deep`, about 3,800 calls for a small sub today. The number is the implementation's | habit | rarely | subs | D68 |
 | The file's last statement needs no semicolon | It does; the last of a block doesn't | habit | rarely | layout | D75 † |
 | `use open qw(:std :encoding(UTF-8));`, `':utf8'` | The one spelling | habit | rarely | layout | D39 † |
-| `try { ... } catch ($e) { ... } finally { ... }`; `defer { ... }` | Not in: `finally` is experimental in 5.42 and `defer` needs `use feature` | idiom | rarely | errors | D144 |
+| `try { ... } catch ($e) { ... } finally { ... }`; `defer { ... }` | Not in: `finally` is experimental in 5.42 and `defer` needs `use feature` | idiom | rarely | errors | D144, D221 |
 | A sub that ends in a `try`, worth its last statement's value | A fault where its value is used, as for a sub that ends in an `if` | idiom | rarely | errors, subs | D143, D18 |
 | Two heredocs on a line, `<< "END"`, `<<""`, a terminator with a blank in it | One heredoc on a line, its terminator a word hard against `<<` | habit | rarely | strings | D123 † |
 | `%i`, `%ld`, `%F`, `%2$s`, `%v`, `%n` in a format; a flag perl ignores | `%d`, `%f`; no argument by its number | habit | rarely | printing | D125 |
@@ -328,6 +337,10 @@ quiet has met few of them.
 | `undef * 2` is undef of a glob named `2`, in silence | Bare `undef` only where perl can't take what follows for its argument; else `(undef)` | accident | rarely | variables | D48 |
 | A sub named for a word of perl's is never called: after `sub q($x) {...}`, `q(5)` is the string `5` | A sub may have no name perl gives a meaning to (266 words) | accident | rarely | subs | D21 |
 | `-e(2)` is a file test | A minus hard against one letter: refused | accident | rarely | subs | D73 |
+| `exit $x \|\| 1` is `(exit $x) \|\| 1`, and perl warns | An operator after `exit`'s argument that binds more loosely than a named unary operator: refused | accident | rarely | control | D217 |
+| `my @ARGV`, `my %ENV` hide the arguments and the environment, in silence | Refused | accident | rarely | variables | D215 |
+| `$h{<STDIN>} = <STDIN>` reads the key's line first, against the order of every other assignment | Refused when working out the element reads a line or calls a sub | accident | rarely | data | D213 † |
+| A line with a malformed or cut UTF-8 character under `use open`: perl warns, or drops a cut one in silence | Fault: `malformed UTF-8 read` | accident | rarely | strings | D211 |
 | `!$x == $y` is `(!$x) == $y`, and 5.42 warns | Refused | accident | rarely | control | D50 |
 | `"ab" x3`; `length - 5`; `$x =- $y`; `65.66.67`, which is `ABC` | Each refused | accident | rarely | strings, numbers | D44, D41, D56, D38 |
 | `{ }` alone is an anonymous hash; `while ()` loops for ever | Each refused | accident | rarely | control | D56, D62 |
@@ -439,8 +452,8 @@ full when its step is, and its rows join the sections above then.
 
 - **Strings, the rest, 16d** (D120): the case escapes `\U \L \u \l
   \Q \E`, `substr` of four arguments, `reverse` of a string where one
-  value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle
-  (step 21). 16a to 16c (D121 to D131) are built, and their rows are in
+  value is wanted, `__FILE__` and `__LINE__`, POD. (`printf` to a
+  handle came with step 21a, D218.) 16a to 16c (D121 to D131) are built, and their rows are in
   the sections above.
 - **Objects** (step 17; D19). `class` as 5.42 has it, on a core
   the runtime holds, `Object`, `Role` and `Class`, of which every
@@ -475,8 +488,11 @@ full when its step is, and its rows join the sections above then.
   as a pattern. **How `s///` and a match read with `$_` read-only
   and always written is the largest open question for the feel**,
   and is not decided.
-- **The core is small** (D22): files, the environment and processes
-  are libraries, each by proposal.
+- **The core is small** (D22): processes are libraries, each by
+  proposal. Files are steps 21b and 21c (D210): `open` with three
+  arguments and a lexical handle, `close`, `<$fh>`, `print {$fh}`, an
+  error from the system that no `same` test prints; file tests and
+  directories.
 - **What perl doesn't have** (D5): gradual types, erased before perl
   sees the file; a metaobject protocol; concurrency.
 
@@ -488,7 +504,7 @@ decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
 D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164,
-D186, D170.
+D186, D170, D210, D220.
 
 ## What this leaves out
 

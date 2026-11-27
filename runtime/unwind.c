@@ -136,8 +136,11 @@ static rt_value message(rt_ctx *cx, rt_value list, const char *empty) {
         newline = s->bytes[s->len - 1] == '\n';
         break;
     }
-    char tail[64];
-    int taillen = newline ? 0 : snprintf(tail, sizeof tail, " line %" PRId64 ".\n", cx->line);
+    // Once a line has been read, perl names the handle and how many lines
+    // it has given (step 21a, T516): `, <STDIN> line N`.
+    char tail[96];
+    int taillen = newline ? 0 : cx->stdin_lines == 0 ? snprintf(tail, sizeof tail, " line %" PRId64 ".\n", cx->line)
+        : snprintf(tail, sizeof tail, " line %" PRId64 ", <STDIN> line %" PRIu64 ".\n", cx->line, cx->stdin_lines);
     uint64_t filelen = newline ? 0 : strlen(cx->file) + 4;
     uint64_t filechars = 0;
     if (!newline) {
