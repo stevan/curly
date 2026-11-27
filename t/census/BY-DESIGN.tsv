@@ -3,8 +3,8 @@
 # what refuses one, move it to t/census/run/ and take its line out.
 # probe	decision	refusal
 chalk/c3t2.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
-chalk/c3t3.pl	D17	'srand' is not in the language
-chalk/c3t4.pl	D17	'srand' is not in the language
+chalk/c3t3.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+chalk/c3t4.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 chalk/c3t5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 chalk/fk2.pl	D19	'our' is not in the language
 chalk/hc1.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
@@ -26,6 +26,10 @@ pvm/arithmetic-01.pl	D55	$a is not a name a program may declare: $a and $b are t
 pvm/arithmetic-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/arithmetic-03.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/arithmetic-04.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pvm/bitwise-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pvm/bitwise-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pvm/bitwise-03.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pvm/bitwise-04.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/blocks-and-terminations-04.pl	D13	'eval' is not in the language
 pvm/code-references-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/comparison-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -36,6 +40,7 @@ pvm/compile-phase-01.pl	D13	'END' is not in the language
 pvm/compile-phase-02.pl	D19	'package' is not in the language
 pvm/compile-phase-03.pl	D147	a comment that begins its line '# line' and a number is a line directive, to perl, which changes the line and the file a die names: reword it
 pvm/compound-assignment-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pvm/compound-assignment-05.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/context-from-inside-01.pl	D13	expected a value, found 'wantarray'
 pvm/context-from-inside-02.pl	D13	expected a value, found 'caller'
 pvm/declarations-02.pl	D19	'::' hard after $main in a string: perl reads a variable of another package; write ${main}:: or $main\::
@@ -92,7 +97,7 @@ pvm/vstrings-01.pl	D38	65.66.67 is not a number in the language
 pvm/writing-03.pl	D16	'use feature' is not in the language
 son-audit/a/aue1.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/a/aue3.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
-son-audit/a/aue4.pl	D17	'srand' is not in the language
+son-audit/a/aue4.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/a/aue5.pl	D17	expected a value, found 'each'
 son-audit/a/auk11.pl	D13	expected a value, found 'eval'
 son-audit/a/auk12.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
@@ -271,6 +276,7 @@ son-audit/a/aux2.pl	D19	'our' is not in the language
 son-audit/a/aux5.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aux6.pl	D19	'our' is not in the language
 son-audit/a/aux7.pl	D19	'our' is not in the language
+son-audit/a/aux9.pl	D19	'our' is not in the language
 son-audit/al/c01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c02.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c03.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -385,6 +391,7 @@ son-audit/f/b57.pl	D55	$a is not a name a program may declare: $a and $b are the
 son-audit/f/b59.pl	D13	'wantarray' is not in the language
 son-audit/f/b65.pl	D19	'our' is not in the language
 son-audit/f/b70.pl	D17	expected a value, found 'each'
+son-audit/f/b77.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
 son-audit/f/b83.pl	D13	expected a value, found 'eval'
 son-audit/f/b84.pl	D13	expected a value, found 'eval'
 son-audit/f/b85.pl	D13	expected a value, found 'eval'
@@ -598,6 +605,7 @@ son-audit/f/j06.pl	D17	$_ is read-only: in perl, changing it changes the list's 
 son-audit/f/j07.pl	D19	'our' is not in the language
 son-audit/f/j08.pl	D19	'our' is not in the language
 son-audit/f/j09.pl	D19	'our' is not in the language
+son-audit/f/j10.pl	D19	'our' is not in the language
 son-audit/f/j11.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
 son-audit/f/j12.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/j13.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -1083,8 +1091,8 @@ son-audit/p/pl5.pl	D19	'our' is not in the language
 son-audit/p/pl6.pl	D19	'our' is not in the language
 son-audit/p/pl7.pl	D19	'our' is not in the language
 son-audit/p/pl9.pl	D19	'our' is not in the language
-son-audit/p/rn1.pl	D17	'srand' is not in the language
-son-audit/p/rn2.pl	D17	'srand' is not in the language
+son-audit/p/rn1.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-audit/p/rn2.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/sg1.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/p/st1.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/st10.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -1362,7 +1370,6 @@ son-audit/r/n31.pl	D108	$$ before a name is cut (D108): an element through a ref
 son-audit/r/n32.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/r/n33.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/r/n35.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
-son-audit/r/o01.pl	D17	'srand' is not in the language
 son-audit/r/o03.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/o04.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/o10.pl	D19	'our' is not in the language
@@ -1702,6 +1709,7 @@ son-audit/y/yf41.pl	D17	$x is its loop's variable, and read-only: in perl, chang
 son-audit/y/yf42.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf43.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf44.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/y/yf45.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf49.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf50.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf52.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -1723,11 +1731,13 @@ son-audit/y/yg02.pl	D38	18446744073709551614 is past the largest integer, 922337
 son-audit/y/yg03.pl	D38	9223372036854775808 is past the largest integer, 9223372036854775807
 son-audit/y/yg04.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
 son-audit/y/yg07.pl	D38	9223372036854775808 is past the largest integer, 9223372036854775807
+son-audit/y/yg11.pl	D38	9223372036854775808 is past the largest integer, 9223372036854775807
 son-audit/y/yg27.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/yg28.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yg29.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/yg30.pl	D38	017 starts with a zero: perl reads that as octal, which the language writes 0o17
 son-audit/y/yg31.pl	D38	100000000000000000000 is past the largest integer, 9223372036854775807
+son-audit/y/yg35.pl	D208	'<=>' as an operand of '|': perl warns of a precedence problem, '|' binding more loosely; bracket the one that is meant
 son-audit/y/yg47.pl	D125	an argument by its number, %3$s..., which is not in the language (T276), in sprintf's format
 son-audit/y/yg49.pl	D125	%v, which is not in the language (a version string's format; T276), in sprintf's format
 son-audit/y/yg51.pl	D38	017 starts with a zero: perl reads that as octal, which the language writes 0o17
@@ -1737,6 +1747,8 @@ son-audit/y/yg67.pl	D99	'{' hard after @h in a string: a slice of a hash, to per
 son-audit/y/yg76.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
 son-audit/y/yg77.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
 son-audit/y/yg78.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
+son-audit/y/yg79.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
+son-audit/y/yg82.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
 son-audit/y/yg86.pl	D38	07 starts with a zero: perl reads that as octal, which the language writes 0o17
 son-audit/y/yg87.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/yh01.pl	D13	'wantarray' is not in the language
@@ -1940,7 +1952,7 @@ son-audit/y/yn44.pl	D92	'$' in a double-quoted string begins a variable, and no 
 son-audit/y/yn52.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/yn53.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yn55.pl	D92	'[' hard after $h{k} in a string: another index, to perl; write $h{k}\[
-son-audit/y/yn57.pl	D17	'srand' is not in the language
+son-audit/y/yo01.pl	D204	'^.' is perl's string bitwise operator, which is cut (D204): the bit operators here are numeric
 son-audit/y/yo18.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yo20.pl	D16	'use strict' is not in the language
 son-audit/y/yo39.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language

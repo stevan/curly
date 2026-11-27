@@ -22,6 +22,16 @@ const unexpected = (t: Token, wanted: string): never =>
         ? refuse(`'${t.text}' is not in the language yet`, t.pos)
         : refuse(`expected ${wanted}, found ${show(t)}`, t.pos);
 
+// perl's bitwise operators that warn of a numeric comparison as an operand
+// (step 22b, T489), and those comparisons.
+const BITWISE = new Set(['&', '|', '^']);
+const NUMERIC_COMPARISONS = new Set(['==', '!=', '<', '>', '<=', '>=', '<=>']);
+
+// The operators that may follow `rand` or `srand` with no argument (step
+// 22c, T488): none can begin a value, and perl reads each as an operator,
+// in silence.
+const AFTER_BARE = new Set(['==', '!=', '>', '>=', '|', '^', '&&', '||', '>>']);
+
 // The postfix forms of the whole container through a reference (step 13b).
 const WHOLE_OPS = new Set(['->@*', '->%*', '->$#*']);
 
@@ -180,6 +190,15 @@ export const parse = (tokens: readonly Token[]): Program => {
             }
             return { kind: 'constant', name: head.text, pos: head.pos };
         }
+        // `time` (step 22c, D207): no argument, `time()` too.
+        if (name.kind === 'term') {
+            if (open.kind === '(') {
+                next();
+                if (peek().kind !== ')') refuse(`${head.text} takes no argument`, peek().pos);
+                next();
+            }
+            return { kind: 'apply', name: head.text, args: [], pos: head.pos };
+        }
         if (name.kind === 'unary') {
             // One of perl's named unary operators (D41). Brackets after
             // it hold its argument, whatever follows them: `length ("ab")
@@ -188,11 +207,24 @@ export const parse = (tokens: readonly Token[]): Program => {
             // arithmetic and `.`: `length "ab" . "c"` is 3 (T87).
             if (open.kind === '(') {
                 next();
+                if (peek().kind === ')' && name.bare !== undefined) {
+                    next();
+                    return { kind: 'apply', name: head.text, args: [], pos: head.pos };
+                }
                 if (peek().kind === ')') refuse(`${head.text} needs an argument`, head.pos);
                 return { kind: 'apply', name: head.text, args: [bracketed()], pos: head.pos };
             }
-            if (open.kind === ';' || open.kind === ')' || open.kind === ',' || open.kind === '}' || open.kind === 'eof') {
-                refuse(`${head.text} needs an argument`, head.pos);
+            const ends = open.kind === ';' || open.kind === ')' || open.kind === ',' || open.kind === '}' || open.kind === 'eof' || (open.kind === 'word' && isModifier(open));
+            // `rand` and `srand` with no argument (step 22c, D207): where an
+            // expression ends, and before the operators that cannot begin a
+            // value, which perl reads as operators (T488); before any other
+            // perl takes what follows for the argument if it can (`rand * 2`
+            // is `rand(*2)`, T485).
+            const operator = open.kind === '?' || (open.kind === 'op' && AFTER_BARE.has(open.text));
+            if ((ends || operator) && name.bare !== undefined) return { kind: 'apply', name: head.text, args: [], pos: head.pos };
+            if (ends) refuse(`${head.text} needs an argument`, head.pos);
+            if (name.bare !== undefined && (open.kind === 'op' || open.kind === 'word') && infixOp(open.text) && !prefixOp(open.text)) {
+                refuse(`${head.text} before '${open.text}': perl takes what follows ${head.text} for its argument; write ${head.text}() ${open.text} ...`, head.pos);
             }
             const arg = expression(NAMED_UNARY_ROW);
             // `ref $r . "x"` is `ref($r . "x")` to perl, which is never a
@@ -962,7 +994,7 @@ export const parse = (tokens: readonly Token[]): Program => {
             return { kind: 'my', name: own(v), pos: t.pos };
         }
         const name = t.kind === 'word' ? NAMES.get(t.text) : undefined;
-        if (name?.kind === 'constant' || name?.kind === 'unary' || name?.kind === 'function' || name?.kind === 'statement') return apply(t);
+        if (name?.kind === 'constant' || name?.kind === 'unary' || name?.kind === 'function' || name?.kind === 'statement' || name?.kind === 'term') return apply(t);
         if (name?.kind === 'arrayop') return arrayOp(t);
         if (name?.kind === 'hashop') return hashOp(t);
         if (name?.kind === 'listop') return listOp(t);
@@ -1078,6 +1110,18 @@ export const parse = (tokens: readonly Token[]): Program => {
                 refuse(`'${first.op}' before '${t.text}': perl warns of a precedence problem; write ${first.op}(... ${t.text} ...), or (${first.op}...) ${t.text} ...`, first.pos);
             }
             const right = expression(infix.assoc === 'right' ? infix.row + 1 : infix.row);
+            // `$x & $y == 3` is `$x & ($y == 3)`, and perl warns `Possible
+            // precedence problem on bitwise & operator` when a numeric
+            // comparison, unbracketed, is either operand of `&`, `|` or
+            // `^`, unless it folds the comparison away first: refused
+            // with constants too (step 22b, T489).
+            if (BITWISE.has(t.text)) {
+                for (const side of [left, right]) {
+                    if (side.kind === 'binary' && !side.bracketed && NUMERIC_COMPARISONS.has(side.op)) {
+                        refuse(`'${side.op}' as an operand of '${t.text}': perl warns of a precedence problem, '${t.text}' binding more loosely; bracket the one that is meant`, side.pos);
+                    }
+                }
+            }
             left = { kind: 'binary', op: t.text, left, right, pos: t.pos };
             if (infix.range && peek().kind === 'op' && infixOp(peek().text)?.range) {
                 refuse("'..' after a range: perl does not compile a range of a range", peek().pos);

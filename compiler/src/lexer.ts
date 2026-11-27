@@ -6,7 +6,7 @@
 // a dot begins `.5` and `x` is a word (T90). D29 has the parser tell it;
 // the last token says as much, and will until `/` can begin a pattern.
 import { refuse } from './errors.ts';
-import { NAMES, NAME_MAX_LENGTH, OPERATORS, infixOp, isScalarValue, prefixOp, stepOp } from './names.ts';
+import { NAMES, NAME_MAX_LENGTH, OPERATORS, STRINGWISE, infixOp, isScalarValue, prefixOp, stepOp } from './names.ts';
 import type { Pos } from './ast.ts';
 
 export type Token =
@@ -605,7 +605,7 @@ export const lex = (src: string): Token[] => {
             || last?.kind === ']' || last?.kind === 'array' || last?.kind === 'lastindex' || last?.kind === 'hash'
             || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true || last.sub === true))
             || (last?.kind === 'op' && WHOLE.has(last.text))
-            || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub'));
+            || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub' || NAMES.get(last.text)?.kind === 'term'));
     };
 
     // Whether a brace that is no hash's key opens a new hash: where a value
@@ -1029,13 +1029,20 @@ export const lex = (src: string): Token[] => {
                 }
                 const a = src[w] ?? '';
                 const b = src[w + 1] ?? '';
+                const c = src[w + 2] ?? '';
                 const hard = b !== '' && !isBlank(b);
+                // (Step 22b, T478: `~` begins a value whatever follows it,
+                // and `<<` hard against anything but a blank or `=` is a
+                // heredoc to perl.)
                 const handle = ((a === '-' || a === '+') && hard && b !== '=')
+                    || a === '~'
+                    || (a === '<' && b === '<' && c !== '' && !isBlank(c) && c !== '=')
                     || (a === '.' && isDigit(b))
                     || ((a === '*' || a === '%' || a === '<' || a === '&') && isWordStart(b))
                     || (a === '/' && hard && b !== '=' && b !== '/');
                 if (handle) {
-                    refuse(`${lop.text} $${name} ${a}${b}: perl takes $${name} for a file handle here; put a blank after the '${a}', or none before it`, start);
+                    const sign = a === '<' && b === '<' ? '<<' : a;
+                    refuse(`${lop.text} $${name} ${sign}${sign === '<<' ? c : b}: perl takes $${name} for a file handle here; put a blank after the '${sign}', or none before it`, start);
                 }
             }
             push({ kind: 'var', text: '$' + name, name, pos: start });
@@ -1212,6 +1219,8 @@ export const lex = (src: string): Token[] => {
             // that dies (D145), and the parser says where it may stand;
             // after a value it is perl's other range, and not in.
             const yada = NAMES.get(op)?.kind === 'yada' && !afterValue();
+            // perl's string bitwise operators, cut (T46, D204).
+            if (STRINGWISE.has(op)) refuse(`'${op}' is perl's string bitwise operator, which is cut (D204): the bit operators here are numeric`, start);
             if (!prefixOp(op) && !infixOp(op) && !stepOp(op) && !yada) refuse(`'${op}' is not in the language yet`, start);
             // `$x =- $y`: perl warns `Reversed -= operator` when a sign is
             // hard after a `=` and a blank follows the sign (T127).

@@ -1,0 +1,2 @@
+fault: log of zero or a number below zero at t/4445-fault-log-of-a-negative-zero.pl line 5.
+exit: 1

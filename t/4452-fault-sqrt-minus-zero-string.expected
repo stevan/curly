@@ -1,0 +1,2 @@
+fault: a string that is a zero with a minus, to sqrt: perl reads it as -0 or 0 by what the string was used as at t/4452-fault-sqrt-minus-zero-string.pl line 4.
+exit: 1

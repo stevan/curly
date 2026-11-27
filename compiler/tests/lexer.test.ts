@@ -354,16 +354,16 @@ test("the longest of perl's operators is the token, in the language or not (T27)
     assert.deepEqual(lex('$x---$y').map(t => t.text), ['$x', '--', '-', '$y', '']);
     assert.deepEqual(lex('$x||=1 $x//=1 $x&&=1 $x.=1 $x%=1').map(t => t.text),
         ['$x', '||=', '1', '$x', '//=', '1', '$x', '&&=', '1', '$x', '.=', '1', '$x', '%=', '1', '']);
-    refused('say 1 << 2;', "'<<' is not in the language yet", 1, 7);
+    // The bit operators (step 22b) are tokens of their own, the longest.
+    assert.deepEqual(lex('1<<2 7<<=2 7|=2 1&2 1&&2 ~1 3>>=1').map(t => t.text), ['1', '<<', '2', '7', '<<=', '2', '7', '|=', '2', '1', '&', '2', '1', '&&', '2', '~', '1', '3', '>>=', '1', '']);
+    refused('say 6 &.5;', "'&.' is perl's string bitwise operator, which is cut (D204): the bit operators here are numeric", 1, 7);
     refused('say 1 ^^ 2;', "'^^' is not in the language yet", 1, 7);
     refused('say 1 ~~ 2;', "'~~' is not in the language yet", 1, 7);
     refused('say 1 =~ 2;', "'=~' is not in the language yet", 1, 7);
     refused('say 1 !~ 2;', "'!~' is not in the language yet", 1, 7);
     refused('say 1 -> 2;', "after '->' comes '[' or '{', hard against it: $r->[0], $r->{k}", 1, 7);
-    refused('say 7 <<= 2;', "'<<=' is not in the language yet", 1, 7);
-    refused('say 7 |= 2;', "'|=' is not in the language yet", 1, 7);
     refused('say 1 ... 5;', "'...' is not in the language yet", 1, 7);
-    refused('say 1 & 2;', "'&' is not in the language yet", 1, 7);
+    refused('say 1 |.= 2;', "'|.=' is perl's string bitwise operator, which is cut (D204): the bit operators here are numeric", 1, 7);
     // With a blank between them they are two, as they are to perl.
     assert.deepEqual(lex('- - + +').map(t => t.text), ['-', '-', '+', '+', '']);
 });

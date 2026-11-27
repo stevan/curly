@@ -50,7 +50,7 @@ r('heredoc-variable-runs-on', 'perl reads the index across the line as code: 1.'
 r('qq-backslash-before-its-bracket', 'perl takes the backslash away first: Y, the element (T278).', 'my $x = "X";\nmy @x = ("Y");\nsay qq[$x\\[0\\]];', '\\[0', "a backslash before '[' in a qq with that bracket: perl takes it away before it reads the variables, so that what follows can go on with one (T278); write the string with other brackets")
 r('qq-backslash-before-its-closing-bracket', 'perl prints a)b: no variable here, and one rule for the bracket.', 'say qq(a\\)b);', '\\)', "a backslash before ')' in a qq with that bracket: perl takes it away before it reads the variables, so that what follows can go on with one (T278); write the string with other brackets")
 r('heredoc-first-of-arguments-over-lines', 'perl takes the next line into the body, and does not compile the rest: Global symbol "@a" requires explicit package name (T284).', 'my @a = (<<A,\n"x");\nbody\nA\nsay scalar(@a);', 'say', 'say is a statement, and has no value')
-r('heredoc-after-a-value', 'perl takes $x for a file handle: Can\'t use string ("1") as a symbol ref. Here << after a value is the left shift, not in the language.', 'my $x = 1;\nsay $x <<EOT;\nEOT', '<<', "'<<' is not in the language yet")
+r('heredoc-after-a-value', 'perl takes $x for a file handle: Can\'t use string ("1") as a symbol ref. Since step 22 << after a value is the left shift, and this is the file-handle guess (T478).', 'my $x = 1;\nsay $x <<EOT;\nEOT', '$x <<', "say $x <<E: perl takes $x for a file handle here; put a blank after the '<<', or none before it")
 
 
 def write(first):

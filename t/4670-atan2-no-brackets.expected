@@ -1,0 +1,2 @@
+t/4670-atan2-no-brackets.pl:4:5: atan2 needs brackets round its arguments: atan2(...)
+exit: 1

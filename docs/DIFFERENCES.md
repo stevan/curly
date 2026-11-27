@@ -6,7 +6,7 @@ be met, and where. It decides nothing. Where it and a decision
 disagree, [`DECISIONS.md`](DECISIONS.md) is right and this file has a
 mistake.
 
-**Built** means steps 0 to 16c: numbers,
+**Built** means steps 0 to 16c and 22a to 22c: numbers, the numeric builtins, the bit operators, `rand`, `srand` and `time`,
 strings, booleans, variables, control, subs, arrays and lists, `map`,
 `grep`, `sort`, interpolation, hashes, references to arrays, hashes and
 scalars, with elements, the whole container and the scalar through them, in code and in strings, subs with no name and closures, `die`, `try`, `catch` and `warn`, and `q`,
@@ -128,6 +128,9 @@ every one under both.
 | `my %h = (a => 1, b => 2); for my $k (sort keys %h) { delete $h{$k}; } say scalar(%h);` | `0` | Same |
 | `my %h = ("a b" => 1); say "$h{'a b'}";` | `1` | Refused |
 | `my %h = (a => 1); my $k = "a"; say "$h{a} $h{$k}";` | `1 1` | Same |
+| `say ~0;` | `18446744073709551615` | Fault: `a bitwise answer of 2^63 or more` |
+| `my $y = 3; say 6 & $y == 3;` | `0`, and warns | Refused |
+| `srand(42); say rand(); say int(1e17);` | `0.744525000061007` `100000000000000000` | Same |
 | `my $r = {a => [1, 2]}; say "$r->{a}[1] @{$r->{a}} $r->{a}->$#*";` | `2 1 2 1` | Same |
 | `my @l = (1, 2); say "count: @{[ scalar(@l) ]}";` | `count: 2` | Refused |
 | `my $h = {}; say "<$h->{a}{b}>";` | `<>`, and warns | Fault: `undef where a reference is wanted` |
@@ -213,6 +216,7 @@ is where the feel changes.
 | `open(...) or die "...";`, `$ok or die "...";`: a statement joined to `die` by a word operator | Refused, as every statement joined by one is: `die "..." unless $ok;` (a guess: files, at step 21, will make it common) | idiom | sometimes | errors | D146 |
 | `chomp(my $line = <STDIN>)`, `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
+| `~0` for all ones, `$flags & ~$mask` to clear bits: `~` of a number of 0 or more | Fault: perl's answer is an unsigned integer from 2^63 up, which Curly does not have; every bit operator's answer is a fault there (`-1 \| 0`, `1 << 63`). `$flags - ($flags & $mask)` clears the bits | idiom | sometimes | numbers | D204, D208 |
 | Code in a string: `"@{[ scalar(@a) ]}"`, `"${\ join(",", @a) }"`, and anything in `"@{ ... }"` but a scalar variable and its subscripts | Refused: work the value out first, into a `my`, and put that in the string | idiom | sometimes | strings | D111 |
 
 ## 2. Habits that now stop
@@ -273,6 +277,8 @@ someone.
 | String increment: `"aa"++` is `"ab"`, `"Az"++` is `"Ba"` | Fault. A numeric string that is stepped becomes a number | idiom | rarely | strings | D52 |
 | A list assignment has a value, its right side's count: `my $n = () = f();`, `if ((my @r = f()))` | A statement, and refused as a value | idiom | rarely | data | D78 |
 | A bare block is a loop that runs once: `{ ...; last if $x; ... }` | A scope and nothing else; an unlabelled `last` nearest one is refused. Label the loop that is meant | idiom | rarely | control | D59 † |
+| `int` or `abs` of an answer from 2^63 to 2^64: `int(1e19)`, `abs(-2**63)` | Fault: perl's integer there is unsigned | idiom | rarely | numbers | D201 |
+| `localtime`, `gmtime`, `sleep`, `use integer` | Not yet (22d): `time` is in, and `rand` and `srand` | habit | rarely | numbers | D200 |
 | The flip-flop, `..` where one value is wanted; a range of strings, `"a" .. "e"` | Refused; a string as the end of a range is a fault | idiom | rarely | control, data | D80 |
 | `redo`, `goto`, `continue` blocks | Cut | idiom | rarely | control | D62 |
 | `last` or `next` in a called sub, a sub with no name, or a `map`, `grep` or `sort` block, leaves the loop round it | Refused | habit | rarely | control | D87, D165 |
@@ -328,6 +334,11 @@ quiet has met few of them.
 | `undef * 2` is undef of a glob named `2`, in silence | Bare `undef` only where perl can't take what follows for its argument; else `(undef)` | accident | rarely | variables | D48 |
 | A sub named for a word of perl's is never called: after `sub q($x) {...}`, `q(5)` is the string `5` | A sub may have no name perl gives a meaning to (266 words) | accident | rarely | subs | D21 |
 | `-e(2)` is a file test | A minus hard against one letter: refused | accident | rarely | subs | D73 |
+| `$x & $y == 3` is `$x & ($y == 3)`, and perl warns of a precedence problem | A numeric comparison without brackets as an operand of `&`, `\|` or `^`: refused, `6 & 3 == 3` too, where perl folds and is silent | accident | sometimes | numbers | D208 † |
+| `hex(" ff")`, `oct("755 ")`, `oct("7z")`: perl warns, or stops reading in silence; `hex("100000000")` warns it is not portable | Fault: `hex` and `oct` take what perl takes in silence and whole, up to 32 bits | accident | rarely | numbers | D203 † |
+| `srand(-1)` is `srand(1)`, `srand(1.5)` is `srand(1)`, `srand("1e3")` overflows: perl reads the seed as a string | Fault: an Int of 0 or more, a whole float below 10^15, or digits alone | accident | rarely | numbers | D205 † |
+| `sqrt(-1)` and `log(0)` die, and `try` catches them; a negative zero to `atan2` is pi or 0 by its past | Faults, which nothing catches | accident | rarely | numbers | D202 |
+| `rand * 2` is `rand(*2)`, `rand < 1` a glob; `say $x ~5` takes `$x` for a file handle | Refused: `rand()` before any other operator; a blank after the `~` | accident | rarely | numbers | D207 |
 | `!$x == $y` is `(!$x) == $y`, and 5.42 warns | Refused | accident | rarely | control | D50 |
 | `"ab" x3`; `length - 5`; `$x =- $y`; `65.66.67`, which is `ABC` | Each refused | accident | rarely | strings, numbers | D44, D41, D56, D38 |
 | `{ }` alone is an anonymous hash; `while ()` loops for ever | Each refused | accident | rarely | control | D56, D62 |
@@ -399,6 +410,11 @@ the same program under perl. None is on stdout but hash order.
 - **Every compiled program reads three environment variables**, the
   collector's knobs (D63). None changes what a program prints short
   of `out of memory`.
+- **`time` is the virtual clock when `CURLY_TIME` is set** (D206), a
+  fourth variable every program reads: every test sets it, so no test
+  sees the real clock. And `srand()`'s seed, and the seed of a `rand`
+  before any `srand`, are the runtime's own (D205), as perl's are
+  perl's: only a seeded `rand` prints what perl prints.
 - **Where Curly faults, perl may never stop**: a loop that only the
   fault would end runs for ever under perl (T131).
 
@@ -442,6 +458,8 @@ full when its step is, and its rows join the sections above then.
   value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle
   (step 21). 16a to 16c (D121 to D131) are built, and their rows are in
   the sections above.
+- **Numbers and time, 22d** (D200): `localtime`, `gmtime`, `sleep`,
+  `times`, `use integer`, `ceil` and `floor`. 22a to 22c are built.
 - **Objects** (step 17; D19). `class` as 5.42 has it, on a core
   the runtime holds, `Object`, `Role` and `Class`, of which every
   class and role is an instance (D182). Roles are wanted, and perl

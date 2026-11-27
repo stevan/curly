@@ -1,0 +1,2 @@
+fault: a reference where a number is wanted at t/4651-fault-srand-reference.pl line 5.
+exit: 1

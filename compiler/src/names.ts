@@ -14,7 +14,13 @@ export type Name =
     // One of perl's named unary operators (D41): one argument, in brackets
     // or without, and without them it takes everything that binds tighter
     // than the row of perlop's table that is theirs.
-    | { kind: 'unary'; rt: string }
+    | { kind: 'unary'; rt: string; bare?: string; effect?: true; volatile?: true }
+    // Step 22 (D207): `bare` is the runtime function for the operator with
+    // no argument, which `rand` and `srand` may be written with where an
+    // expression ends; `effect`: it may stand alone as a statement, perl
+    // being silent of it there; `volatile`: perl does not fold it (D53).
+    // `time` is a term: no argument, and an operator after it.
+    | { kind: 'term'; rt: string }
     // A word that is a value (D47, D48). `c` is the C for it. `bare`: perl
     // takes what follows the word for its argument whenever it can, so
     // only what can't be one may follow it (`undef`, T105).
@@ -91,6 +97,21 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['defined', { kind: 'unary', rt: 'rt_defined' }],
     // `ref` (step 13a; D112): ARRAY, HASH, or the empty string.
     ['ref', { kind: 'unary', rt: 'rt_ref' }],
+    // Step 22a (D201 to D203): perl's named unary operators of numbers.
+    ['int', { kind: 'unary', rt: 'rt_num_int' }],
+    ['abs', { kind: 'unary', rt: 'rt_num_abs' }],
+    ['sqrt', { kind: 'unary', rt: 'rt_num_sqrt' }],
+    ['sin', { kind: 'unary', rt: 'rt_num_sin' }],
+    ['cos', { kind: 'unary', rt: 'rt_num_cos' }],
+    ['exp', { kind: 'unary', rt: 'rt_num_exp' }],
+    ['log', { kind: 'unary', rt: 'rt_num_log' }],
+    ['hex', { kind: 'unary', rt: 'rt_hex' }],
+    ['oct', { kind: 'unary', rt: 'rt_oct' }],
+    ['atan2', { kind: 'function', min: 2, rt: ['rt_atan2'] }],
+    // Step 22c (D205 to D207).
+    ['rand', { kind: 'unary', rt: 'rt_rand', bare: 'rt_rand0', effect: true, volatile: true }],
+    ['srand', { kind: 'unary', rt: 'rt_srand', bare: 'rt_srand0', effect: true, volatile: true }],
+    ['time', { kind: 'term', rt: 'rt_time' }],
     ['true', { kind: 'constant', c: 'rt_bool(1)' }],
     ['false', { kind: 'constant', c: 'rt_bool(0)' }],
     ['undef', { kind: 'constant', c: 'rt_undef()', bare: true }],
@@ -139,6 +160,21 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['chop', { kind: 'changer', rt: 'rt_chop' }],
     ['__SUB__', { kind: 'cursub' }],
 ]);
+
+// perl's string bitwise operators (`use v5.42` brings the feature that
+// makes them), cut by D204 (T46).
+export const STRINGWISE: ReadonlySet<string> = new Set(['&.', '|.', '^.', '~.', '&.=', '|.=', '^.=']);
+
+// Step 22 (D207): a builtin perl works out as the program runs, never as
+// it compiles (D53); and one that may be a statement alone.
+export const isVolatile = (word: string): boolean => {
+    const name = NAMES.get(word);
+    return name?.kind === 'term' || (name?.kind === 'unary' && name.volatile === true);
+};
+export const isEffect = (word: string): boolean => {
+    const name = NAMES.get(word);
+    return name?.kind === 'unary' && name.effect === true;
+};
 
 // Every word perl 5.42 gives a meaning to: its own keyword table, whole
 // (regen/keywords.pl of the 5.42.0 source, 266 words), whether the
@@ -280,19 +316,20 @@ export const PRECEDENCE: readonly Level[] = [
     { assoc: 'left', infix: ops('->') },
     { assoc: 'nonassoc', other: ['++', '--'] },
     { assoc: 'right', infix: [{ op: '**', in: true, rt: 'rt_pow' }] },
-    { assoc: 'right', prefix: [{ op: '!', in: true, rt: 'rt_not', bang: true, tests: true }, ...ops('~', '~.', '\\'), { op: '+', in: true, sign: true }, { op: '-', in: true, rt: 'rt_neg', sign: true }] },
+    { assoc: 'right', prefix: [{ op: '!', in: true, rt: 'rt_not', bang: true, tests: true }, live('~', 'rt_bit_not'), ...ops('~.', '\\'), { op: '+', in: true, sign: true }, { op: '-', in: true, rt: 'rt_neg', sign: true }] },
     { assoc: 'left', infix: ops('=~', '!~') },
     { assoc: 'left', infix: [{ op: '*', in: true, rt: 'rt_mul' }, { op: '/', in: true, rt: 'rt_div' }, { op: '%', in: true, rt: 'rt_mod' }, { op: 'x', in: true, rt: 'rt_repeat', list: true }] },
     { assoc: 'left', infix: [{ op: '+', in: true, rt: 'rt_add' }, { op: '-', in: true, rt: 'rt_sub' }, { op: '.', in: true, rt: 'rt_concat', concat: true }] },
-    { assoc: 'left', infix: ops('<<', '>>') },
+    // Step 22b (D204): the bit operators, numeric under `use v5.42`.
+    { assoc: 'left', infix: [live('<<', 'rt_shl'), live('>>', 'rt_shr')] },
     { assoc: 'nonassoc', what: NAMED_UNARY },
     { assoc: 'nonassoc', infix: ops('isa') },
     { assoc: 'chained', infix: [live('<', 'rt_num_lt'), live('>', 'rt_num_gt'), live('<=', 'rt_num_le'), live('>=', 'rt_num_ge'),
         live('lt', 'rt_str_lt'), live('gt', 'rt_str_gt'), live('le', 'rt_str_le'), live('ge', 'rt_str_ge')] },
     { assoc: 'chain/na', infix: [live('==', 'rt_num_eq'), live('!=', 'rt_num_ne'), live('eq', 'rt_str_eq'), live('ne', 'rt_str_ne'),
         live('<=>', 'rt_num_cmp'), live('cmp', 'rt_str_cmp'), ...ops('~~')] },
-    { assoc: 'left', infix: ops('&', '&.') },
-    { assoc: 'left', infix: ops('|', '|.', '^', '^.') },
+    { assoc: 'left', infix: [live('&', 'rt_bit_and'), ...ops('&.')] },
+    { assoc: 'left', infix: [live('|', 'rt_bit_or'), ...ops('|.'), live('^', 'rt_bit_xor'), ...ops('^.')] },
     { assoc: 'left', infix: [lazy('&&', 'rt_is_true')] },
     { assoc: 'left', infix: [lazy('||', 'rt_is_false'), ...ops('^^'), lazy('//', 'rt_is_undef')] },
     // A range, in a list (D80): whole numbers from one end to the other.
@@ -305,7 +342,8 @@ export const PRECEDENCE: readonly Level[] = [
         put('-=', 'rt_sub_from'), put('/=', 'rt_div'), { ...put('.=', 'rt_concat_to'), concat: true }, put('%=', 'rt_mod'), put('x=', 'rt_repeat'),
         { op: '&&=', in: true, assign: true, when: 'rt_is_true' }, { op: '||=', in: true, assign: true, when: 'rt_is_false' },
         { op: '//=', in: true, assign: true, when: 'rt_is_undef' },
-        ...ops('&=', '&.=', '<<=', '|=', '|.=', '>>=', '^=', '^.=', '^^=')], what: 'and goto last next redo dump' },
+        put('&=', 'rt_bit_and'), put('<<=', 'rt_shl'), put('|=', 'rt_bit_or_to'), put('>>=', 'rt_shr'), put('^=', 'rt_bit_xor_to'),
+        ...ops('&.=', '|.=', '^.=', '^^=')], what: 'and goto last next redo dump' },
     { assoc: 'left', infix: ops(',', '=>') },
     { assoc: 'nonassoc', what: 'list operators (rightward)' },
     { assoc: 'right', prefix: [{ ...live('not', 'rt_not'), tests: true }] },

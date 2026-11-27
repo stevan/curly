@@ -1,0 +1,2 @@
+t/4661-hex-no-argument.pl:4:5: hex needs an argument
+exit: 1

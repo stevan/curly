@@ -7216,6 +7216,446 @@ The numeric builtins, the bit operators on integers (T46), `rand` and
 `srand` (perl's own generator, so a seeded program agrees with perl on
 every machine), `time` on a virtual clock in tests.
 
+**Proposed 2026-11-27, by Fable 5.2, working alone overnight in a
+worktree of its own (branch `step-22`, from 41a9025) while step 17a is
+built on main. Stevan: "I pre-approve all your recommendations, so do
+not ask me for confirmation and just keep building". So each question
+below is answered by its recommendation, recorded as D200 to D207 by
+that standing instruction, each his to overturn. The text is kept as
+it was proposed; what the adversarial review found, and D208, follow
+it.**
+
+**The size.** The outline says medium, and by `MODELS.md` it is: the
+compiler gains rows of `names.ts` (nine named unary operators, one
+function, two words with an optional argument, one term) and turns
+five rows of perlop's table on; the runtime gains one file,
+`runtime/num.c`, of small functions. The risk is not the machinery
+but the numbers: which of perl's answers is an integer and which a
+float, and where a value's past shows (D35, D36, D40, D45). So the
+night builds 22a to 22c and leaves 22d, below.
+
+Everything here about perl was run under 5.42.0 and is in
+`briefs/claims22.py` (rows `T470` to `T486` and `22-...`), which
+`claims.py` reads. Traps: T46 and T79 from before, and T470 to T486,
+found writing this.
+
+**The census**: 37 probes are refused today with "later 22" as the
+reason, by the first thing each meets: `int` (12), `time` (10), `&`
+(4), `localtime` (3), `abs` (3), `<<` (3), `sqrt` (2); two open ones
+meet `log` and `hex`; and seven probes sit in `by-design/` behind
+`srand`, which step 11b's table put under D17 (`'srand' is not in the
+language`). Those seven move back to `run/` when `srand` is in.
+
+#### The picture
+
+**Every builtin here is a function of numbers the runtime already
+reads.** An argument is made a number by D40's rule, or a string by
+D24's, or a whole number by the rule `substr` has for a position
+(cut toward zero, an Int, T103's fault): each new runtime function is
+a few lines over those three readers, and the compiler's part is a row
+of the table of names. What has to be decided is, for each of perl's
+answers, whether it is an integer or a float, since a value carries
+that and prints by it: `int(1e17)` is `100000000000000000` to perl,
+where the Num `1e17` prints `1e+17`.
+
+**The bit operators are perl's unsigned 64 bits.** Under `use v5.42`
+the `bitwise` feature makes `& | ^ ~` numeric always, and without `use
+integer` (not in the language) perl works them on UVs: `~5` is
+`18446744073709551610`. The language has no unsigned integer, so an
+answer from 2^63 up is a fault, and every answer below agrees.
+
+**`rand` is perl's own generator**, `Perl_drand48_r` (FreeBSD's
+drand48, which perl carries in `util.c` so that every machine has the
+same one): 48 bits of state, `x = x * 0x5DEECE66D + 0xB`, a value of
+`x / 2^48`; `srand(N)` sets `x` to `0x330E + (N << 16)`, N cut to 32
+bits. Ported, a seeded program prints what perl prints, here and on the
+Mac (T480). **`time` is the C library's clock, or a virtual one**: a
+fourth knob, `CURLY_TIME=N`, makes `time` give N, always, and
+`t/knobs.sh` sets it for every test, so real time is never used in a
+test (the working rule).
+
+#### The language at step 22
+
+22a, the numeric builtins:
+
+- **`int`, `abs`, `sqrt`, `sin`, `cos`, `exp`, `log`, `hex`, `oct`**,
+  perl's named unary operators, as `length` is (D41): in brackets or
+  not, and without them the argument is everything that binds tighter
+  (`sqrt 4 * 9` is 6); with no argument (perl's `$_`) refused, and a
+  sign after the name with a blank before it refused as for `length`
+  (T94, T485). **`atan2(Y, X)`**, two arguments, in brackets, as
+  `substr` is.
+- **`int`** cuts toward zero, and gives an Int where perl gives an
+  integer and a Num where it gives a float (T470): an Int is itself;
+  a Num from -2^63 (not included) to 2^63 (not included) is the Int it
+  cuts to; from 2^63 up to 2^64 a fault (perl's unsigned integer); a
+  Num of 2^64 or more, or -2^63 or less, is itself, a Num. A string by
+  D40 first; it has no past here (T475: `int("0.99999999999999995")`
+  is 1 whatever was done with the string before).
+- **`abs`**: an Int's magnitude, a fault for -2^63 (perl gives the
+  unsigned 2^63, T471); an integral Num's (whole, below 2^53) the Int;
+  any other Num's the Num (`abs(-1e17)` is `1e+17`, `abs(-1e15)` is
+  `1000000000000000`).
+- **`sqrt`, `sin`, `cos`, `exp`, `log`, `atan2`** give a Num, from the
+  C library's function of the argument as a double, as perl's own
+  does. `sqrt` of a number below zero and `log` of zero or one below
+  are faults (perl dies, T481); an infinity is D37's fault
+  (`exp(1000)`, which perl prints `Inf`). A result that underflowed,
+  or that set the C library's `errno`, sets what D151 keeps, so an
+  uncaught `die` after it faults (T472).
+- **A negative zero**: given to `atan2`, either argument, a fault
+  (T79, T484: perl's answer turns on whether the zero was ever used as
+  an integer); and a string whose number is zero and which has a minus
+  sign, given to any of the six, a fault (T484: `atan2(0, "-0")` is
+  pi, or 0 once the string has been added to). A Num's negative zero
+  goes through `sqrt` and `sin` as C has it, and faults where its sign
+  would show (here and in `sprintf`, D127).
+- **`hex` and `oct`** take the argument as a string (as `.` makes
+  one) and give an Int. **What they take is exactly what perl takes in
+  silence, and nothing more** (T473): `hex`, an optional `0x`, `0X`,
+  `x` or `X`, then hex digits, with one `_` before the first or
+  between two; `oct`, blanks first, then `0x`/`x` and hex digits,
+  `0b`/`b` and binary ones, `0o`/`o` and octal ones, or octal ones
+  alone, with the same `_` rule; no digits at all is 0. Anything perl
+  warns of (`Illegal hexadecimal digit`) or stops at in silence
+  (`oct("755 ")` is 493, `oct("7z")` 7, `oct("-10")` 0) is a fault,
+  and so is an answer past 0xFFFFFFFF (perl warns that it is not
+  portable, as for a literal, D38).
+
+22b, the bit operators:
+
+- **`&`, `|`, `^`, `<<`, `>>`, and `~` before a value**, at perlop's
+  rows (`<<` and `>>` above the named unary operators, `&` below the
+  equalities, `|` and `^` below `&`), and **`&=`, `|=`, `^=`, `<<=`,
+  `>>=`**. Each operand is a whole number by `substr`'s rule (cut
+  toward zero, an Int, T103's fault for a string whose digits before
+  its point are not its number: T475 shows perl's two answers),
+  taken as its 64 bits (`-1` is all ones, as perl's IV made a UV is);
+  the answer is those 64 bits as perl's unsigned integer, **a fault
+  from 2^63 up** (`~5`, `-1 | 0`, `1 << 63`, T474), the Int below.
+- **A shift**: the count by the same rule; a negative count shifts the
+  other way, a count of 64 or more either way gives 0, as perl 5.42
+  does in silence (T476); bits shifted past the 64th are gone (`5 <<
+  62` is `2^62`).
+- **undef on the left of `|=` and `^=` is 0**, as perl has it in
+  silence; on the left of `&=`, `<<=` and `>>=`, and anywhere else, it
+  is D48's fault (T477). A reference is D112's fault (perl takes its
+  address), a boolean the Int 1 or 0.
+- **`&.`, `|.`, `^.`, `~.` stay cut** (T46), and so do `~~` and `^^`.
+- **`6 & 3 == 3` is perl's `6 & (3 == 3)`, 0**, with perl's precedence
+  and in silence, as perl has it (T486).
+- **The file-handle guess grows** (T111, T478): a variable first
+  after `say` or `print` and a blank, then `~`, or `<<` hard against
+  anything but a blank or `=`, is refused, as perl takes the variable
+  for a file handle and dies or does not compile.
+
+22c, `rand`, `srand`, `time`:
+
+- **`rand`, `rand(N)`, `rand N`**: a Num, perl's drand48 times N, N a
+  number by D40 (an array is its count, so `$a[rand @a]` is in), 0
+  meaning 1, none meaning 1. **`srand(N)`, `srand N`, `srand()`,
+  `srand`**: N an Int of 0 or more, a whole Num from 0 below 10^15, or
+  a string of digits alone; the seed is its low 32 bits; its value is
+  N, or the string `0 but true` for 0 (T479). Without N the seed is
+  the runtime's choice (D14), and is the value. A `rand` before any
+  `srand` seeds itself first, as perl does. **What perl reads in
+  `srand`'s argument is its string** (T479: `srand(-1)` is `srand(1)`,
+  `srand(1e-5)` overflows), so anything else is a fault: a negative
+  number, a Num that is not whole, a string that is not digits, a
+  boolean, undef.
+- **`rand` and `srand` without an argument** may stand only where an
+  expression ends (`;`, `)`, `,`, `}`, or a modifier): before anything
+  else perl takes what follows for the argument (T485: `rand * 2` is
+  `rand(*2)`, a glob, and `rand + 1` warns). **`rand(...)` and
+  `srand(...)` may be statements** (perl is silent of them, T483).
+- **`time` and `time()`**: an Int, the seconds since the epoch, from
+  the C library, or `CURLY_TIME` when it is set. It takes nothing, so
+  an operator comes after it (`time - $t`); `time(1)` is refused, and
+  so is `time;` alone (perl warns it is useless, T483).
+- **What perl folds** (D53, T482): `if ($x = int(3.5))` and `if ($x =
+  1 | 2)` are refused as `if ($x = 5)` is; `rand`, `srand` and `time`
+  fold to nothing, and are tested in silence.
+
+22d, left (D200): `localtime` and `gmtime` (perl's lists and its
+string of the date, and for `localtime` the machine's time zone, which
+the oracle and the program would have to agree on), `sleep` (which
+would move the virtual clock), `times`, `use integer` (signed bit
+operators, another meaning for every arithmetic operator), `ceil` and
+`floor` from `builtin` (they wait with `trim` and `indexed`).
+
+#### What perl does that the obvious build gets wrong
+
+- **`int(1e17)` is `100000000000000000`** (T470): perl makes an
+  integer of a float it cuts, when one holds it. A build that cut the
+  double and kept a Num prints `1e+17`. **And `int(-2**63)` is
+  `-9.22337203685478e+18`**: perl's test is `value > IV_MIN - 0.5`,
+  and that sum is -2^63 again as a double; a build that made every
+  cut Num an Int prints `-9223372036854775808`.
+- **`abs(-1e15)` is `1000000000000000`, and `abs(-2**60)`
+  `1.15292150460685e+18`** (T471): perl takes a Num for an integer
+  only below 2^53. A Num through `abs` would fault at D36 for the
+  first; an Int through it prints the second wrong.
+- **`~5` is `18446744073709551610`** and `-1 >> 1` is
+  `9223372036854775807` (T474): unsigned. A build on C's signed
+  `int64_t` prints `-6` and `-1`.
+- **`"0.99999999999999995" | 0` is 0, or 1** (T475), by whether the
+  string has been used as a float; but `int` of it is 1 either way.
+- **`1 << 64` is 0, and `8 >> -1` is 16** (T476), where C leaves both
+  undefined.
+- **`$x |= 5` on an undef is silent, and `$x &= 5` warns** (T477).
+- **`say $x ~5;` dies** (T478): `$x` is a file handle there.
+- **`srand(-1)` is `srand(1)`, and gives 1** (T479); `srand(2**32 +
+  42)` seeds as 42 and gives `4294967338`; `srand(0)` gives `0 but
+  true`.
+- **`exp($x)` with `$x` = -745.2 leaves errno set**, so `die "x\n"`
+  after it exits 34 (T472); a folded `exp(-745.2)` does not, and an
+  `atan2` with a tiny result does not either: the C library's own
+  business, so the language marks every underflow, and faults there
+  where perl may exit 255.
+- **`sqrt(-1)` and `log(0)` die** (T481), and are no warning.
+- **`atan2(0, "-0")` is pi, or 0** (T484).
+- **`rand * 2` is `rand(*2)`** (T485).
+
+#### The questions, each answered by its recommendation
+
+**Q1. The subset (D200).** 22a, 22b, 22c as above; 22d left.
+Recommended: what a program computing with numbers needs, each piece
+small. Rejected: `localtime` and `gmtime` now (the larger half of the
+step, and `localtime` needs the time zone the oracle has); `sleep` (a
+virtual clock that sleeps is a decision of its own).
+
+**Q2. `int` and `abs` (D201).** Recommended: perl's integer where
+perl gives one, a Num where perl gives a float, a fault where perl's
+integer is unsigned. Rejected: always a Num (prints `1e+17` for
+`int(1e17)`: WRONG); always an Int (WRONG at -2^63 and past 2^64).
+
+**Q3. The float functions (D202).** Recommended: a Num from the C
+library, faults where perl dies, D37 and D151 as for `**`, a negative
+zero to `atan2` and a minus-zero string to any of them faults.
+Rejected: agreeing with perl's fresh `"-0"` (its answer has a past);
+faulting on every Num negative zero in all six (more faults, no more
+safety: the zero's sign shows only in `atan2` and `sprintf`, which
+fault).
+
+**Q4. `hex` and `oct` (D203).** Recommended: exactly what perl takes
+in silence, held to perl by a search over every string of up to four
+characters from a 21-letter alphabet (204,205 strings, nothing
+differs, `briefs/step22-hexoct.py`); a fault for what perl stops at in
+silence. Rejected: perl's silent stop (`oct("7z")` as 7: a program
+that means it is rare, and the rule would be perl's toke.c written
+again); a fault for `0x` and `_` (perl's own spellings).
+
+**Q5. The bit operators (D204).** Recommended: perl's unsigned answer
+where it is an Int, a fault from 2^63; `substr`'s whole-number rule
+for operands. Rejected: answers modulo 2^64 as signed (`~5` as `-6`:
+WRONG); `use integer`'s signed operators (another pragma, another
+meaning for `+`); a fault for a fractional operand (perl cuts in
+silence, with one answer).
+
+**Q6. `rand` and `srand` (D205).** Recommended: perl's drand48,
+ported; `srand`'s argument an Int, a whole Num or a digit string,
+non-negative. Rejected: the C library's `drand48` (macOS's and
+glibc's agree, but the language's own is a dozen lines and is perl's
+by construction); perl's reading of `srand`'s argument as a string
+(`srand(-1)` as 1, `srand(" 42 ")` as 42: rare, and would bring
+`grok_number` in).
+
+**Q7. `time` and the virtual clock (D206).** Recommended: the knob
+`CURLY_TIME`, a whole number of seconds, which freezes the clock; 0 or
+unset is the machine's clock; `t/knobs.sh` sets it to 1800000000.
+Rejected: a clock that moves by a second at each read (a loop that
+waits for the clock would end, but `time - time` would not be 0, which
+it is to perl in every test that runs in under a second); no knob (the
+working rule).
+
+**Q8. The grammar (D207).** Recommended: the nine as named unary
+operators, `atan2` a function in brackets, `rand` and `srand` named
+unary operators whose argument may be left out where an expression
+ends, `time` a term; `rand(...)` and `srand(...)` statements; D53's
+folding of the new builtins and operators, not of `rand`, `srand`,
+`time`; the file-handle guess for `~` and `<<`. Rejected: `rand` only
+in brackets (the census has `int rand 6` and `rand @a`); `atan2`
+without brackets (perl's, a list operator's, D21's worry).
+
+#### What has nothing to choose
+
+- `int`, `abs` and the rest take one value where one is wanted: an
+  array is its count, a hash too (as `length` cannot, D41's note).
+- A whole Num from 10^15 to 2^53 printed is D36's fault, from `sqrt`
+  as from anything (`sqrt(1e30)` prints `1e+15` under perl).
+- `hex(255)` is `hex("255")`, 597: the number made a string first.
+- The bit operators and the new builtins are values for every walk
+  over names (D76, D57, D69): no new node, so nothing new.
+
+#### The tests
+
+- 22a: a model, `t/models/numfn.py`, Python's `math` (C's `libm`, the
+  same functions) and integers, writing `same` tests over edges and a
+  fault test for each fault at its edge (`abs(-2^63)`, `int(2^63)` as
+  a Num, `sqrt` below zero, `log(0)`, `exp(710)`, `atan2` of a negative
+  zero, a minus-zero string, `hex` and `oct` past 32 bits and of each
+  kind of bad string, undef, a reference, a die after an underflow).
+- 22b: the same model, the operators over operands from both ends of
+  the Ints, negatives, fractions, strings, booleans, and every fault
+  at its edge (an answer of 2^63, `~0`, a SPLIT string, undef under
+  `&=`, a reference, a Num past the Ints).
+- 22c: `rand` after `srand`, the model's drand48 checked against
+  perl's; `srand`'s value and its faults; `time` under the knob, a
+  `new` test where the knob's value shows.
+- Refusals from a table by hand, `briefs/step22-refusals.py`.
+- Golden numbers 4400 to 4699: 4400s for 22a, 4500s for 22b, 4600s for
+  22c and the refusals.
+
+#### How it moves the documents and the census
+
+- `SURFACE.md`: the builtins row In (22); `rand`, `srand`, `time` In
+  (22), `localtime`, `gmtime`, `sleep` Later (22d); the bit operators
+  In; `&.` and its kin Cut (T46).
+- `DIFFERENCES.md`: rows for what a Perl programmer meets: `~0` and
+  any unsigned answer a fault, `hex`/`oct` strict, `srand`'s argument,
+  `localtime` later; D200 to D207 each cited or listed.
+- `DESIGN.md`: T79's `atan2` settled.
+- The census: the 37 and the seven should mostly get past; how many
+  come through SAME is the build's account.
+
+#### What the review found
+
+**One WRONG in the text, one place where perl warns and the text was
+silent, one false statement, one ambiguity, and five notes**
+(`briefs/step22-review/FINDINGS.md`, by a reader who did not write the
+proposal, given it, the decisions it stands on and perl 5.42: a
+separate Claude Code process, Opus, run from the command line, since
+this session could spawn no agent of its own; it ran the partial build
+read-only beside the text). Each is answered by agreeing with perl,
+faulting or refusing, as D208 records; T487 and T489 have the
+programs, and `briefs/claims22.py` the rows (`T489`, `R22-...`).
+
+- **1, perl warns: a numeric comparison as an operand of `&`, `|` or
+  `^`** (T489): `6 & $y == 3` warns `Possible precedence problem on
+  bitwise & operator`; T486 was silent only because perl folds `3 ==
+  3` first. Refused, constants too; the assigning forms stay in.
+- **2, WRONG as written: `abs` of a string with a point** (T487): perl
+  takes it for a float, so `atan2(0, -abs("0.0"))` is pi and
+  `abs("1000000000000000.0")` prints `1e+15`. The build had already
+  met it (the model's first run, against perl) and gave the Num; the
+  text is mended by D208, and both programs are fault tests (4442,
+  4456).
+- **3, false: the evidence file did not exist** when the review ran;
+  it does now (`briefs/step22-hexoct.py`), and the reviewer's own
+  check of the text's rule agreed over 245,411 strings. Blanks are
+  D40's six; a trailing `_` is a fault in every base.
+- **4, ambiguous: `srand`'s value** is the Int the argument's digits
+  are, `srand("042")` 42, as built (the model's line has it).
+- **5, loud: every `~` of a number not below zero faults**, and with
+  it `$flags & ~$mask`. Recorded in `DIFFERENCES.md`, met sometimes.
+- **6, `&.5` and `~.5` are perl's string operators** by the longest
+  token: refused by name, with tests written hard against (4686,
+  4687).
+- **7, errno**: cleared before each call, and every subnormal or
+  vanished answer noted besides, for macOS's library.
+- **8, a shift by -2^63**: in 4501.
+- **9, `atan2(` is a list operator to perl**, and the file-handle
+  guess holds after it, as the build had it (4692, 4693).
+
+What it tried and found to hold: the assigning forms read late as the
+variable; the named unary operators' precedence (`sqrt (4) * 9` is
+18); `rand -1`, `rand +1`, `time -1`, `time <<1`; the sequence of
+`rand` under perl's merge sort; every path of a negative zero through
+the new builtins; `int` of a string with a point over every past;
+D53's folding over twelve builtins and operators; the file-handle
+guess with `&` before a builtin's name.
+
+#### 22, as built
+
+**Built** (2026-11-27, by Fable 5.2, in a worktree of its own beside
+step 17a): 22a, 22b and 22c; 22d is left (D200).
+
+**The runtime** gained one file, `runtime/num.c`, which `rt.c`
+includes after `format.c` so that it reads values with the readers
+every operator has (`numeric`, `to_str`, `whole_of`, and format.c's
+`negative_zero`): `rt_num_int` and `rt_num_abs` (D201), the six float
+functions over one reader of a double that faults on a minus-zero
+string and one writer of the library's answer that notes an underflow
+for D151 (D202), `rt_hex` and `rt_oct` over one reader of digits
+(D203), the bit operators over `whole_of` and one check of the
+unsigned answer (D204), perl's drand48 (D205) and `rt_time` (D206).
+The context gained three words: the generator's state, whether it was
+seeded, and the clock, read as a fourth knob, `CURLY_TIME`.
+
+**The compiler** gained rows of `names.ts` and three small things: a
+named unary operator may have a form with no argument (`bare`), may
+stand alone as a statement (`effect`) and may be one perl does not fold
+(`volatile`); a name may be a `term` (`time`), after which the lexer
+expects an operator; and five rows of perlop's table are live. The
+parser reads `rand` and `srand` bare where an expression ends or before
+an operator that cannot begin a value (T488), and refuses a numeric
+comparison as an operand of `&`, `|` or `^` (T489). The lexer names
+perl's string bitwise operators as cut, and its file-handle guess takes
+`~` and `<<`. No new node: every walk already knew `apply`, `binary`
+and `unary`.
+
+**The builder's defaults**, each Stevan's to overturn: the refusal of
+`6 & 3 == 3` with constants (D208 (1)); `rand` refused before `lt`,
+`eq` and the other word operators, which perl reads as operators, since
+the lexer has made them words there; the virtual clock's value in
+`t/knobs.sh`, 1800000000, and that the census runs under it too, so a
+probe that printed the time would be judged against perl's real clock
+(none does); a seed of the runtime's own for `srand()` from the time,
+the process and a monotonic clock.
+
+**Found building it** (with the model's first run against perl): T487,
+`abs` of a string with a point is perl's float (the review found it
+too), and T488, the operators perl reads after a bare `rand`.
+
+**The evidence**: `briefs/step22-hexoct.py`, the rule of D203 held to
+perl over 204,205 strings, nothing differing; and the compiled `hex`
+and `oct` held to that rule over the 2,138 strings of up to three
+characters it takes (every value as the rule's) and 150 it refuses
+(each a fault). The model's drand48 agrees with perl's over seven seeds
+and 42 draws (4600), and the runtime's with both.
+
+**Tests**: 4400 to 4402 (`int` and `abs`, the float functions, `hex`
+and `oct`), 4500 and 4501 (the bit operators, the shifts and the
+assigning forms) and 4600 (`rand` and `srand`) from `t/models/numfn.py`;
+4601 and 4602 `new` tests of the clock (the knob, and with it off);
+4603 by hand with perl's answers; the faults 4440 to 4477 (22a), 4540 to
+4558 (22b), 4640 to 4655 (22c) and the refusals 4660 to 4697 from a
+table by hand (`briefs/step22-tests.py`); 2,292 golden tests in all,
+160 unit tests (one of the lexer's mended: `&`, `<<`, `|=` and `<<=`
+are in), 1,445 statements about perl, 86 of them this step's.
+
+**Broken on purpose** (`briefs/step22-mutations.py`, the runtime and
+every pass): 73 of 77 caught the first time. Two were a hole, the same
+one: nothing showed that perl does not fold `rand`, `srand` and `time`
+(`if ($x = rand(1))`), and 4603 has it now. Two change nothing a
+program can see: errno is never set on this machine's library where
+the answer is not also subnormal or vanished, which the runtime notes
+anyway; and a seed past 32 bits shifts its high bits out of the
+generator's 48. The second run, after the hole was closed: SECOND.
+
+**The census** (`make census`, then `--sort`): of the 37 probes that
+waited for step 22, **18 are SAME now**, 1 LOUD (`~0`, D204), 7 wait for
+22d (`sleep` 4, `localtime` 3), 4 are refused by what comes next in
+them (open), and 7 are refused by design behind older decisions (`my
+$a` in four of pvm's bitwise probes); three open probes are counted
+for 22d now, by `use integer`; of the seven moved back from `by-design/`, which step 11b's
+table had put behind `srand`, two are SAME and five are refused by D55
+(`my $a`), and moved again. Three open probes became SAME and three
+LOUD (`"AB" | "  "`, which perl warns of). 19 moved to `by-design/`
+(D55 9, D38 4, D19 2, D17, D204, D208). **1,323 SAME, 182 LOUD, 1,212
+REFUSED (402 for a later step, 810 open), 4 UNJUDGED, of 2,721 run;
+2,859 by design; no WRONG**, and no probe left SAME. The table's rows
+for `int`, `abs`, `sqrt`, `time`, `rand`, `&` and `<<` went; rows for
+22d, D204, D207 and D208 came.
+
+**What is doubtful or left**: the oracle and the census see perl's
+real clock and the program's virtual one, so no `same` test may print
+the time; `%e %f %g`'s libc is not the only one that matters now:
+`sin`, `cos`, `exp`, `log` and `atan2` are the C library's, and the
+tests print them to 15 digits, which glibc and macOS's library should
+agree on but which no one has run on the Mac; macOS's library sets no
+errno, so the D151 fault there rests on the subnormal test alone; 22d.
+
 ### 23. The prelude, in the language
 
 Referee: perl. Size: medium.

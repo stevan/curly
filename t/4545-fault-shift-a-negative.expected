@@ -1,0 +1,2 @@
+fault: a bitwise answer of 2^63 or more: perl's is an unsigned integer, which the language does not have at t/4545-fault-shift-a-negative.pl line 4.
+exit: 1

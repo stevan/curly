@@ -229,6 +229,8 @@ int rt_run(void (*body)(rt_ctx *cx), const char *file) {
     cx.stress = knob("CURLY_GC_STRESS", UINT32_MAX);
     cx.poison = knob("CURLY_GC_POISON", 1);
     cx.cap = knob("CURLY_HEAP_CAP", (uint64_t)1 << 62);
+    // The virtual clock (D206): `time` is this, always, when it is set.
+    cx.clock = knob("CURLY_TIME", (uint64_t)INT64_MAX);
     // The limit on recursion is counted, and must be reached before the C
     // stack ends (D68): so the stack has to be what the count assumes.
     struct rlimit stack;
@@ -1701,3 +1703,4 @@ void rt_internal(rt_ctx *cx, const char *what) {
 #include "unwind.c"
 #include "format.c"
 #include "strfn.c"
+#include "num.c"

@@ -1,0 +1,3 @@
+0
+fault: a negative zero to atan2: perl's answer turns on whether the zero was used as an integer at t/4448-fault-atan2-negative-zero-x.pl line 6.
+exit: 1

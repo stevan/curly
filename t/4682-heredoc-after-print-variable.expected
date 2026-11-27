@@ -1,0 +1,2 @@
+t/4682-heredoc-after-print-variable.pl:5:7: print $x <<(: perl takes $x for a file handle here; put a blank after the '<<', or none before it
+exit: 1

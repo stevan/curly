@@ -1,0 +1,2 @@
+t/4675-tested-int.pl:5:8: '=' where a value is tested, with nothing but a constant on its right: perl warns that == was meant
+exit: 1

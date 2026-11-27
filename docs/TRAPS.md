@@ -852,6 +852,35 @@ Every program is kept there and is a row of `briefs/claims17.py`
 | T436 | `field $y :param` on one line, `= die "no y";` on the next (15) | `no y at ... line 4.`, the field's first line | 17a | A field's declaration is a statement to D150 (D178) |
 | T437 | `grep { $self->drop } @a`, `drop` shifting the field `@a` (17) | perl dies of a segmentation fault | 17a | No test asks perl for it (T194's kin) |
 
+## Found proposing and building step 22
+
+Each is a row of `briefs/claims22.py`, by its number; T487 and T488
+were found building it, T489 by its review (`briefs/step22-review/`).
+D200 to D208 answer them.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T470 | `say int(1e17); say int(9.3e18); say int(-9223372036854775808.0); say int(1.8446744073709552e19);` | `100000000000000000`, `9300000000000000000`, `-9.22337203685478e+18`, `1.84467440737096e+19`: an integer when the cut fits one (an unsigned one from 2^63), and perl's test below zero is `> IV_MIN - 0.5`, which is -2^63 again | 22 | D201: the Int between -2^63 and 2^63, both left out; a fault from 2^63 to 2^64; the Num otherwise |
+| T471 | `say abs(-1e15); say abs(-2**60); say abs(-9223372036854775807-1);` | `1000000000000000`, `1.15292150460685e+18`, `9223372036854775808`: an integer for a whole Num below 2^53 only, and an unsigned one for -2^63 | 22 | D201: the Int for an integral Num; a fault for -2^63 |
+| T472 | `my $a = -745.2; my $x = exp($a); die "x\n";` | exits 34: `exp` set ERANGE. A folded `exp(-745.2)` exits 255, and so does an `atan2` whose answer is subnormal | 22 | D202, D151: every underflow is noted, and an uncaught `die` after one faults |
+| T473 | `say hex("_ff"), hex(""), oct("755 "), oct("7z"), oct("-10");` and `hex(" ff")`, `hex("ff_")`, `oct("789")` | `255`, `0`, `493`, `7`, `0` in silence; the last three warn `Illegal ... digit` and give `0`, `255`, `7` | 22 | D203: what perl takes in silence and whole; its silent stops and its warnings faults |
+| T474 | `say ~5; say -1 & 255; say -1 >> 1; say 1 << 63;` | `18446744073709551610`, `255`, `9223372036854775807`, `9223372036854775808`: perl's unsigned 64 bits | 22 | D204: the answer below 2^63, a fault from there |
+| T475 | `my $s = "0.99999999999999995"; say $s \| 0;` and the same after `$s + 0.5` | `0`, then `1`; but `int` and `abs` of the string are 1 whatever came before | 22 | D204: `substr`'s rule for operands, T103's fault |
+| T476 | `say 1 << 64; say 1 << -1; say 8 >> -1;` | `0`, `0`, `16`, in silence | 22 | D204: agree, by hand (C leaves both undefined) |
+| T477 | `my $x; $x \|= 5;` and `$x ^= 3`; `$x &= 5`, `$x <<= 1` | silent for the first two; `Use of uninitialized value` for the rest | 22 | D204: undef is 0 on the left of `\|=` and `^=`, D48's fault elsewhere |
+| T478 | `say $x ~5;`, `say $x ~ 5;`, `say $x <<1;`, `say $x <<(1);` | each takes `$x` for a file handle, and dies or does not compile; `say $x &3` and `say $x << 1` are the operators | 22 | D207: T111's guess takes `~`, and `<<` hard against anything but a blank or `=` |
+| T479 | `say srand(-1), srand(1.9), srand(" 42 "), srand("+5"), srand(true), srand(0), srand(4294967296);` and `srand(1e-5)` | `1`, `1`, `42`, `5`, `1`, `0 but true`, `4294967296`, and `Integer overflow in srand` for `1e-5`: perl reads the argument as a string; the seed is 32 bits | 22 | D205: an Int of 0 or more, a whole Num below 10^15, digits alone; the rest faults |
+| T480 | `srand(42); say rand(); say rand(10); srand(3); say join " ", map { int rand 6 } 1 .. 10;` | `0.744525000061007`, `3.42701478718908`, `4 5 1 1 3 2 1 1 3 3`: perl's drand48, the same on every machine | 22 | D205: ported |
+| T481 | `say sqrt(-1);`, `say log(0);`, `say log(-$z)` with `$z` = 0.0 | `Can't take sqrt of -1`, `Can't take log of 0`, `Can't take log of -0`: dies, not warnings | 22 | D202: faults |
+| T482 | `if ($x = int(3.5))`, `if ($x = 1 \| 2)`, `if ($x = hex("ff"))`; and `rand(1)`, `time`, `srand(5)` there | `Found = in conditional` for the first three, which perl folds; silence for the rest | 22 | D207: D53 for the first, not for the second |
+| T483 | `time;`, `int(3);`; `rand(10); srand(4); rand; srand;` | `Useless use` for the first two, silence for the rest | 22 | D207 |
+| T484 | `say atan2(0, "-0");` and the same after `$s + 0`; `say atan2(0, -$x)` with `$x` = 0.0, and after `$x + 1` | `3.14159265358979`, then `0`; the same for the Num (T79) | 22 | D202: a fault, for a negative zero to `atan2` and a minus-zero string to any of the six |
+| T485 | `say abs - 5;`, `rand + 1`; `rand * 2` | `Use of "abs" without parentheses is ambiguous`; `rand * 2` is `rand(*2)`, a glob | 22 | D207: refused |
+| T486 | `say 6 & 3 == 3; say 6 \| 3 < 3;` | `0`, `6`, in silence: `&` and `\|` bind looser than the comparisons, and perl folds the comparison away before it would warn (T489) | 22 | D208: refused, as T489 is |
+| T487 | `say abs("-1000000000000000.0"); say abs("-1e15");` | `1e+15`, then `1000000000000000`: a string with a point and no exponent is a float to `abs`, whatever was done with it before, and one with an exponent an integer | 22 | D201: such a string's `abs` is the Num, and printing it is D36's fault |
+| T489 | `my $y = 3; say 6 & $y == 3; say $y == 3 & 6;` | `0`, `0`, and `Possible precedence problem on bitwise & operator` for each; not for `eq` and its kin, nor for `&=` (the review's finding 1) | 22 | D208: a numeric comparison without brackets as an operand of `&`, `\|` or `^` refused, constants too |
+| T488 | `my $x = rand == 2;` and `!=`, `>`, `>=`, `\|`, `^`, `>>`, `&&`, `\|\|`, `? :`; and `rand < 1`, `rand << 1`, `rand & 1` | the first are operators, in silence; then `Unterminated <> operator`, `Use of bare <<`, and a call of `&1` | 22 | D207: `rand` and `srand` bare before the first list, refused before any other |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

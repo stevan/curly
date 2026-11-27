@@ -1,0 +1,2 @@
+t/4671-atan2-one-argument.pl:4:5: atan2 takes 2 to 2 arguments, and here are 1
+exit: 1

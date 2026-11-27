@@ -1,0 +1,2 @@
+fault: log of zero or a number below zero at t/4446-fault-log-below-zero.pl line 4.
+exit: 1

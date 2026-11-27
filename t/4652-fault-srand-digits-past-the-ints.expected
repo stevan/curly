@@ -1,0 +1,2 @@
+fault: integer overflow at t/4652-fault-srand-digits-past-the-ints.pl line 5.
+exit: 1

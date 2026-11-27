@@ -1,2 +1,2 @@
-t/2656-quote-heredoc-after-a-value.pl:5:8: '<<' is not in the language yet
+t/2656-quote-heredoc-after-a-value.pl:5:5: say $x <<E: perl takes $x for a file handle here; put a blank after the '<<', or none before it
 exit: 1

@@ -2,7 +2,7 @@
 // (D29): a tree perl would accept and the language doesn't. It returns
 // nothing; a tree that comes through is a program.
 import { refuse } from './errors.ts';
-import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, prefixOp } from './names.ts';
+import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, isEffect, isVolatile, prefixOp } from './names.ts';
 import type { CallRef, Chain, Deref, Expr, Invoke, My, Pragma, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn } from './shapes.ts';
@@ -149,6 +149,9 @@ const folds = (e: Expr): boolean =>
     : e.kind === 'array' || e.kind === 'myarray' || e.kind === 'elem' || e.kind === 'lastindex' || e.kind === 'arrayop' || e.kind === 'hashop' || e.kind === 'listassign' ? false
     : e.kind === 'slice' && e.name !== undefined ? false
     : e.kind === 'ternary' ? folds(e.test)
+    // (`rand`, `srand` and `time` are worked out as the program runs, and
+    // perl does not warn of `if ($x = rand(1))`, T482.)
+    : e.kind === 'apply' && isVolatile(e.name) ? false
     : e.kind === 'binary' && infixOp(e.op)?.when ? folds(e.left)
     : parts(e).every(folds);
 
@@ -625,7 +628,7 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
             refuse(`${index.text} as an index is not a number: perl warns of it as it compiles`, index.pos);
         }
     }
-    const of = e.kind === 'apply' ? plain(e.args[0]!) : undefined;
+    const of = e.kind === 'apply' && e.args.length > 0 ? plain(e.args[0]!) : undefined;
     // (And of the whole container through a reference, T256.)
     if (e.kind === 'apply' && (e.name === 'length' || e.name === 'defined') && (of?.kind === 'array' || (of?.kind === 'deref' && !of.last))) {
         refuse(`${e.name} of ${of.hash ? 'a hash' : 'an array'}: perl ${e.name === 'length' ? 'warns, and means the length of its count' : 'refuses it'}; scalar(${of.hash ? '%h' : '@a'}) is how many it holds`, e.pos);
@@ -895,7 +898,9 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
             // does not warn of it (D87).
             || s.expr.kind === 'binder'
             // `die` and `warn` are done for what they do (step 15).
-            || (s.expr.kind === 'listop' && (s.expr.op === 'die' || s.expr.op === 'warn'));
+            || (s.expr.kind === 'listop' && (s.expr.op === 'die' || s.expr.op === 'warn'))
+            // `rand(...)` and `srand(...)`: perl is silent of them (T483).
+            || (s.expr.kind === 'apply' && isEffect(s.expr.name));
         // (perl is silent about `exists $h{k};` and `keys %h;`, which
         // sets `each`'s place back: nothing, here.)
         if (!does && !last && s.expr.kind === 'hashop') refuse('this statement only has a value, and nothing is done with it', s.pos);

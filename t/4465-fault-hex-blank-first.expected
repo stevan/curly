@@ -1,0 +1,2 @@
+fault: hex of a string that is not all digits of its base: perl warns, or stops there in silence at t/4465-fault-hex-blank-first.pl line 4.
+exit: 1

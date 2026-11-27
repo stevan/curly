@@ -1,0 +1,2 @@
+t/4695-use-integer.pl:4:5: 'use integer' is not in the language
+exit: 1

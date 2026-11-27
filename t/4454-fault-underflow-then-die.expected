@@ -1,0 +1,3 @@
+after
+fault: an uncaught die after a number underflowed: perl exits with the status of $! there, which the language does not keep at t/4454-fault-underflow-then-die.pl line 7.
+exit: 1

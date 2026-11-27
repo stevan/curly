@@ -1,0 +1,2 @@
+fault: undef where a number is wanted at t/4653-fault-rand-of-undef.pl line 6.
+exit: 1

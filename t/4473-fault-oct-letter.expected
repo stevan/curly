@@ -1,0 +1,2 @@
+fault: oct of a string that is not all digits of its base: perl warns, or stops there in silence at t/4473-fault-oct-letter.pl line 4.
+exit: 1

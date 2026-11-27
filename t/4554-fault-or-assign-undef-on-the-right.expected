@@ -1,0 +1,2 @@
+fault: undef where a number is wanted at t/4554-fault-or-assign-undef-on-the-right.pl line 6.
+exit: 1

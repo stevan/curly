@@ -1,0 +1,2 @@
+t/4680-tilde-blank-after-say-variable.pl:5:5: say $x ~ : perl takes $x for a file handle here; put a blank after the '~', or none before it
+exit: 1

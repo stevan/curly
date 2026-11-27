@@ -1,0 +1,2 @@
+t/4696-localtime.pl:4:9: expected a value, found 'localtime'
+exit: 1

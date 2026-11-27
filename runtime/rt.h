@@ -194,6 +194,12 @@ typedef struct rt_ctx {
     struct rt_array **marks;
     uint64_t marking;       // how many are on it
     uint64_t mark_room;     // and how many it has room for
+    // Step 22 (num.c): perl's drand48, its 48 bits and whether a seed was
+    // given (D205); and CURLY_TIME, the virtual clock, 0 for the machine's
+    // (D206).
+    uint64_t rand_state;
+    uint64_t rand_seeded;
+    uint64_t clock;
 } rt_ctx;
 
 // Run a compiled program: make its context, call its body, return the
@@ -454,6 +460,33 @@ rt_value rt_rindex2(rt_ctx *cx, rt_value a, rt_value b);
 rt_value rt_rindex3(rt_ctx *cx, rt_value a, rt_value b, rt_value position);
 rt_value rt_chomp(rt_ctx *cx, rt_value a);
 rt_value rt_chop(rt_ctx *cx, rt_value a);
+// runtime/num.c (step 22; D200 to D207). `int` and `abs` give an Int
+// where perl gives an integer; the float functions a Num; `hex` and `oct`
+// what perl takes in silence; the bit operators perl's unsigned answer,
+// a fault from 2^63; `rand` perl's drand48; `time` the clock or CURLY_TIME.
+rt_value rt_num_int(rt_ctx *cx, rt_value a);
+rt_value rt_num_abs(rt_ctx *cx, rt_value a);
+rt_value rt_num_sqrt(rt_ctx *cx, rt_value a);
+rt_value rt_num_log(rt_ctx *cx, rt_value a);
+rt_value rt_num_exp(rt_ctx *cx, rt_value a);
+rt_value rt_num_sin(rt_ctx *cx, rt_value a);
+rt_value rt_num_cos(rt_ctx *cx, rt_value a);
+rt_value rt_atan2(rt_ctx *cx, rt_value y, rt_value x);
+rt_value rt_hex(rt_ctx *cx, rt_value a);
+rt_value rt_oct(rt_ctx *cx, rt_value a);
+rt_value rt_bit_and(rt_ctx *cx, rt_value a, rt_value b);
+rt_value rt_bit_or(rt_ctx *cx, rt_value a, rt_value b);
+rt_value rt_bit_xor(rt_ctx *cx, rt_value a, rt_value b);
+rt_value rt_bit_or_to(rt_ctx *cx, rt_value a, rt_value b);
+rt_value rt_bit_xor_to(rt_ctx *cx, rt_value a, rt_value b);
+rt_value rt_bit_not(rt_ctx *cx, rt_value a);
+rt_value rt_shl(rt_ctx *cx, rt_value a, rt_value b);
+rt_value rt_shr(rt_ctx *cx, rt_value a, rt_value b);
+rt_value rt_rand(rt_ctx *cx, rt_value n);
+rt_value rt_rand0(rt_ctx *cx);
+rt_value rt_srand(rt_ctx *cx, rt_value n);
+rt_value rt_srand0(rt_ctx *cx);
+rt_value rt_time(rt_ctx *cx);
 
 // References (step 13a; D107, D112; runtime/ref.c). `[ LIST ]` is the
 // list itself, which is a new array, made a reference; `{ LIST }` a new

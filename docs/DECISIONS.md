@@ -2597,3 +2597,117 @@ now, a walk that refuses whatever would let a program see the order
 of construction, which would refuse most `ADJUST`s that print and
 every default that reads a variable a default above it changes, and
 is better decided beside the protocol that may change the order.
+
+## Step 22: numbers and time
+
+**D200 to D207. Step 22, numbers and time: each question answered with
+its recommendation.** *(User, 2026-11-27: "I pre-approve all your
+recommendations, so do not ask me for confirmation and just keep
+building." The recommendations are Fable 5.2's, 2026-11-27, made in a
+worktree of their own beside step 17a; each is his to overturn.
+`PLAN.md`, step 22, has the text and what was rejected; `TRAPS.md`,
+T470 to T488, the programs; `briefs/claims22.py` holds each to perl.)*
+**D200. Three sub-steps, and a fourth left.** 22a the numeric
+builtins (`int`, `abs`, `sqrt`, `sin`, `cos`, `exp`, `log`, `atan2`,
+`hex`, `oct`), 22b the bit operators (`& | ^ ~ << >>` and `&= |= ^=
+<<= >>=`), 22c `rand`, `srand` and `time`. Left as 22d: `localtime`,
+`gmtime` (a list and a string of the date, and for `localtime` the
+machine's time zone, which the oracle and the program would have to
+share), `sleep` (which would have to move the virtual clock), `times`,
+`use integer` (another meaning for every arithmetic operator), and
+`ceil` and `floor` from `builtin`. Rejected: the dates now.
+**D201. `int` and `abs` give an Int where perl gives an integer, a Num
+where it gives a float, and a fault where perl's integer is unsigned.**
+`int`: an Int is itself; a Num strictly between -2^63 and 2^63 the Int
+it cuts to; from 2^63 below 2^64 a fault; otherwise the Num (perl's own
+test, `value > IV_MIN - 0.5`, keeps -2^63 a float, T470). `abs`: an
+Int's magnitude, a fault for -2^63; an integral Num's (whole, below
+2^53) the Int; any other Num, and any string with a point and no
+exponent (T487), the Num. Rejected: a Num always (`int(1e17)` would
+print `1e+17`: WRONG); an Int always (WRONG at -2^63 and past 2^64).
+**D202. `sqrt`, `sin`, `cos`, `exp`, `log` and `atan2` give a Num, the
+C library's, as perl's is.** `sqrt` of a number below zero and `log`
+of zero or below are faults (perl dies, T481); an infinity is D37's;
+a result that underflowed or set `errno` is noted for D151 (T472),
+each underflow whether or not the library said so. **A negative zero
+given to `atan2`, either side, is a fault** (T79, T484), and so is a
+string that is a zero with a minus given to any of the six (perl reads
+it as -0 or 0 by its past, T484). Rejected: agreeing with perl's fresh
+`"-0"`; faulting every Num negative zero in all six (no safer: its sign
+shows only in `atan2` and `sprintf`, which fault).
+**D203. `hex` and `oct` take exactly what perl takes in silence, and
+nothing more.** The argument made a string as `.` makes one; `hex`, an
+optional `0x`, `0X`, `x` or `X`, then hex digits with one `_` before
+the first or between two; `oct`, blanks first, then `0x`/`x` with hex
+digits, `0b`/`b` with binary ones, `0o`/`o` or nothing with octal
+ones; no digits at all is 0. What perl warns of, what it stops at in
+silence (`oct("755 ")` is 493, `oct("7z")` 7, `oct("-10")` 0), and an
+answer past 0xFFFFFFFF (`non-portable`, as D38 for a literal) are
+faults. Held to perl over 204,205 strings (`briefs/step22-hexoct.py`).
+Rejected: perl's silent stops (a rule that is perl's toke.c again, for
+programs that rarely mean it).
+**D204. The bit operators are numeric, on 64 bits, and perl's unsigned
+answer is a fault from 2^63.** Each operand a whole number by
+`substr`'s rule (cut toward zero, an Int, T103's fault: T475 shows
+perl's two answers), taken as its 64 bits; `~5`, `-1 | 0`, `1 << 63`
+fault, as perl prints an unsigned integer the language does not have
+(T474). A shift count by the same rule; negative shifts the other way,
+64 or more gives 0 (T476). An undef on the left of `|=` and `^=` is 0,
+as perl has it in silence; elsewhere D48's fault (T477). `&.`, `|.`,
+`^.`, `~.` and their assigning forms, perl's string bitwise operators,
+are cut (T46), and refused by name. Rejected: signed answers modulo 2^64
+(`~5` as `-6`: WRONG); `use integer`; a fault for a fractional operand
+(perl cuts it with one answer).
+**D205. `rand` and `srand` are perl's drand48, ported.** `rand(N)` is
+N times the next value, N by D40, 0 or none meaning 1; a `rand` before
+any `srand` seeds itself. `srand(N)` takes an Int of 0 or more, a whole
+Num from 0 below 10^15, or a string of digits alone, and seeds with its
+low 32 bits; its value is N, or the string `0 but true` for 0;
+`srand()` seeds with a seed of the runtime's choice (D14), its value.
+Anything else in `srand` is a fault, since perl reads the argument as a
+string (`srand(-1)` is `srand(1)`, T479). Rejected: the C library's
+`drand48` (the same numbers, but not perl's by construction); perl's
+reading of the string (`grok_number` again, for nothing a program
+means).
+**D206. `time` is the C library's clock, or a virtual one: the knob
+`CURLY_TIME`.** A whole number of seconds, read as the collector's
+knobs are (D63), 0 or unset for the machine's clock; set, `time` is it,
+always. `t/knobs.sh` sets it to 1800000000 for every test, so real time
+is never used in one. Rejected: a clock that moves at each read (`time
+- time` would not be 0, which it is to perl in any test); no knob.
+**D207. The grammar.** The nine are named unary operators (D41);
+`atan2` a function in brackets; `rand` and `srand` named unary
+operators whose argument may be left out where an expression ends or
+before an operator that cannot begin a value (T488), refused before
+any other (T485); `time` a term, after which an operator comes, and
+`time()` with nothing in the brackets; `rand(...)` and `srand(...)`
+may stand alone as statements, `time;` and `int(3);` may not (T483).
+D53's folding covers the new builtins and operators but not `rand`,
+`srand`, `time` (T482). The file-handle guess (T111) takes `~` and
+`<<` hard against anything but a blank or `=` after `say $x` (T478).
+Rejected: `rand` only in brackets (`int rand 6` and `rand @a` are what
+Perl programmers write); `atan2` without brackets.
+**D208. What the review of step 22 found, answered.** *(The builder's
+recommendations, Fable 5.2, 2026-11-27, under the same standing
+instruction; `briefs/step22-review/FINDINGS.md`, by a reader who did
+not write the proposal, a separate Claude Code process given it and
+perl.)* (1) A numeric comparison (`== != < > <= >= <=>`) without
+brackets as either operand of `&`, `|` or `^` is refused (T489): perl
+warns of a precedence problem unless it has folded the comparison
+away, and the refusal takes the constants too (T486), one rule being
+simpler than perl's fold; the assigning forms do not warn, and stay
+in. (2) `abs` of a string with a point is the Num (T487, found
+building it too): so `atan2(0, -abs("0.0"))` faults where perl prints
+pi, and a whole one from 10^15 faults at D36. (3) The evidence for
+D203 is `briefs/step22-hexoct.py`; "blanks" are D40's six, and a
+trailing `_` is a fault in every base. (4) `srand`'s value is the Int
+its argument is (`srand("042")` gives 42). (5) `~` of any number not
+below zero faults, and so does the idiom `$flags & ~$mask`: recorded
+in `DIFFERENCES.md`, not taken in (an and-not would be a second
+operator for one spelling). (6) `&.5`, `~.5` are perl's string
+operators by the longest token, refused by name. (7) errno is cleared
+before each call and read after it, and every subnormal or vanished
+answer is noted whatever errno says, for macOS's library, which sets
+none. (8) A shift by -2^63 has its test. (9) `atan2(` joins `substr(`
+and `index(` in the file-handle guess, as a function of the table.
+Rejected: perl's fold, modelled, for (1).

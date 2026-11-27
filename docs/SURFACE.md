@@ -157,7 +157,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | An unbracketed `!` on the left of a comparison, `!$x == $y` | Cut | | D50, T115: perl 5.42 warns of a precedence problem |
 | `and`, `or`, `xor` after `say`'s argument; a word operator bare in a list of arguments; an operator that binds tighter than `not` after `not (...)` | Cut | | D51: perl reads each another way (T106, T107, T109) |
 | `?:` | In | 4 | Not as an lvalue |
-| `= += -= *= /= %= **= .= x= &&= \|\|= //=` | In | 5 | D56. The left side is a variable, bare. On undef, `+=`, `-=`, `.=`, `\|\|=`, `//=` and `++` are perl's, silently; `*=`, `/=`, `**=`, `%=`, `x=` fault (perl warns). `&= \|= ^= <<= >>=` come with their operators |
+| `= += -= *= /= %= **= .= x= &&= \|\|= //=` | In | 5 | D56. The left side is a variable, bare. On undef, `+=`, `-=`, `.=`, `\|\|=`, `//=` and `++` are perl's, silently; `*=`, `/=`, `**=`, `%=`, `x=` fault (perl warns). `&= \|= ^= <<= >>=` are in from step 22: on undef `\|=` and `^=` are perl's, silently, and the other three fault (T477) |
 | An assignment to anything but a variable: `($x) = 5`, `($x = 5) = 7`, `(1 ? $x : $y) = 8` | Cut | | D17, D56: values flow, places don't; the first is a list assignment (step 9) |
 | `++ --` | In | 5 | D52: by what the variable holds. A string is stepped as its number and is then a Num; one that isn't a number faults (perl's string increment is cut; its `--` gives -1 in silence); a fault where perl has two answers (T113), and on a Num of 2^53 or more, where perl warns `Lost precision` (T130) |
 | A variable changed in the statement that reads it: `$x + ($x = 5)` | In | 5 | D14: read when its operator runs, as in perl (T110) |
@@ -172,8 +172,8 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `..` in list context | In | 9 | D80. Whole numbers, each end cut toward zero; a string or an undef for either end faults (T154: perl's string ranges are string increment); where one value is wanted it is perl's flip-flop, and refused (T151) |
 | `..` and `...` in scalar context (flip-flop) | Cut | | |
 | `x` on a list, `(1, 2) x 3` | Later | 10 | |
-| `& \| ^ ~ << >>` | In | 22 | Numeric, as under `use v5.42`; a non-number faults |
-| `&. \|. ^. ~.`, the string bit operators | Cut | | |
+| `& \| ^ ~ << >>` | In | 22 | D204. Numeric, as under `use v5.42`: each operand a whole number by `substr`'s rule, as its 64 bits; perl's unsigned answer, a fault from 2^63 (T474); a shift by a negative count the other way, by 64 or more 0 (T476) |
+| `&. \|. ^. ~.`, the string bit operators | Cut | | D204, T46: refused by name |
 | `isa` | In | 17 | |
 | `=~`, `!~` | In | 19 | |
 | `[ LIST ]`, `{ LIST }`, `\@a`, `\%h` | In | 13a | D110, D113: `{` where a value may begin is a hash; an odd list for `{ }` faults (T244) |
@@ -297,8 +297,9 @@ Opal's notation, `docs/BUILTINS.md`.
 | `sort NAME LIST`, `sort NAME(...)`, `sort $f LIST`, a word or a scalar first after `sort`; `sort(...)` with brackets of its own | Cut | | T29, T189, T190, D21: perl takes the first for a sub to compare by |
 | `@a = sort { } @a` with an undef in `@a` | Fault | 10 | T187, D87: perl sorts in place and drops what was never stored |
 | `ceil`, `floor`, `trim`, `indexed` (imported by `use v5.42`), `fc` | Later | 16, 22 |
-| `abs`, `int`, `sqrt`, `sin`, `cos`, `atan2`, `exp`, `log`, `hex`, `oct` | In | 22 |
-| `rand`, `srand`, `time`, `localtime`, `gmtime`, `sleep` | Later | 22 |
+| `abs`, `int`, `sqrt`, `sin`, `cos`, `atan2`, `exp`, `log`, `hex`, `oct` | In | 22 | D201 to D203, D207. Named unary operators but `atan2`, in brackets. `int` and `abs` an Int where perl gives an integer (T470, T471); the rest a Num; `sqrt` below zero, `log` of zero or below, a negative zero to `atan2` faults (T481, T484); `hex` and `oct` take what perl takes in silence (T473) |
+| `rand`, `srand`, `time` | In | 22c | D205 to D207. perl's drand48, ported (T480); `srand`'s argument an Int of 0 or more, a whole Num below 10^15, or digits (T479); `time` the clock, or `CURLY_TIME` (the virtual clock of every test) |
+| `localtime`, `gmtime`, `sleep`, `times`, `use integer` | Later | 22d | D200 |
 | `split`, `m//`, `s///`, `tr///`, `qr//`, `quotemeta` | In | 19, 20 |
 | `die`, `warn` | In | 15 | D142, D148: list operators; `warn` is `true`. One reference alone is thrown as itself; uncaught, among several values, or in a `warn`, D112's fault |
 | `open` with three arguments, `close`, `readline` and `<$fh>`, `eof`, `print {$fh}`, `binmode`, `opendir` and the directory calls, `unlink`, `rename`, `mkdir`, `stat` | Later | 21 |

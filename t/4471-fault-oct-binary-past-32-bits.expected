@@ -1,0 +1,2 @@
+fault: oct of a number past 32 bits: perl warns that it is not portable at t/4471-fault-oct-binary-past-32-bits.pl line 4.
+exit: 1

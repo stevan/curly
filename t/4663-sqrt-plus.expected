@@ -1,0 +1,2 @@
+t/4663-sqrt-plus.pl:4:10: sqrt +: perl warns that this is ambiguous: write sqrt(+...)
+exit: 1

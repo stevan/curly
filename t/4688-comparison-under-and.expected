@@ -1,0 +1,2 @@
+t/4688-comparison-under-and.pl:5:12: '==' as an operand of '&': perl warns of a precedence problem, '&' binding more loosely; bracket the one that is meant
+exit: 1

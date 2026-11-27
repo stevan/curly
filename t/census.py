@@ -115,7 +115,7 @@ REASONS = [
     (r"perl takes .* for a file handle", 'design', 'D21'),
     (r"^a line that starts '#!'", 'design', 'D33'),
     (r"only has a value, and nothing is done with it", 'design', 'D15'),
-    (r"^'(chop|srand|local|tie|format|write|each)' is not in the language$", 'design', 'D17'),
+    (r"^'(chop|local|tie|format|write|each)' is not in the language$", 'design', 'D17'),
     (r"^in a string a key is a word or a scalar variable", 'design', 'D99'),
     (r"a slice of a hash, to perl, which is not in a string", 'design', 'D99'),
     (r"^a hash was changed while a foreach is over it", 'design', 'D17'),
@@ -152,7 +152,6 @@ REASONS = [
     # Step 14's (D21, D55, D162, D165, D166); its own rows, `(step 14)`,
     # a sub with no name as a value and `&`, went with it, and `&` after a
     # value is the bitwise operator, step 22's.
-    (r"^'&' is not in the language yet", 'later', '22'),
     (r"^'&' before a sub's name or a reference: a call by '&' is cut", 'design', 'D21'),
     (r"^->&\*: a call by '&' is cut", 'design', 'D21'),
     (r"out of a sub with no name: perl leaves the loop", 'design', 'D165'),
@@ -168,18 +167,20 @@ REASONS = [
     (r"^after sub comes its signature or its block, found .*: a prototype or an attribute", 'design', 'D165'),
     # (Step 15's rows went with it: `die`, `warn`, `try`, `catch`.)
     (r"^expected a value, found '(sprintf|qw|q|qq|ucfirst|lcfirst|rindex|join|reverse|sprintf|chomp)'$", 'later', '16'),
-    # (Step 16's own build: these three are numbers, step 22, as SURFACE.md has them.)
-    (r"^expected a value, found '(abs|int|sqrt)'$", 'later', '22'),
     (r"^'(printf|chomp|qw|q|qq)' is not in the language$", 'later', '16'),
-    # A heredoc is in from step 16a; `<<` after a value is the left shift.
-    (r"^'<<' is not in the language yet", 'later', '22'),
     (r"^'(class|method|field|bless)' is not in the language$", 'later', '17'),
     (r"^expected a value, found 'bless'$", 'later', '17'),
+    (r"^'use integer' is not in the language$", 'later', '22'),
     (r"^'use \w+' is not in the language$", 'later', '18'),
     (r"^'=~' is not in the language yet", 'later', '19'),
     (r"^'(s|m|tr|y|split)' is not in the language$", 'later', '19'),
     (r"^expected a value, found '(split|m|s|tr)'$", 'later', '19'),
-    (r"^expected a value, found '(time|localtime|gmtime|rand)'$", 'later', '22'),
+    # Step 22's (D204, D207, D208); 22d is later (D200).
+    (r"^expected a value, found '(localtime|gmtime)'$", 'later', '22'),
+    (r"^'(sleep|times)' is not in the language$", 'later', '22'),
+    (r"is perl's string bitwise operator, which is cut \(D204\)", 'design', 'D204'),
+    (r"as an operand of '[&|^]': perl warns of a precedence problem", 'design', 'D208'),
+    (r"^s?rand before '", 'design', 'D207'),
     (r"^expected a value, found '(STDOUT|STDIN|open)'$", 'later', '21'),
     (r"^'(finally|defer)' is not in the language|^finally: perl 5.42 warns", 'later', '21'),
     (r"^'exit' is not in the language$", 'later', '21'),

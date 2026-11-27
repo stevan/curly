@@ -2766,6 +2766,111 @@ and `print` print to stdout. `STDERR` is the one file handle, and its
 list is not in brackets of its own. What goes to stderr follows
 `say`'s rules for characters past ASCII: it needs `use open`.
 
+## Numbers and time
+
+### int, abs and the float functions
+
+`int`, `abs`, `sqrt`, `sin`, `cos`, `exp`, `log`, `hex` and `oct` are
+perl's named unary operators, written as `length` is: with brackets or
+without, and without them the argument is everything that binds more
+tightly, so `sqrt 4 * 9` is 6. Each needs its argument written: perl's
+`$_` is not in the language. A sign after the name with a blank before
+it is refused, as perl warns that `abs - 5` is ambiguous. `atan2(Y, X)`
+takes two, always in brackets.
+
+`int` cuts toward zero, and gives an Int wherever perl gives an integer:
+
+    say int(7.9);       # 7
+    say int(-7.9);      # -7
+    say int(1e17);      # 100000000000000000
+
+A float from 2^63 up to 2^64 is a fault: perl's answer is an unsigned
+integer, which the language does not have. A float of 2^64 or more, or
+of -2^63 or less, stays a float, as perl keeps it. `abs` of an Int is
+an Int (of -2^63 a fault, for the same reason), and of a float that is
+a whole number below 2^53 an Int too; of any other float, and of a
+string with a point and no exponent, it is a float:
+
+    say abs(-3);           # 3
+    say abs(-1e15);        # 1000000000000000
+    say abs(-2 ** 60);     # 1.15292150460685e+18
+
+`sqrt`, `sin`, `cos`, `exp`, `log` and `atan2` give a float, the C
+library's, which is perl's too. `sqrt` of a number below zero and `log`
+of zero or below are faults (perl dies); an answer too large is a
+float overflow. A negative zero given to `atan2`, and a string that is
+a zero with a minus given to any of the six, are faults: perl's answer
+there turns on what was done with the zero before.
+
+    say atan2(1, 1) * 4;   # 3.14159265358979
+    say exp(1);            # 2.71828182845905
+
+### hex and oct
+
+`hex` and `oct` read their argument as a string, as `.` makes one, and
+give an Int. `hex` takes an optional `0x` (or `x`, in either case) and
+hex digits; `oct` takes blanks first, then `0x` and hex digits, `0b`
+and binary ones, `0o` and octal ones, or octal digits alone. One `_`
+may stand before the first digit or between two. No digits at all is
+0. Anything else is a fault, where perl would warn or stop reading in
+silence (`oct("755 ")` is 493 to perl), and so is an answer past
+0xFFFFFFFF, which perl warns is not portable:
+
+    say hex("ff");         # 255
+    say oct("0b101");      # 5
+    say oct("755");        # 493
+
+### The bit operators
+
+`&`, `|`, `^`, `<<`, `>>`, and `~` before a value, with `&=`, `|=`,
+`^=`, `<<=` and `>>=`, work on numbers, as they do under `use v5.42`.
+Each operand is a whole number by the rule `substr` has for a
+position, cut toward zero, and is taken as its 64 bits, so `-1` is all
+ones. The answer is perl's, an unsigned integer, and from 2^63 up a
+fault, as the language has no unsigned integer:
+
+    say 12 & 10;       # 8
+    say -1 & 255;      # 255
+    say -8 >> 1;       # 9223372036854775804
+    say ~5;            # fault
+
+A shift by a negative count shifts the other way, and by 64 or more
+either way gives 0. An undef on the left of `|=` and `^=` is 0, as in
+perl; anywhere else it is the fault for undef. `&`, `|` and `^` bind
+more loosely than the comparisons, so `$x & $y == 3` is `$x & ($y ==
+3)`, and perl warns of it: a numeric comparison without brackets as an
+operand of one of the three is refused. Bracket the one that is meant. perl's string bitwise operators, `&.`, `|.`, `^.`
+and `~.`, are not in the language. After `say $x` and a blank, `~`,
+and `<<` hard against anything but a blank, are refused: perl takes
+`$x` for a file handle there.
+
+### rand, srand and time
+
+`rand` is perl's own generator, so a program that seeds it prints what
+perl prints, on every machine. `rand(N)` is a float from 0 up to N,
+`rand` and `rand()` up to 1, and `rand(0)` up to 1 too; `srand(N)`
+seeds it, and gives N, or `0 but true` for 0. A `rand` before any
+`srand` seeds itself, and `srand()` seeds with a seed of the runtime's
+choosing, and gives it.
+
+    srand(42);
+    say rand();             # 0.744525000061007
+    say int(rand(6)) + 1;   # a die
+
+`srand`'s argument is an Int of 0 or more, a whole float below 10^15,
+or a string of digits alone; anything else is a fault, as perl reads
+the argument as a string (`srand(-1)` is `srand(1)` to perl). `rand`
+and `srand` may be written with no argument where an expression ends,
+or before `==`, `!=`, `>`, `>=`, `|`, `^`, `>>`, `&&`, `||` and `?`;
+before anything else perl would take what follows for the argument,
+so write `rand()`. Both may stand alone as a statement.
+
+`time` is the seconds since 1970, an Int, and takes no argument (`time()`
+too). A program reads one more environment variable as it starts,
+`CURLY_TIME`, a whole number: when it is set, and not 0, `time` is it,
+always. The tests set it, so no test sees the real clock.
+`localtime`, `gmtime` and `sleep` are not in the language yet.
+
 ## Memory
 
 A program doesn't manage memory. A string the program can no longer

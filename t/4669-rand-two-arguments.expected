@@ -1,0 +1,2 @@
+t/4669-rand-two-arguments.pl:4:11: expected ')', found ','
+exit: 1

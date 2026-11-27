@@ -1,0 +1,2 @@
+t/4697-sleep.pl:4:1: 'sleep' is not in the language
+exit: 1

@@ -1,0 +1,2 @@
+fault: srand of a negative number, a fraction, a boolean or a string that is not digits alone: perl reads its argument as a string of digits at t/4645-fault-srand-blanks.pl line 5.
+exit: 1

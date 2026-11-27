@@ -1,0 +1,2 @@
+t/4662-abs-minus.pl:4:9: abs -: perl warns that this is ambiguous: write abs(-...)
+exit: 1

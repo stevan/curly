@@ -1,0 +1,3 @@
+9223372036854775807
+fault: abs of -2^63: perl gives the unsigned integer 2^63, which the language does not have at t/4441-fault-abs-of-the-smallest.pl line 7.
+exit: 1

@@ -1,0 +1,2 @@
+fault: undef where a string is wanted at t/4463-fault-hex-of-undef.pl line 5.
+exit: 1

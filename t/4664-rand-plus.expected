@@ -1,0 +1,2 @@
+t/4664-rand-plus.pl:4:14: rand +: perl warns that this is ambiguous: write rand(+...)
+exit: 1

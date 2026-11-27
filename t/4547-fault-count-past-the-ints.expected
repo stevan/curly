@@ -1,0 +1,2 @@
+fault: a number outside the integers where a whole number is wanted at t/4547-fault-count-past-the-ints.pl line 4.
+exit: 1
