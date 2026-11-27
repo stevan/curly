@@ -1289,6 +1289,86 @@ def unbracket(s):
     return s
 
 
+class Ctx:
+    """A program about context alone: subs whose values are what perl
+    works out differently for a list, one value and nothing (D18, D245),
+    each called in every context there is, directly, through a
+    reference and handed on by another sub."""
+    def __init__(self, r):
+        self.r = r
+
+    def value(self, d=2):
+        r = self.r
+        k = r.randrange(16)
+        p = lambda: f'p({r.choice(["1", "2", "0", "3"])})'
+        if d <= 0 or k < 2:
+            return r.choice(['1', '"s"', '$n', p(), '@arr', '(1, 2)', '()', '(undef)'])
+        if k == 2:
+            return f'({p()} .. {r.choice(["2", "$n", p()])})'
+        if k == 3:
+            return f'sort {{ print("c "); $a <=> $b }} ({p()}, {p()}, 1)'
+        if k == 4:
+            return f'sort 3, {p()}'
+        if k == 5:
+            return f'map {{ print("m "); $_ }} {self.value(d - 1)}'
+        if k == 6:
+            return f'grep {{ print("g "); $_ }} ({p()}, 0, 4)'
+        if k == 7:
+            return f'reverse({self.value(d - 1)})'
+        if k == 8:
+            return f'({p()}, 5) x {r.choice(["0", "1", "2"])}'
+        if k == 9:
+            return f'$c ? {self.value(d - 1)} : {self.value(d - 1)}'
+        if k == 10:
+            return f'$c {r.choice(["||", "&&", "//"])} {self.value(d - 1)}'
+        if k == 11:
+            return f'({self.value(d - 1)}, {self.value(d - 1)})'
+        if k == 12:
+            return f'@arr[0, {r.choice(["1", "5", "-1"])}]'
+        if k == 13:
+            return f'({self.value(d - 1)})[{r.choice(["0", "1", "-1", "0, 1"])}]'
+        if k == 14:
+            return f'+({self.value(d - 1)})'
+        return r.choice(['inner($c)', '$ref->($c)', '%hh', 'keys %hh'])
+
+    def program(self):
+        r = self.r
+        body = ['my @arr = (3, 4);', 'my %hh = (k => 1);', 'my $n = 2;',
+                'sub p($v) { print("p$v "); return $v }']
+        # each sub's value on a line of its own, so that what a fault or a
+        # refusal there takes out is the value, and not the sub
+        subs = [['sub inner($c) {\n', blk([[f'return {self.value(1)};']]), '}'],
+                ['my $ref = sub ($c) {\n', blk([[f'{self.value(1)}']]), '};']]
+        nsubs = r.randint(2, 5)
+        for i in range(nsubs):
+            if r.random() < 0.7:
+                subs.append([f'sub s{i}($c) {{\n', blk([[f'return {self.value()};']]), '}'])
+            else:
+                subs.append([f'sub s{i}($c) {{\n', blk([[f'say("in s{i}");'], [f'{self.value()}']]), '}'])
+        stmts = []
+        for _ in range(r.randint(10, 25)):
+            f = f's{r.randrange(nsubs)}({r.choice(["0", "1"])})'
+            if r.random() < 0.2:
+                f = f'$ref->({r.choice(["0", "1"])})'
+            k = r.randrange(12)
+            stmts.append([
+                f'{f}; say("void");',
+                f'my @l{_} = {f}; say("list ", scalar(@l{_}));',
+                f'my $x{_} = {f}; say("one ", $x{_} // "u");',
+                f'say("say ", {f});',
+                f'if ({f}) {{ say("true") }} else {{ say("false") }}',
+                f'{f} for 1 .. 2; say("for");',
+                f'say("args ", join(",", map {{ $_ // "u" }} {f}));',
+                f'say("count ", scalar(@{{[{f}]}}));',
+                f'my $t{_} = sub {{ return {f} }}; $t{_}->(); say("handed");',
+                f'say("each ", join(",", map {{ $_ // "u" }} ({f}, {f})));',
+                f'{f} if 1; say("if");',
+                f'try {{ {f}; }} catch ($e) {{ }} say("try");',
+            ][k])
+        top = blk([[b] for b in body] + subs + stmts)
+        return 'use v5.42;\n', top
+
+
 def dump(v):
     safe = lambda e: f'(defined({e}) ? (ref({e}) ? ref({e}) : {e}) : "u")'
     if v[0] == '$':
@@ -1381,6 +1461,8 @@ def delete_at(top, ranges, line):
 
 
 def generate(seed):
+    if seed % 8 == 7:
+        return Ctx(random.Random(seed)).program()
     return Gen(seed).program()
 
 

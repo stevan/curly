@@ -2,9 +2,10 @@
 """The differential fuzzer: programs from gen.py, compiled, run, and held
 to perl 5.42 (README.md here).
 
-    python3 docs/briefs/fuzz/run.py FIRST COUNT [--jobs N] [--out DIR]
+    python3 docs/briefs/fuzz/run.py FIRST COUNT [--jobs N] [--out DIR] [--step N] [--stop]
 
-Seeds FIRST to FIRST + COUNT - 1. For each: the program is generated and
+Seeds FIRST to FIRST + COUNT - 1 (or COUNT of them, STEP apart: gen.py
+writes a program about context alone for a seed of 7 mod 8). For each: the program is generated and
 asked of the compiler (front.ts, one Node process per worker); a refusal
 is counted by its message, the statement it names taken out, and the
 program asked again, up to REPAIRS times. A program that compiles is
@@ -209,6 +210,7 @@ def main(argv):
     start = time.time()
 
     stop = '--stop' in argv
+    step = int(argv[argv.index('--step') + 1]) if '--step' in argv else 1
 
     def task(seed):
         if stop and (tally['verdicts']['WRONG'] or tally['verdicts']['CRASH']):
@@ -226,7 +228,7 @@ def main(argv):
                 print(f'.. {tally["programs"]} programs, {dict(tally["verdicts"])}, {time.time() - start:.0f}s', flush=True)
 
     with ThreadPoolExecutor(jobs) as pool:
-        list(pool.map(task, range(first, first + count)))
+        list(pool.map(task, range(first, first + count * step, step)))
     os.remove(rt)
     for w in workers:
         w.node.stdin.close()
