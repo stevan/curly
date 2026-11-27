@@ -476,7 +476,9 @@ step 17, names the five repositories to read first
 (`stevan/p5-roles-algebra`, `stevan/p5-core-role-tests`, and since
 2026-11-27 `stevan/p5-MOP`, `stevan/p5-UNIVERSAL-Object` and
 `stevan/Cor`, a 2020 compiler from a class syntax to the two before
-it, `master` its newest state and its branches older ones merged), and
+it, from the early days of the Corinna spec work, `master` its newest
+state and its branches older ones merged; a `:REPR` attribute was
+planned there and not written), and
 **D160 to D165, Stevan's (2026-11-27)**: both adapted, not copied;
 an instance of more representations than a hash, with a construction
 protocol a class can hook (D160); **roles refereed by a perl with his

@@ -6280,7 +6280,11 @@ Stevan's repositories first, all public (a session clones them with
   System for Perl", 2020, a compiler from a class syntax to Perl that
   targets the two above, so **the one place the lowering this step
   needs has been done**: from `class`, `role`, `has` and `method` to
-  the construction protocol and composed roles. It parses with
+  the construction protocol and composed roles. **It was written in
+  the early days of the Corinna spec work** (Stevan, 2026-11-27), so
+  it has what was still being debated there, the twigils (`$.x`,
+  `$!x`) and the `module` keyword: read it for the lowering, not the
+  syntax. It parses with
   `PPR` (perl's grammar as regexes, widened for slots) into an AST
   and writes a `.pmc` beside each `.pm`, which perl loads in its
   place. The syntax: `module Name;` before the units of a file; `class
@@ -6298,7 +6302,9 @@ Stevan's repositories first, all public (a session clones them with
   `MOP::Util::compose_roles` at `BEGIN`; `$self` added to every
   signature; every slot in a method body rewritten to
   `$self->{q[$x]}`, so its instances are hashes; a private method a
-  lexical code reference. **Its state**: `master` (2020-06-10) is the
+  lexical code reference. **A `:REPR` attribute was planned for the
+  other representations** (Stevan, 2026-11-27) and not written:
+  nothing in the repository's history mentions it. **Its state**: `master` (2020-06-10) is the
   newest and fullest; the branches `slittle/compiled-methods`,
   `slittle/private-methods` and `slittle/use-statements` (March 2020)
   are older states, all merged into it, with nothing of their own.

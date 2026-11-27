@@ -283,7 +283,10 @@ instance, with hooks at each part and instances that are a scalar, an
 array or a hash. Both are to be adapted, not copied. And
 `stevan/Cor`, a 2020 compiler from a class syntax (`class`, `role`,
 `has`, `method`) to Perl that targets those two: the lowering step 17
-needs, done once before. Not read closely yet: nothing here is
+needs, done once before, in the early days of the Corinna spec work
+(its twigils and `module` keyword were still being debated; its
+instances are hashes, and a `:REPR` attribute for the others was
+planned and not written). Not read closely yet: nothing here is
 borrowed from them so far.
 
 ## Parked, with the reason, so each stops coming up
