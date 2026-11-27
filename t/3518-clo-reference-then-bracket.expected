@@ -1,0 +1,2 @@
+t/3518-clo-reference-then-bracket.pl:7:13: '(' after \&nm: perl calls nm and takes a reference to what it gives; bracket the reference, (\&nm)->(...)
+exit: 1

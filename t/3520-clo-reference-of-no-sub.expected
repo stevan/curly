@@ -1,0 +1,2 @@
+t/3520-clo-reference-of-no-sub.pl:4:9: \&none: the program has no sub called none
+exit: 1

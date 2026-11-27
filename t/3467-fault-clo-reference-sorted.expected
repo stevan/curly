@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/3467-fault-clo-reference-sorted.pl line 7.
+exit: 1

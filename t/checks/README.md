@@ -51,6 +51,8 @@ test is tested apart, on `t/000-say.pl`.)
 | `same-hash-loop-unread` | A loop or a `map` over a hash whose block never reads what it is handed; a hash handed to a sub whose last parameter is a hash (step 12b) |
 | `same-hash-loop-read` | The same loops, the value read each way it can be, and a `grep`, which hands its list on |
 | `same-hash-to-a-list-parameter` | A hash handed to a sub that takes a list |
+| `same-hash-anon-parameter` | A hash as the last parameter of a sub with no name: no order shows (step 14) |
+| `same-hash-anon-parameter-shown` | The same sub, whose body prints its hash's keys unsorted: the reading rule fails it |
 | `same-hash-in-string` | A hash inside a string that runs code |
 | `same-scalar-each` | `scalar(each %h)`, which is a key and not a count |
 | `same-scalar-reverse` | `scalar reverse keys %h` |

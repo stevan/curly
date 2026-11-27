@@ -1,0 +1,2 @@
+t/3512-clo-arguments-array.pl:4:22: @_ is not in the language: a sub has a signature (D17)
+exit: 1

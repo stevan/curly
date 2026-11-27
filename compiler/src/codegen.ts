@@ -33,7 +33,7 @@
 // (D28: nothing is global). After every call the caller's line is stored
 // again (D34).
 import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
-import type { ArrayOp, Binder, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
+import type { ArrayOp, Binder, CallRef, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn, shaped } from './shapes.ts';
@@ -94,19 +94,37 @@ const temp = (b: Code, call: string): C => {
 // if it has no address.
 const pointTo = (b: Code, v: C): string => `&${v.place ? v.c : temp(b, v.c).c}`;
 
+// Where declaration `id` is kept, from function `fn`: a slot of its own
+// frame; for a sub with no name, what its reference captured (step 14;
+// D161), `cap`; or the file's, which a sub reaches through `g`.
+const slotOfId = (names: Resolution, fn: number, id: number): string => {
+    const slot = names.slots[id];
+    if (slot === undefined) throw new Error('a declaration has no slot');
+    if (names.owner[id] === fn) return `f[${slot}]`;
+    const k = names.captures[fn]?.indexOf(id) ?? -1;
+    // (Through the slot that holds the reference, each time: a sub may drop
+    // the last other reference to itself as it runs, and the slot is what
+    // keeps it.)
+    return k >= 0 ? `RT_CAPTURES(self)[${k}]` : `g[${slot}]`;
+};
+
 // The slot of the variable or the array a node names (D80: an element, a
 // slice and a builtin name their array).
 const slotOf = (b: Code, e: Expr): string => {
     const id = b.names.of.get(e);
-    const slot = id === undefined ? undefined : b.names.slots[id];
-    if (id === undefined || slot === undefined) throw new Error(`a ${e.kind} was not resolved`);
-    // Its own function's, or the file's, which a sub reaches through `g`.
-    return b.names.owner[id] === b.fn ? `f[${slot}]` : `g[${slot}]`;
+    if (id === undefined) throw new Error(`a ${e.kind} was not resolved`);
+    return slotOfId(b.names, b.fn, id);
 };
 
 // Whether a declaration is a scalar whose reference is taken (step 13c):
-// its slot holds a cell, and the variable is the cell's one value.
-const inCell = (names: Resolution, id: number): boolean => names.taken.has(id) && !names.isArray[id];
+// its slot holds a cell, and the variable is the cell's one value. So is a
+// scalar a sub with no name captures (step 14; D161).
+const inCell = (names: Resolution, id: number): boolean => (names.taken.has(id) || names.captured.has(id)) && !names.isArray[id];
+
+// The C function of function `n` (step 14: a sub with no name has one too).
+const cFn = (names: Resolution, n: number): string => (names.subs[n - 1]!.anon ? `anon_${n}` : `sub_${names.subs[n - 1]!.name}`);
+// What a fault calls a sub.
+const label = (s: Sub): string => (s.anon ? 'an anonymous sub' : s.name);
 
 // Where the variable a node names is: its slot, or for a scalar whose
 // reference is taken, the value in the cell its slot holds, which is a
@@ -149,7 +167,28 @@ const listy = (in_: Expr): boolean => {
 type Strict = 0 | 1 | 2;
 
 // Whether a call is of a sub that gives a list back (D18).
-const gives = (names: Resolution): Gives => (call: Invoke) => names.lists[names.calls.get(call)!] === true;
+const gives = (names: Resolution): Gives => (call: Invoke | CallRef) => (call.kind === 'invoke' ? names.lists[names.calls.get(call)!] === true : names.targets.some(t => names.lists[t] === true));
+
+// The arguments of a call, worked out left to right, each a list to perl;
+// the number that names the C locals they are handed over in (`av`, `ac`,
+// `fl`). A list among them, or a call that gives one: all of them are
+// built as one list, copied, and the sub is handed where its values are,
+// which is one after another. Otherwise each is a place, or a temporary:
+// a variable is read when the sub takes it (D73), and a call that gave
+// nothing is no argument.
+const genArguments = (args: readonly Expr[], room: number, b: Code): number => {
+    const n = ++b.temps;
+    b.decls.push(`rt_value *av${n}[${room}] RT_UNUSED;`, `int64_t ac${n} RT_UNUSED;`, `rt_value *fl${n} RT_UNUSED = NULL;`);
+    if (args.some(a => listy(a) || handsOn(a, gives(b.names)))) {
+        const values = genList(args, b, 1);
+        b.lines.push(`ac${n} = rt_list_length(cx, ${values.c});`, `fl${n} = rt_list_items(cx, ${values.c});`);
+    } else {
+        const where = args.map(a => pointTo(b, genExpr(a, b, 'list')));
+        b.lines.push(`ac${n} = 0;`);
+        where.forEach(p => b.lines.push(`if ((${p})->tag != RT_TAG_ABSENT) av${n}[ac${n}++] = ${p};`));
+    }
+    return n;
+};
 
 // A list, built in a temporary: made empty, and each item added to it in
 // turn, a value or the values of what is itself a list.
@@ -252,7 +291,7 @@ const genBinder = (e: Binder, b: Code, list: string): void => {
     const each = b.names.each.get(e);
     const last = e.body.at(-1);
     if (each === undefined || last === undefined) throw new Error(`a ${e.op} was not resolved`);
-    const slot = (decl: number): string => `${b.names.owner[decl] === b.fn ? 'f' : 'g'}[${b.names.slots[decl]}]`;
+    const slot = (decl: number): string => slotOfId(b.names, b.fn, decl);
     const it = slot(b.names.of.get(e.var)!);
     const held = slot(each.list);
     const at = `bn${++b.temps}`;
@@ -302,7 +341,7 @@ const genBinder = (e: Binder, b: Code, list: string): void => {
 // nothing. The values, in order, are added to `list`.
 const genSort = (e: Sort, b: Code, list: string): void => {
     const each = b.names.each.get(e);
-    const slot = (decl: number): string => `${b.names.owner[decl] === b.fn ? 'f' : 'g'}[${b.names.slots[decl]}]`;
+    const slot = (decl: number): string => slotOfId(b.names, b.fn, decl);
     const outer = b.frozen;
     const frozen = each?.frozen === undefined ? undefined : slot(each.frozen);
     b.frozen = frozen === undefined ? undefined : temp(b, 'rt_array_new(cx)').c;
@@ -827,25 +866,47 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
     case 'invoke': {
         const called = b.names.subs[b.names.calls.get(e)! - 1]!;
         const most = called.params.length;
-        const n = ++b.temps;
-        b.decls.push(`rt_value *av${n}[${Math.max(1, most, e.args.length)}] RT_UNUSED;`, `int64_t ac${n} RT_UNUSED;`, `rt_value *fl${n} RT_UNUSED = NULL;`);
-        if (e.args.some(a => listy(a) || handsOn(a, gives(b.names)))) {
-            // A list among them, or a call that gives one: all of them
-            // are built as one list, copied, and the sub is handed where
-            // its values are, which is one after another.
-            const values = genList(e.args, b, 1);
-            b.lines.push(`ac${n} = rt_list_length(cx, ${values.c});`, `fl${n} = rt_list_items(cx, ${values.c});`);
-        } else {
-            // Each a place, or a temporary: a variable is read when the
-            // sub takes it (D73). A call that gave nothing is no argument.
-            const where = e.args.map(a => pointTo(b, genExpr(a, b, 'list')));
-            b.lines.push(`ac${n} = 0;`);
-            where.forEach(p => b.lines.push(`if ((${p})->tag != RT_TAG_ABSENT) av${n}[ac${n}++] = ${p};`));
-        }
-        const result = temp(b, `sub_${e.name}(cx, ${WANT[want]}, ac${n}, av${n}, fl${n})`);
+        const n = genArguments(e.args, Math.max(1, most, e.args.length), b);
+        const result = temp(b, `${cFn(b.names, b.names.calls.get(e)!)}(cx, ${WANT[want]}, ac${n}, av${n}, fl${n}, NULL)`);
         b.lines.push(`cx->line = ${b.line};`);
         return result;
     }
+    // A call through a reference (step 14; D164, D166): the arguments as a
+    // call by name has them, then what stands before the arrow (T370),
+    // then the check that it is a sub's reference, kept in a slot for the
+    // whole call, which is handed where it is as `self`; the generated code
+    // calls the function the reference holds (D83).
+    case 'callref': {
+        const n = genArguments(e.args, Math.max(1, e.args.length), b);
+        const head = genExpr(e.head, b);
+        const code = temp(b, `rt_code(cx, ${head.c})`);
+        const result = temp(b, `RT_CODE_FN(${code.c})(cx, ${WANT[want]}, ac${n}, av${n}, fl${n}, &${code.c})`);
+        b.lines.push(`cx->line = ${b.line};`);
+        return result;
+    }
+    // A sub with no name (step 14; D161): the one value of one that uses
+    // nothing from outside it, or a new reference holding what it captures,
+    // each the variable itself, a cell or a container. Taking a `foreach`'s
+    // variable freezes for good what that loop froze (D162).
+    case 'anonsub': {
+        const n = b.names.anonOf.get(e)!;
+        const one = b.names.constants.get(n);
+        if (one !== undefined) return temp(b, slotOfId(b.names, b.fn, one));
+        const caps = b.names.captures[n]!;
+        const made = temp(b, `rt_code_new(cx, ${cFn(b.names, n)}, ${caps.length})`);
+        caps.forEach((id, k) => b.lines.push(`rt_code_capture(cx, ${made.c}, ${k}, ${slotOfId(b.names, b.fn, id)});`));
+        for (const id of caps) {
+            const held = b.names.owner[id] === b.fn ? b.names.loopVars.get(id) : undefined;
+            if (held === undefined) continue;
+            held.arrays.forEach(a => b.lines.push(`rt_freeze_forever(cx, ${slotOfId(b.names, b.fn, a)});`));
+            if (held.frozen !== undefined) b.lines.push(`rt_freeze_all_forever(cx, ${slotOfId(b.names, b.fn, held.frozen)});`);
+        }
+        return made;
+    }
+    // `\&name`: the one value of a named sub (step 14).
+    case 'subref': return temp(b, slotOfId(b.names, b.fn, b.names.constants.get(b.names.subrefs.get(e)!)!));
+    // `__SUB__`: the reference the sub was called through.
+    case 'cursub': return temp(b, '*self');
     case 'binary': {
         const op = infixOp(e.op);
         const left = genExpr(e.left, b);
@@ -940,7 +1001,7 @@ const genGiven = (e: Expr, line: number, out: Out, after: readonly string[]): st
     const asList = (): string[] => genListWhole([e], line, out, c => [`r = ${c};`, ...after]).code;
     const asValue = (): string[] => genWhole(e, line, out, c => [`r = ${c};`, ...after], 'pass').code;
     if (shaped(e, gives(out.names))) {
-        return ['if (want == RT_SCALAR) {', `    cx->line = ${line};`, `    rt_fault_sub(cx, ${cString(out.sub!.name)}, RT_LISTED);`, '}', ...asList()];
+        return ['if (want == RT_SCALAR) {', `    cx->line = ${line};`, `    rt_fault_sub(cx, ${cString(label(out.sub!))}, RT_LISTED);`, '}', ...asList()];
     }
     if (!listy(e)) return asValue();
     // A sub with nothing list-shaped in it is called as one that gives a
@@ -1040,8 +1101,11 @@ const genStmt = (s: Stmt, out: Out): string[] => {
         const each = out.names.each.get(s);
         if (id === undefined || each === undefined) throw new Error('a foreach was not resolved');
         const b: Code = { vars: [], decls: [], lines: [], temps: 0, values: out.base, out, strings: out.strings, names: out.names, frame: out.frame, fn: out.fn, line: s.pos.line };
-        const slot = (decl: number): string => `${out.names.owner[decl] === out.fn ? 'f' : 'g'}[${out.names.slots[decl]}]`;
+        const slot = (decl: number): string => slotOfId(out.names, out.fn, decl);
         const x = slot(out.names.of.get(s.var)!);
+        // A variable a sub with no name takes is a new cell each time round,
+        // with the value in it (step 14; D162).
+        const wrap = inCell(out.names, out.names.of.get(s.var)!) ? [`    rt_cell_wrap(cx, &${x});`] : [];
         const one = s.items.length === 1 ? through(s.items[0]!) : undefined;
         const range = one !== undefined && one.kind === 'binary' && isRange(one) ? one : undefined;
         const frozen = each.frozen === undefined ? undefined : slot(each.frozen);
@@ -1053,12 +1117,12 @@ const genStmt = (s: Stmt, out: Out): string[] => {
             const to = genExpr(range.right, b);
             b.lines.push(`go_${id} = rt_range_ends(cx, ${from.c}, ${to.c}, &at_${id}, &end_${id});`);
             if (frozen !== undefined) b.lines.push(`${frozen} = rt_array_new(cx);`);
-            loop = [`if (go_${id}) for (;; at_${id}++) {`, `    ${x} = rt_int(at_${id}); // $${s.var.name}`];
+            loop = [`if (go_${id}) for (;; at_${id}++) {`, `    ${x} = rt_int(at_${id}); // $${s.var.name}`, ...wrap];
         } else {
             const list = genList(s.items, b, 2);
             b.lines.push(`${slot(each.list)} = ${list.c};`);
             if (frozen !== undefined) b.lines.push(`${frozen} = ${b.frozen};`);
-            loop = [`for (; at_${id} < rt_list_length(cx, ${slot(each.list)}); at_${id}++) {`, `    ${x} = rt_list_item(cx, ${slot(each.list)}, at_${id}); // $${s.var.name}`];
+            loop = [`for (; at_${id} < rt_list_length(cx, ${slot(each.list)}); at_${id}++) {`, `    ${x} = rt_list_item(cx, ${slot(each.list)}, at_${id}); // $${s.var.name}`, ...wrap];
         }
         const thaws = [...each.arrays.map(a => `rt_thaw(cx, ${slot(a)});`), ...(frozen ? [`rt_thaw_all(cx, ${frozen});`] : [])];
         return [
@@ -1131,7 +1195,7 @@ const genStmt = (s: Stmt, out: Out): string[] => {
 // is a fault unless the call was void (D18).
 const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): string[] => {
     const out: Out = { strings, names, frame: { temporaries: 0 }, fn, sub: s, open: [], base: 0 };
-    const name = cString(s.name);
+    const name = cString(label(s));
     const lines: string[] = [];
     for (const [n, p] of s.params.entries()) {
         const slot = p.my === undefined ? undefined : `f[${names.slots[names.of.get(p.my)!]}]`;
@@ -1185,7 +1249,7 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
     const slurpy = s.params.at(-1)?.slurpy === true;
     const least = s.params.filter(p => p.op === undefined && !p.slurpy).length;
     return [
-        `${prototype(s)} {`,
+        `${prototype(names, fn)} {`,
         `    rt_value f[${slots}];`,
         '    rt_frame frame;',
         '    rt_value r = rt_undef();',
@@ -1211,8 +1275,10 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
 // slots that are numbered after them.
 const isFileSlot = (names: Resolution, id: number): boolean => names.fileIds.has(id);
 
-const prototype = (s: Sub): string =>
-    `static rt_value sub_${s.name}(rt_ctx *cx, int want RT_UNUSED, int64_t argc, rt_value **argv RT_UNUSED, rt_value *flat RT_UNUSED)`;
+// Every sub's is one type, `rt_code_fn` (step 14), so that a reference
+// may hold any of them.
+const prototype = (names: Resolution, n: number): string =>
+    `static rt_value ${cFn(names, n)}(rt_ctx *cx, int want RT_UNUSED, int64_t argc, rt_value **argv RT_UNUSED, rt_value *flat RT_UNUSED, rt_value *self RT_UNUSED)`;
 
 // `file` is the program's path as the driver was given it, which is the
 // path perl is given too (D10): a fault names it.
@@ -1227,7 +1293,7 @@ export const generate = (program: Program, names: Resolution, file: string): str
         '',
         ...out.strings,
         ...(out.strings.length ? [''] : []),
-        ...names.subs.map(s => `${prototype(s)};`),
+        ...names.subs.map((_, n) => `${prototype(names, n + 1)};`),
         ...(names.subs.length ? [''] : []),
         ...subs,
         'static void curly_main(rt_ctx *cx) {',
@@ -1241,6 +1307,8 @@ export const generate = (program: Program, names: Resolution, file: string): str
                 // One whose reference is taken has one cell from the start
                 // (step 13c; T255).
                 ...(inCell(names, id) ? [`    rt_cell_wrap(cx, &f[${names.slots[id]}]);`] : [])] : [])),
+        // The one value of each sub that has one (step 14; D161).
+        ...[...names.constants].map(([n, id]) => `    f[${names.slots[id]}] = rt_code_new(cx, ${cFn(names, n)}, 0);`),
         '    cx->shared = f;',
         ...indent(body),
         '    rt_leave(cx, &frame);',

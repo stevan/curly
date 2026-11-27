@@ -1,0 +1,2 @@
+t/3552-clo-only-a-value-in-a-sub-with-no-name.pl:5:5: this statement only has a value, and nothing is done with it: perl warns that it is useless
+exit: 1

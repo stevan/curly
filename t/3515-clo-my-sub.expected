@@ -1,0 +1,2 @@
+t/3515-clo-my-sub.pl:4:4: after 'my', expected a variable, found 'sub'
+exit: 1

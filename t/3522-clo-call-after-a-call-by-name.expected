@@ -1,0 +1,2 @@
+t/3522-clo-call-after-a-call-by-name.pl:7:10: a bracket after a call by name: perl does not compile name()(...) (T374); write name()->(...)
+exit: 1

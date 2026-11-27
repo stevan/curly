@@ -1,0 +1,2 @@
+t/3533-clo-it-in-a-loop.pl:6:20: $_ in a sub with no name: to perl it is the global $_, read when the sub runs, and not the for's, map's or grep's round it (D162); take the value into a my first
+exit: 1

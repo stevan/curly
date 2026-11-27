@@ -1,0 +1,2 @@
+t/3550-clo-head-after-a-list-of-arguments.pl:10:5: a later part of a call through a reference can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
+exit: 1

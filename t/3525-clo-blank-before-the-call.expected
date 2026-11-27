@@ -1,0 +1,2 @@
+t/3525-clo-blank-before-the-call.pl:5:13: a blank before the bracket of a call through a reference: perl takes it, and reads on; write it hard against what it calls, $h{f}(...)
+exit: 1

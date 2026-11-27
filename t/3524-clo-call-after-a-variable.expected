@@ -1,0 +1,2 @@
+t/3524-clo-call-after-a-variable.pl:5:7: $f(...) is not perl's: a call through a reference is $f->(...)
+exit: 1

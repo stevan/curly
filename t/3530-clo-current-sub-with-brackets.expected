@@ -1,0 +1,2 @@
+t/3530-clo-current-sub-with-brackets.pl:4:22: __SUB__ is written without brackets: __SUB__->(...) calls the sub
+exit: 1

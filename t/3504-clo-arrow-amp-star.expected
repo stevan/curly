@@ -1,0 +1,2 @@
+t/3504-clo-arrow-amp-star.pl:5:3: ->&*: a call by '&' is cut (D21, D165): call through the reference with its brackets, $f->(...)
+exit: 1

@@ -1,0 +1,2 @@
+t/3542-clo-step-a-taken-loop-variable.pl:7:22: $x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
+exit: 1

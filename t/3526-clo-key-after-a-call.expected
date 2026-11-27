@@ -1,0 +1,2 @@
+t/3526-clo-key-after-a-call.pl:5:11: '{' hard after a call through a reference: perl takes it for a key of what the call gives; write the arrow, ->{...}
+exit: 1

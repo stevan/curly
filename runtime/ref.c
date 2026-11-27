@@ -16,6 +16,7 @@
 #define NOT_ARRAY "not a reference to an array"
 #define NOT_HASH "not a reference to a hash"
 #define NOT_SCALAR "not a reference to a scalar"
+#define NOT_SUB "not a reference to a sub"
 
 // `hash` is 0 for an array, 1 for a hash, and 2 for a scalar's cell (step
 // 13c), throughout.
@@ -136,6 +137,7 @@ static const rt_str STR_ARRAY = { 5, 5, "ARRAY", RT_STR_CONSTANT };
 static const rt_str STR_HASH = { 4, 4, "HASH", RT_STR_CONSTANT };
 static const rt_str STR_SCALAR = { 6, 6, "SCALAR", RT_STR_CONSTANT };
 static const rt_str STR_REF = { 3, 3, "REF", RT_STR_CONSTANT };
+static const rt_str STR_CODE = { 4, 4, "CODE", RT_STR_CONSTANT };
 
 // A reference to a scalar is SCALAR, or REF when the scalar holds a
 // reference now (T242).
@@ -143,6 +145,7 @@ rt_value rt_ref(rt_ctx *cx, rt_value v) {
     if (v.tag == RT_TAG_AREF) return rt_string(&STR_ARRAY);
     if (v.tag == RT_TAG_HREF) return rt_string(&STR_HASH);
     if (v.tag == RT_TAG_SREF) return rt_string(is_ref(RT_CELL(v)) ? &STR_REF : &STR_SCALAR);
+    if (v.tag == RT_TAG_CODE) return rt_string(&STR_CODE);
     if (!a_scalar(v.tag)) rt_fault(cx, "not a value");
     return rt_string(&STR_FALSE);
 }
@@ -162,4 +165,55 @@ void rt_freeze_all(rt_ctx *cx, rt_value frozen) {
 void rt_thaw_all(rt_ctx *cx, rt_value frozen) {
     rt_array *a = array_of(cx, frozen);
     for (uint64_t n = 0; n < a->count; n++) rt_thaw(cx, a->items[n]);
+}
+
+// ---- subs with no name, and calls through a reference (step 14)
+
+// A sub's reference: a new block, its first item the function and then a
+// row of undefs for what it captures, which the generated code stores at
+// once, before anything allocates again. The one allocation is the
+// block; the row is storage, and starts no collection.
+rt_value rt_code_new(rt_ctx *cx, rt_code_fn fn, int64_t count) {
+    rt_value c = rt_array_new(cx);
+    rt_value f;
+    f.tag = RT_TAG_FN;
+    f.as.bits = (uint64_t)(uintptr_t)fn;
+    append(cx, c.as.a, f);
+    for (int64_t k = 0; k < count; k++) append(cx, c.as.a, rt_undef());
+    c.tag = RT_TAG_CODE;
+    return c;
+}
+
+// What a sub captures is the variable itself: a scalar's cell, or an
+// array's or a hash's block (D161).
+void rt_code_capture(rt_ctx *cx, rt_value code, int64_t at, rt_value v) {
+    if (code.tag != RT_TAG_CODE || code.as.a->dead || at < 0 || (uint64_t)at + 1 >= code.as.a->count) rt_internal(cx, "a capture stored where a sub has none");
+    if (v.tag != RT_TAG_CELL && v.tag != RT_TAG_ARRAY && v.tag != RT_TAG_HASH) rt_internal(cx, "a sub captured what is no variable");
+    code.as.a->items[at + 1] = v;
+}
+
+// A call through a reference (D164): undef, and anything that is not a
+// sub's reference, is a fault, as perl dies of each (T366).
+rt_value rt_code(rt_ctx *cx, rt_value v) {
+    if (v.tag == RT_TAG_UNDEF) rt_fault(cx, UNDEF_REFERENCE);
+    if (v.tag != RT_TAG_CODE) {
+        if (!a_scalar(v.tag)) rt_fault(cx, "not a value");
+        rt_fault(cx, NOT_SUB);
+    }
+    if (v.as.a->dead || v.as.a->count == 0 || v.as.a->items[0].tag != RT_TAG_FN) rt_internal(cx, "a sub's reference that holds no sub");
+    return v;
+}
+
+// Frozen for good (D162): the top bit of the count, which `rt_thaw` and a
+// `die` never take, and which is set once however many closures ask.
+#define FROZEN_FOREVER ((uint64_t)1 << 62)
+
+void rt_freeze_forever(rt_ctx *cx, rt_value container) {
+    rt_array *a = container_of(cx, container);
+    a->frozen |= FROZEN_FOREVER;
+}
+
+void rt_freeze_all_forever(rt_ctx *cx, rt_value frozen) {
+    rt_array *a = array_of(cx, frozen);
+    for (uint64_t n = 0; n < a->count; n++) rt_freeze_forever(cx, a->items[n]);
 }

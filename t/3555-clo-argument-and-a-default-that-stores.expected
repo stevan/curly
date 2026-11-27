@@ -1,0 +1,2 @@
+t/3555-clo-argument-and-a-default-that-stores.pl:10:5: a later part of a call through a reference can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+exit: 1

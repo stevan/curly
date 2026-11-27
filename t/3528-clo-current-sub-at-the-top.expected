@@ -1,0 +1,2 @@
+t/3528-clo-current-sub-at-the-top.pl:4:13: __SUB__ outside a sub with no name: perl gives undef at the top of the file and the sub itself in a named one; write the sub's name, or \&name
+exit: 1

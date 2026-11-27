@@ -36,7 +36,9 @@ export type Token =
     // begin (step 13a; D113). A `,` whose text is `=>` is the fat comma.
     // `deref`: the brace opens or closes what the whole container through
     // a reference is worked out from, `@{ EXPR }` (step 13b).
-    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true }
+    // `sub`: the brace opens or closes the block of a sub with no name,
+    // whose end ends a value (step 14).
+    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true; sub?: true }
     // The sigil of a whole container through a reference, `@`, `%` or
     // `$#`, its brace next (step 13b; D108); and `$`, the scalar through
     // one, `${ EXPR }` (step 13c).
@@ -115,7 +117,12 @@ export const lex = (src: string): Token[] => {
     // For each brace that is open, what it opened: a hash's key, a new
     // hash, or a block (step 13a).
     // (`sderef`: the braces of `${ EXPR }`, step 13c.)
-    const braces: ('subscript' | 'anon' | 'block' | 'deref' | 'sderef')[] = [];
+    const braces: ('subscript' | 'anon' | 'block' | 'deref' | 'sderef' | 'sub')[] = [];
+    // Whether the signature that is open is a sub's with no name, and the
+    // index of the `)` that closed the last such one: the block after it is
+    // that sub's (step 14).
+    let anonSignature = false;
+    let anonClosed = -1;
     const at = (): string => src[i] ?? '';
     const pos = (): Pos => ({ line, col });
     const push = (t: Token): void => {
@@ -596,9 +603,9 @@ export const lex = (src: string): Token[] => {
         }
         return last?.kind === 'int' || last?.kind === 'num' || last?.kind === 'str' || last?.kind === 'qw' || last?.kind === ')' || last?.kind === 'var'
             || last?.kind === ']' || last?.kind === 'array' || last?.kind === 'lastindex' || last?.kind === 'hash'
-            || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true))
+            || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true || last.sub === true))
             || (last?.kind === 'op' && WHOLE.has(last.text))
-            || (last?.kind === 'word' && NAMES.get(last.text)?.kind === 'constant');
+            || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub'));
     };
 
     // Whether a brace that is no hash's key opens a new hash: where a value
@@ -1052,8 +1059,15 @@ export const lex = (src: string): Token[] => {
         } else if (c === ';' || c === '(' || c === ')' || c === ',' || c === '?' || c === ':' || c === '{' || c === '}' || c === '[' || c === ']') {
             // `sub NAME (` opens a signature, and its own `)` closes it.
             const [word, name] = [tokens.at(-2), tokens.at(-1)];
-            if (c === '(' && (signature > 0 || (word?.kind === 'word' && NAMES.get(word.text)?.kind === 'sub' && name?.kind === 'word'))) signature += 1;
-            if (c === ')' && signature > 0) signature -= 1;
+            // And `sub (` of a sub with no name (step 14).
+            const anon = c === '(' && signature === 0 && name?.kind === 'word' && NAMES.get(name.text)?.kind === 'sub';
+            if (anon) anonSignature = true;
+            if (c === '(' && (signature > 0 || anon || (word?.kind === 'word' && NAMES.get(word.text)?.kind === 'sub' && name?.kind === 'word'))) signature += 1;
+            if (c === ')' && signature > 0) {
+                signature -= 1;
+                if (signature === 0 && anonSignature) anonClosed = tokens.length;
+                if (signature === 0) anonSignature = false;
+            }
             // A brace hard after a variable opens a hash's key, `$h{...}`.
             // (perl takes a blank between the two, and the parser refuses
             // it: nothing else a brace could be stands after a variable.)
@@ -1090,9 +1104,20 @@ export const lex = (src: string): Token[] => {
                 push({ kind: '{', text: take(), pos: start, anon: true });
                 continue;
             }
+            // The block of a sub with no name (step 14): after the word, or
+            // after its signature.
+            if (c === '{' && ((name?.kind === 'word' && NAMES.get(name.text)?.kind === 'sub') || (name?.kind === ')' && anonClosed === tokens.length - 1))) {
+                braces.push('sub');
+                push({ kind: '{', text: take(), pos: start, sub: true });
+                continue;
+            }
             if (c === '{') braces.push('block');
             if (c === '}') {
                 const opened = braces.pop();
+                if (opened === 'sub') {
+                    push({ kind: '}', text: take(), pos: start, sub: true });
+                    continue;
+                }
                 if (opened === 'subscript' || opened === 'anon') {
                     push(opened === 'subscript' ? { kind: '}', text: take(), pos: start, subscript: true } : { kind: '}', text: take(), pos: start, anon: true });
                     continue;
@@ -1157,12 +1182,27 @@ export const lex = (src: string): Token[] => {
                     continue;
                 }
                 if (two === '%[' || two === '%{') refuse(`->${two}...: a slice of keys and values is cut (D108)`, start);
-                if (next === '(') refuse('->(...): a call through a reference is not in the language yet (step 14)', start);
+                // A call through a reference (step 14): the parser reads its
+                // brackets. `->&*` is cut (D21, D165).
+                if (next === '(') {
+                    push({ kind: 'op', text: op, pos: start });
+                    continue;
+                }
+                if (src.startsWith('&*', i)) refuse("->&*: a call by '&' is cut (D21, D165): call through the reference with its brackets, $f->(...)", start);
+                if (next === '&') refuse("'->&' and a name: a lexical method call, and classes are not in the language yet (step 17)", start);
                 if (isWordStart(next) || next === '$') refuse("'->' and a name: a method call, and classes are not in the language yet (step 17)", start);
                 if (next !== '[' && next !== '{') refuse("after '->' comes '[' or '{', hard against it: $r->[0], $r->{k}", start);
                 push({ kind: 'op', text: op, pos: start });
                 continue;
             }
+            // `\&name` (step 14): `&` after a backslash, which the parser
+            // reads. Anywhere else before a value, `&` calls a sub as perl's
+            // old code does, which is cut (D21, D165).
+            if (op === '&' && last?.kind === 'op' && last.text === '\\' && between === '') {
+                push({ kind: 'op', text: op, pos: start });
+                continue;
+            }
+            if (op === '&' && !afterValue()) refuse("'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)", start);
             // A backslash (step 13a): what it may take is the parser's.
             if (op === '\\') {
                 push({ kind: 'op', text: op, pos: start });
