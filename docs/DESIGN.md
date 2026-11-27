@@ -339,8 +339,8 @@ step, roughly in the order it will matter:
     (D166, `tools/perl-roles/`); the core of the object
     system bootstrapped in the runtime (D162); representations and
     the construction protocol (D160), and what referees them; how
-    step 17 is cut (D165); the metaobject protocol's API (D163, step
-    28); the shape of concurrency, and D13 revisited with it
+    step 17 is cut (D165, D170); the referee of representations (17c);
+    the metaobject protocol's API (D163, step 28); the shape of concurrency, and D13 revisited with it
     (step 29).
 14. **The extension of a file that carries type annotations** (step
     25). A program is a `.pl` file until then.

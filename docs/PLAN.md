@@ -6451,9 +6451,9 @@ programs run under perl 5.42.0 and the roles perl. **Size**: large, as
 the line above says, and 17a alone is about 13a's: a new kind of value
 in the runtime, a new kind of call, and every walk over names learning
 what a method call may reach. The questions are Q1 to Q8 below, each
-with a recommendation; Stevan's answers become decisions from D170,
-and then **the proposal is reviewed adversarially before anything is
-built** (a large step's rule). 17b and 17c are outlined here and
+with a recommendation, and **Stevan took every recommendation**
+(2026-11-27: D170 to D177); **the proposal is reviewed adversarially
+before anything is built** (a large step's rule). 17b and 17c are outlined here and
 proposed in full when 17a is built.
 
 **The census**: 124 probes wait for step 17. 104 stop at a method
@@ -6590,16 +6590,16 @@ The rows of T400 to T421; the ones that would print what perl doesn't:
 - **An object made a string is its address** (T414), which differs
   from run to run.
 
-##### The questions, each with a recommendation
+##### The questions, each with a recommendation: all taken, D170 to D177
 
-- **Q1. Three sub-steps, and the core from the first** (D165): 17a
+- **Q1 (D170). Three sub-steps, and the core from the first** (D165): 17a
   classes as perl 5.42 has them, on the core of D162 built from the
   start, its three names held back from programs; 17b roles, by the
   roles perl; 17c representations and the construction protocol.
   **Recommended.** Rejected: plain records for classes at 17a and the
   core at 17b (every class would be made twice over, and D162 says a
   class *is* an instance of `Class`).
-- **Q2. A class's block holds declarations only** (T408, T411):
+- **Q2 (D171). A class's block holds declarations only** (T408, T411):
   `field`, `method`, `my method`, `ADJUST`. **Recommended.** Rejected:
   `my` in the block with perl's meaning (a variable that is undef
   until the block's place in the file is reached, T408: a file
@@ -6607,7 +6607,7 @@ The rows of T400 to T421; the ones that would print what perl doesn't:
   rule again); `sub` in a class (perl calls it as a method with the
   class's name or an object first, T411: a second kind of method, and
   the first thing a class method wants is a class named by a string).
-- **Q3. A method call reaches every method of its name**, the program
+- **Q3 (D172). A method call reaches every method of its name**, the program
   being one file: its shape is a list if any of them gives one, and
   the fault of D18 is raised at run time by the method reached, as a
   `return` raises it now; every walk over names takes all of them.
@@ -6617,22 +6617,22 @@ The rows of T400 to T421; the ones that would print what perl doesn't:
   makes every call of its name a change of that field's name, wherever
   the call is, which is blunt and safe; whether it bites is for the
   review and the census to say.
-- **Q4. `new` on a class's name alone, `__CLASS__->new` in a method.**
+- **Q4 (D173). `new` on a class's name alone, `__CLASS__->new` in a method.**
   **Recommended.** Rejected: `$obj->new` as perl has it (T411), a
   class named by what a value holds.
-- **Q5. The surface of 17a**: `:writer` in (it is small, and perl 5.42
+- **Q5 (D174). The surface of 17a**: `:writer` in (it is small, and perl 5.42
   has it); `class NAME;` without a block, `class NAME VERSION` and
   `:isa(NAME VERSION)` out until a step wants them (the first is a
   class that runs to the end of the file or the next `package`, which
   is step 18's question). **Recommended.**
-- **Q6. `$self` is read-only, and a field is a container** (T412,
+- **Q6 (D175). `$self` is read-only, and a field is a container** (T412,
   T413): frozen by a loop over it, reached by `\`, known to D109.
   **Recommended.**
-- **Q7. An object is a reference by D112**: true, `==` by identity,
+- **Q7 (D176). An object is a reference by D112**: true, `==` by identity,
   `ref` and `blessed` its class, `reftype` `OBJECT`, a fault as a
   number or a string. **Recommended.** Rejected: a string for an
   object (perl's is an address).
-- **Q8. `Object`, `Role` and `Class` are held back**: refused as a
+- **Q8 (D177). `Object`, `Role` and `Class` are held back**: refused as a
   class's name and after `isa`, until step 28 shows them (T415).
   **Recommended.** Rejected: letting a program see them now (`$o isa
   Object` would be true here and false under perl).

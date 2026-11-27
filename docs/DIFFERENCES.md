@@ -439,7 +439,16 @@ full when its step is, and its rows join the sections above then.
   well as a hash, with a construction protocol a class can hook
   (D160); no `DEMOLISH` for now (D164); split into sub-steps (D165).
   A metaobject protocol (step 28) that looks at a class while the
-  program runs and never changes it (D163).
+  program runs and never changes it (D163). What a Perl programmer of
+  `class` will meet at 17a: a class's block holds `field`, `method`,
+  `my method` and `ADJUST` alone, so no `my` shared by the methods and
+  no `sub` for a class method (D171); `new` on a class's name, and
+  `__CLASS__->new` for `ref($self)->new` (D173); `class Name;` and a
+  class's version wait (D174); `$self` is read-only (D175); an object
+  printed or made a key is a fault, as any reference is (D176);
+  `Object`, `Role` and `Class` are no class's names (D177); and a
+  call of a method whose name some class gives a list faults where
+  one value is wanted, whichever class it reaches (D172).
 - **Regexes** (steps 19, 20). Perl's syntax and matching order, a
   subset, compiled. No `s///e`, no `(?{ })`, no string interpolated
   as a pattern. **How `s///` and a match read with `$_` read-only
@@ -457,7 +466,8 @@ project is run, how the compiler and the runtime are built, and
 decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
-D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D166.
+D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D166,
+D170.
 
 ## What this leaves out
 

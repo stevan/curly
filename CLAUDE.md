@@ -517,8 +517,8 @@ environment's setup script yet** (three minutes), and nothing runs it
 outline; **T400 to T421** found writing it (`briefs/claims17.py`,
 about 150 programs; a row marked `roles` runs under the roles perl,
 and fails without it); the questions Q1 to Q8, each with a
-recommendation, wait for Stevan, whose answers become D170 on, and
-then an adversarial review before anything is built. What it turns
+recommendation, all taken by Stevan (**D170 to D177**), and then an
+adversarial review before anything is built. What it turns
 on: **a method call reaches every method of its name** (the program
 is one file, Q3); **construction is perl's two passes** (T400);
 **a class's block holds declarations only** (T408, T411).

@@ -2391,3 +2391,43 @@ what blead's class layer brings with the roles (`PLAN.md`, step 17,
 "The port, as built"). Rejected: building the branch as it is, which
 is blead's (5.43.10) and would referee everything else in a role
 program by a perl that is not 5.42.
+
+**D170 to D177. Step 17's proposal: each question answered with its
+recommendation.** *(User, 2026-11-27: "take all the recommendations",
+of Q1 to Q8 in `PLAN.md`, step 17, "The proposal", which has the
+text, the evidence, T400 to T421, and what was rejected.)*
+**D170. Three sub-steps, and the core from the first** (Q1): 17a
+classes as perl 5.42 has them, on the core of D162 built from the
+start, its three names held back from programs; 17b roles, by the
+roles perl; 17c representations and the construction protocol.
+Rejected: plain records for classes at 17a and the core at 17b.
+**D171. A class's block holds declarations only** (Q2, T408, T411):
+`field`, `method`, `my method`, `ADJUST`. No `my`, no statement, no
+`sub`, no `use`. Rejected: `my` in the block with perl's meaning
+(undef until the block's place in the file is reached); `sub` in a
+class, which perl calls as a method with the class's name or an
+object first.
+**D172. A method call reaches every method of its name** (Q3, T406):
+the program is one file until step 18, so every class is known as it
+compiles. A call is list-shaped if any method of its name is, and
+D18's fault is raised at run time by the method reached; every walk
+over names (D18, D57, D69, D76, D77, D109, T230's rule) takes all of
+them; a name no class has is refused. Rejected: refusing a call whose
+methods disagree in shape; types to narrow the set (step 25).
+**D173. `new` on a class's name alone, and `__CLASS__->new` in a
+method** (Q4, T411). Rejected: `$obj->new` as perl has it, a class
+named by what a value holds.
+**D174. The surface of 17a** (Q5): `:writer` in; `class NAME;` with
+no block, `class NAME VERSION` and `:isa(NAME VERSION)` out until a
+step wants them.
+**D175. `$self` is read-only, and a field is a container** (Q6, T412,
+T413): a loop over it freezes it (D17), `\` reaches it (D110), and
+D109 knows it. Rejected: `$self` as perl's assignable variable.
+**D176. An object is a reference by D112** (Q7, T414): true, `==` and
+`!=` by identity, `ref` and `blessed` its class's name, `reftype`
+`OBJECT`, a fault wherever a number or a string is wanted. Rejected:
+a string for an object (perl's is its address).
+**D177. `Object`, `Role` and `Class` are held back** (Q8, T415):
+refused as a class's name and after `isa` until the metaobject
+protocol (step 28) shows them. Rejected: letting a program see them,
+where `$o isa Object` would be true here and false under perl.
