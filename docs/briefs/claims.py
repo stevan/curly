@@ -989,15 +989,22 @@ CLAIMS += STEP13D
 # And step 14's, docs/briefs/claims14.py.
 from claims14 import STEP14  # noqa: E402
 CLAIMS += STEP14
+# And step 21's, docs/briefs/claims21.py.
+from claims21 import STEP21  # noqa: E402
+CLAIMS += STEP21
 
-def run(perl, prelude, code, flags):
+def run(perl, prelude, code, flags, said=None):
+    # Step 21: a row may give perl its stdin (bytes), its arguments and
+    # variables of its environment, as a golden test's headers do.
+    said = said or {}
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, 'claim.pl')
         open(path, 'w', encoding='utf-8', newline='').write(prelude + code + '\n')
-        env = {'PATH': os.environ.get('PATH', ''), 'PERL_HASH_SEED': '1'}
+        env = {'PATH': os.environ.get('PATH', ''), 'PERL_HASH_SEED': '1', **said.get('env', {})}
+        stdin = said.get('stdin')
         try:
-            r = subprocess.run([perl, *flags, 'claim.pl'], cwd=d, env=env, stdin=subprocess.DEVNULL,
-                               capture_output=True, timeout=10)
+            r = subprocess.run([perl, *flags, 'claim.pl', *said.get('args', [])], cwd=d, env=env,
+                               input=stdin if stdin is not None else b'', capture_output=True, timeout=10)
         except subprocess.TimeoutExpired:
             return None, b'', b'(no end in 10 seconds)'
         return r.returncode, r.stdout, r.stderr
@@ -1085,7 +1092,7 @@ def main(argv):
             differ += 1
             print(f'DIFFERS {id} ({where})\n    not run: no roles perl at {roles} (tools/perl-roles/build.sh)')
             continue
-        status, out, err = run(which, '' if said.get('raw') else prelude, code, flags)
+        status, out, err = run(which, '' if said.get('raw') else prelude, code, flags, said)
         wrong, out, err = judge(said, status, out, err)
         if wrong or only:
             differ += bool(wrong)

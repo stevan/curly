@@ -7198,6 +7198,7 @@ backtracking matcher with perl's order of trying. Decides: the subset
 on backtracking, since a regex is the one place a small program can
 run for ever by accident. Traps: T66, T67.
 
+
 ### 21. Files and the outside
 
 Referee: perl. Size: large.
@@ -7207,6 +7208,215 @@ Referee: perl. Size: large.
 `print $fh LIST` or only `print {$fh} LIST` (D21); what an error from
 the system is (`$!`'s text comes from the C library and differs
 between machines, so a `same` test can't print it).
+
+**Proposed 2026-11-27, by Fable 5.2, under Stevan's standing
+instruction of 2026-11-27 ("I pre-approve all your recommendations"):
+each question is answered by its recommendation, D210 to D221, his to
+overturn.** Its statements about perl are `briefs/claims21.py`, which
+`claims.py` reads (88 programs, each run under perl 5.42.0 as it was
+written; a row there may give perl its stdin, arguments and
+environment, as a golden test's headers do). The size matches the
+workbench's model for a step that adds a kind of value and a harness
+change: large, so it is split (D210), and 21a is proposed in full,
+21b and 21c in outline, each to be proposed again in full when it is
+built.
+
+**The census**: 31 refused probes stop at `%ENV`, 19 at `@ARGV`, 3 at
+`exit`, 2 at `STDOUT`, 22 at `open` (21b).
+
+#### The picture
+
+**The outside is four things a program reads and one it does**: its
+arguments, its environment, its stdin, the files (21b and 21c), and
+the status it exits with. The first two are a perl array and a perl
+hash filled before the program starts, so they are 9's and 12's
+containers with a name the program does not declare. Stdin is read by
+one new expression, `<STDIN>`, which is a line where one value is
+wanted and every line that is left where a list is: the same split as
+an array's count and its elements, so it goes wherever an array goes
+in the compiler's notion of a list (`listy`, `shaped`, `addItem`).
+`exit` is a statement. What a program reads from outside is bytes;
+perl makes each byte a character unless `use open` says UTF-8, and so
+does the language.
+
+**The harness** has given a test its stdin, arguments and environment
+since step 0 (`# stdin:`, `# args:`, `# env:`), but not the same
+environment to perl and to the compiled program: perl got `PATH` and
+the seed, the program everything. 21a gives both the same (D220), and
+21b adds a clean directory for each run, with files a test names.
+
+#### The language at 21a
+
+- **`@ARGV`**: the program's arguments, an array the program may
+  change (`shift @ARGV`), each a string of the argument's bytes, one
+  character each (T503). Everything an array takes. `my @ARGV` is
+  refused (perl takes it in silence and hides the arguments, T505).
+- **`%ENV`**: the environment, a hash, each name and value a string
+  of bytes, one character each. **Read-only**: a store, a `delete`, an
+  assignment to it, through a reference too, is the fault `%ENV is
+  read-only` (perl makes a string of what is stored, T504, and a child
+  process would see it; the language has no child processes). Its
+  keys are in the order the environment had them (D27). `my %ENV` is
+  refused.
+- **`<STDIN>`**: where one value is wanted, the next line with its
+  newline, or the last line without one, or undef at the end of the
+  input, every time after; where a list is wanted (a call's arguments,
+  `say`, the right of a list assignment, a loop's list, `(<STDIN>) x
+  N`, `return`), every line that is left (T508). Without `use open
+  ':std', ':encoding(UTF-8)'` each byte is a character (`é` is two,
+  T502); with it the input is UTF-8, and a malformed sequence, a
+  surrogate, a character past U+10FFFF, an overlong form, a
+  noncharacter, or a character cut short by the end of the input is a
+  fault, `malformed UTF-8 read` (perl warns of all but the last, and
+  drops that one in silence, T502).
+- **A loop's test** (T501): `while (my $line = <STDIN>) { ... }` and
+  `while (TARGET = <STDIN>) { ... }`, brackets or a unary plus
+  between or not, are tested with `defined`, as perl tests them, so a
+  last line `0` is read. A readline, or `=` of one, as the whole test
+  of `until`, of a C-style `for`, or under the `while` or `until`
+  modifier, is refused, and `while (<STDIN>)` (perl's global `$_`,
+  T511) too: write the `while` above. Anywhere else a line is tested
+  for truth as any string is (`if (my $l = <STDIN>)` is false for
+  `0`, as in perl).
+- **An element assigned a line** (T508-order): perl works the element
+  out before it reads, against D80's order for a value with a call in
+  it; so `ELEMENT = <STDIN>` is refused when the element's index, key
+  or head reads stdin or calls a sub, and is otherwise the same in
+  either order.
+- **`eof(STDIN)`**: true at the end of the input, brackets always.
+  `eof()` (the files of `@ARGV`, T509) and `eof` alone (the handle
+  last read) are refused.
+- **`exit;`, `exit EXPR;`, `exit(EXPR);`**, with an `if` or `unless`:
+  a statement. Its argument is a named unary operator's (`exit 1 + 1`
+  is 2; an operator after it that binds more loosely is refused, as
+  perl warns, T506); a whole number as D40 and the `whole number
+  wanted` rule make one; the status is its low eight bits (`exit 256`
+  is 0, `exit -1` 255). stdout and stderr are flushed; a `try` does not
+  catch it (T507), and it leaves from anywhere.
+- **`say STDOUT LIST;`, `print STDOUT LIST;`, `printf STDOUT FORMAT,
+  LIST;`, `printf STDERR FORMAT, LIST;`**: STDOUT is the second handle
+  beside 15b's STDERR, and `printf` to either formats (T500: the
+  compiler took `printf STDERR` and printed the format as text and
+  the values after it, a WRONG of the merge of 15b and 16b).
+- **`chomp(my $x = EXPR);` and `chomp($x = EXPR);`**: the assignment,
+  then `chomp($x)`, a statement as 16c's `chomp` is (T512).
+
+**Refused in 21a**, each with a message: `readline`, `<>`, `<<>>`,
+`<FH>`, `<$fh>` (21b), `<*.c>` (a glob, T513); `STDIN` anywhere but in
+`<STDIN>` and `eof(STDIN)`; `$0` (T510: perl's is the path it was
+given); the loop shapes above; `my @ARGV`, `my %ENV`.
+
+#### What perl does that the obvious build gets wrong
+
+T500 to T515, each a row of `claims21.py`: the printf to a handle the
+compiler already took (T500); `defined` added to exactly some loop
+tests and not to others (T501); bytes as characters, and perl's
+silent loss of a cut character (T502, T503); stores to `%ENV` made
+strings (T504); `my @ARGV` taken in silence (T505); exit's status
+(T506) and a `try` that does not catch it (T507); a readline in list
+context reads all (T508), and **an element assigned a readline is
+worked out before the line is read** (T508-order, found writing this:
+`$h{<STDIN>} = <STDIN>` takes the first line for its key, where
+`$h{k()} = v()` calls `v` first); `eof()` and `eof` are not
+`eof(STDIN)` (T509); `$0` (T510); `while (<STDIN>)` and `$_` (T511);
+the oracle's perl sees `PERL_HASH_SEED` (T514).
+
+#### The decisions, each the recommendation
+
+- **D210: three sub-steps**: 21a stdin, `@ARGV`, `%ENV`, `exit`,
+  STDOUT and `printf` to a handle, and the harness's one environment;
+  21b `open` with three arguments and a lexical handle, `close`,
+  `<$fh>`, `eof($fh)`, `print {$fh}`, handles as values, `$!`, and a
+  clean directory per run; 21c file tests, `unlink`, `rename`,
+  `mkdir`, `rmdir`, `opendir` and its kin. Each is proposed in full,
+  reviewed, built, green and committed before the next. Rejected: one
+  step (the review could not hold it all).
+- **D211: `<STDIN>` is the one readline of 21a**, a line or undef
+  where one value is wanted and every line where a list is, wherever
+  an array is the one or the other; bytes as characters, UTF-8 under
+  `use open`, every malformation a fault. Rejected: `readline(STDIN)`
+  as a second spelling (21b decides `readline`); decoding UTF-8
+  without `use open` (WRONG: perl counts bytes); perl's silent drop of
+  a cut character (a fault is safe).
+- **D212: `while (... = <STDIN>)` is tested with `defined`, and the
+  other loop shapes perl rewrites are refused.** Rejected: following
+  perl into the C-style `for` and the modifiers too (each one more
+  shape to get right, and the `while` says them all); refusing `if
+  (my $l = <STDIN>)` (perl's answer is the string's truth, which the
+  language gives).
+- **D213: an element assigned a readline is refused when working its
+  place out could read stdin or call a sub.** Rejected: generating
+  that one assignment in perl's order (a second order for one shape);
+  refusing every element on the left of a readline (`$lines[$i] =
+  <STDIN>` is common and safe).
+- **D214: `eof(STDIN)`, brackets always; `eof()` and `eof` refused.**
+- **D215: `@ARGV` is an ordinary array, filled as the program starts;
+  `my @ARGV` refused.**
+- **D216: `%ENV` is a hash filled as the program starts, and
+  read-only: a change is the fault `%ENV is read-only`; `my %ENV`
+  refused.** Rejected: a writable `%ENV` that makes strings of what is
+  stored (machinery for nothing a program here can see); refusing
+  `%ENV` whole.
+- **D217: `exit` is a statement whose argument is a named unary
+  operator's, its status the low eight bits of a whole number; it
+  flushes, and no `try` catches it.** Rejected: a fault outside 0 to
+  255 (perl's answer is fixed and easy to give).
+- **D218: STDOUT is a handle beside STDERR, after `say`, `print` and
+  `printf`; `printf` to either formats.** Rejected: refusing `printf
+  STDERR` (16b's note had it Later; it is one line now, and the
+  compiler took it already, wrongly).
+- **D219: `chomp(my $x = EXPR);` and `chomp($x = EXPR);`.** The
+  idiom that goes with reading a line.
+- **D220: one environment for perl and the program in every check**:
+  `PATH`, the collector's knobs, and the test's `# env:`, nothing
+  else of the machine's (perl has the seed beside them, T514); the
+  oracle marks an `exit` in a `dies` test (`Warned.pm` overrides
+  `exit`), closing "The checks themselves"'s item for step 21; a claim
+  may give perl stdin, arguments and an environment. Rejected: leaving
+  the program the machine's environment (a test that reads `HOME`
+  would pass here and fail elsewhere).
+- **D221: `finally` and `defer` stay refused** (D144 stands): 21a
+  has nothing to clean up, and 21b's handles are closed when they are
+  collected or the program ends; `try`/`catch` and `close` say it.
+  Rejected: taking them for 21b (perl 5.42 warns of `finally`, and
+  `defer` needs `use feature`, which D16 cuts).
+
+#### Tests
+
+A model, `t/models/io.py`, writes `same` tests with stdin, arguments
+and an environment in their headers (lines in each context, `@ARGV`
+changed, `%ENV` read, `eof`, `exit` at its edges, STDOUT, `printf` to
+both handles as a `warns` test), and each fault's edge (malformed
+UTF-8 of each kind, `%ENV` changed each way, `exit` of undef and of a
+non-number, undef where a string is wanted from a line read past the
+end). Refusals from a table by hand (`briefs/step21-refusals.py`).
+The harness's own: a `t/checks/` fixture for a `dies` test that
+exits 255, and one for a test that reads a variable it did not set.
+Numbers 4700 to 5099.
+
+#### How it moves the other files
+
+`SURFACE.md`: `@ARGV`, `%ENV`, `exit`, stdin, `printf` to a handle to
+In; `$0` Cut; `open` and the rest stay Later for 21b and 21c.
+`DIFFERENCES.md` gains: `%ENV` read-only (a guess: accident, rarely);
+`while (<STDIN>)` refused (habit, often); `eof()` refused (habit,
+rarely); a cut character a fault. The census: its step-21 rows for
+`exit` and `STDOUT` go, and `%ENV` and `@ARGV` stop being "not
+declared".
+
+#### 21b and 21c, in outline
+
+21b: `open(my $fh, '<', $path)` and `'>'`, `'>>'`, three arguments
+always; a handle is a new kind of value, true, `==` by identity, D112's
+fault where a number or a string is wanted; `print {$fh} LIST` (and
+`print $fh LIST`, which T111 refuses today, to be decided with D21);
+`<$fh>`, `eof($fh)`, `close($fh)`; an `open` that fails returns false
+and sets `$!`, whose text is the C library's, so `$!` is a string no
+`same` test prints; `open ... or die` is D146's refusal, so `die ...
+unless open(...)`; each run of a test in a directory of its own, with
+files a header names. 21c: `-e -f -d -s -r -w -x -z`, `unlink`,
+`rename`, `mkdir`, `rmdir`, `opendir`, `readdir` (sorted by the test,
+since the order is the system's), `closedir`.
 
 ### 22. Numbers and time
 
