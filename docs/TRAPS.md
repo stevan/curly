@@ -661,6 +661,16 @@ Each row is in `briefs/claims.py`.
 | T349 | `my $r; ($$r, my $x) = ($r, 1); say ref $$r;` | `REF`: making the scalar assigns `$r`, which the right side's list holds itself (T249's) | 13c | Refused: the store makes what the right side has already taken |
 | T350 | `my $r;` and `defined $$r`, `for my $v ($$r) { }`, `map { 1 } $$r`, `f($$r)`; against `my $v = $$r;` | The first four make `$r` a reference to a new scalar, in silence; the last dies: `Can't use an undefined value as a SCALAR reference` | 13c | One fault for all of them (D107) |
 
+## Found building step 13d
+
+Each row is in `briefs/claims.py` (`briefs/claims13d.py`).
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T352 | `say qq<$q->{k}>;`; `say qq<a$q->;` with `$q = "Q"` | Does not compile: the `>` of the arrow ends the string, and `{k}>` is left over; `aQ-` | 13d | Agree: the string ends where perl's ends, and what stands in it may not run past that end (refused, with step 16a's message) |
+| T353 | `my $r; say "a$#{$r}b"; say ref $r;`, and `$r->$#*` | `a-1b` and `ARRAY`, in silence: a last index through undef makes the array, where `@{$r}` and `${$r}` in a string die | 13d | Fault (D107): every read through undef, in a string as outside one |
+| T354 | `"$r->[0]->@x"`, `"$r->[0]->$x"`; `"$r->@[0]->[0]"`; `"$r->[1]->@*[0]"`, `"$s->$*->[0]"` | Text, then the array `@x` or the scalar `$x`; the slice read on into an element of what it gives; text after a postfix form | 13d | An arrow before `@` or `$` that is no postfix form is refused; after a slice, a postfix form or braces nothing may be subscripted (D114) |
+
 ## Found on Stevan's Mac
 
 Each row is in `briefs/claims.py`.

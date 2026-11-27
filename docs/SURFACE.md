@@ -215,12 +215,15 @@ Precedence and associativity are `perlop`'s. Chalk's
 | A `$` or `@` in double quotes that begins no shape below: with a blank after it, at the end, `$1`, `$$`, `$&`, `@-`, `@_` | Cut | | D92, T34, T200, T204: a backslash says the character. perl's own variables come with the steps that have them, or not at all |
 | Interpolation: `"$x"`, `"${x}"`, `"@a"`, `"@{a}"`, `"$a[I]"`, `"@a[I, J .. K]"`, `"$#a"`, `"$#{a}"` | In | 11a | D91 to D95. One value, a Str, made where it stands (T196). I is a whole number or a scalar variable (D91). An undef is a fault (D48) |
 | An expression as an index in a string, `"$a[$i + 1]"` | Cut | | D91: take it into a `my`. perl reads a string's pieces late (T197) |
-| After a variable in a string: `::`, `{`, a second `[`, `->` before `[ { @ $`, a character past ASCII after a bare name | Cut | | D92, D95: each is the variable going on, to perl (T199, T203, T205); braces or a backslash say what is meant |
-| `"$h{key}"`, `"$h{$k}"` | In | 12b | D99: the key a word or a scalar variable, hard against its braces; after it `[`, `{` and `->` before `[ { @ $` are refused, and the rest is text (T227) |
+| After a variable in a string: `::`, `{`, a second `[`, `->` before `[ { @ $`, a character past ASCII after a bare name | Cut | | D92, D95: each is the variable going on, to perl (T199, T203, T205); braces or a backslash say what is meant. Since 13d `->[` and `->{` after a scalar, and `[`, `{`, `->[`, `->{` after an element, are a chain (D111) |
+| `"$h{key}"`, `"$h{$k}"` | In | 12b | D99: the key a word or a scalar variable, hard against its braces; after it `[`, `{` and `->` before `[ { @ $` go on as a chain (13d) or are refused, and the rest is text (T227) |
 | `"$h{'a b'}"`, `"$h{$i + 1}"`, any other key in a string; `"@h{...}"`, a slice in a string | Cut | | D99: to perl the braces hold code (T221); take the value into a `my`, or join |
-| `"$r->[0]"`, `"$h{a}{b}"`, `"$r->@*"`, `"@{ CHAIN }"` | In | 13d | D111 |
-| `"$$r"`, `"@$r"` | Cut | | D108 |
-| `"@{[ ... ]}"`, `"${\ ... }"`: code in a string | Cut | | D111 |
+| `"$r->[0]"`, `"$r->{k}"`, `"$a[0][1]"`, `"$h{a}{b}"`, `"$r->[0]{k}[1]"`; `"$r->@*"`, `"$r->$#*"`, `"$r->$*"`, `"$r->@[I, J .. K]"`; `"@{ CHAIN }"`, `"$#{ CHAIN }"`, `"${ CHAIN }"` | In | 13d | D111, D114. CHAIN a scalar variable with subscripts or without; each index one D91 allows, each key one D99 does. Made where it stands (T235); D107's faults, D48's and D112's inside it. What follows a chain is text unless it is `[`, `{` or an arrow before one; an arrow before `@` or `$` that is no postfix form is refused (T247) |
+| In a string, after a postfix form or the braces: `[`, `{`, `->` before `[ { @ $` | Cut | | D114, T253: text after a postfix form, a subscript after braces, to perl |
+| `"$r->@{...}"`, a hash's slice through a reference in a string | Cut | | D99, D111: join it |
+| `"$$r"`, `"@$r"`, `"$#$r"`, `"$$r[0]"` | Cut | | D108 |
+| `"@{[ ... ]}"`, `"${\ ... }"`: code in a string; anything in the braces but a scalar variable and its subscripts | Cut | | D111 |
+| `qq<...>` holding an arrow | Cut | | T352: perl ends the string at the arrow's `>` and does not compile the rest |
 | `q`, `qq`, `qw`, heredocs | In | 16a | D121 to D123, D131. A bracket for the delimiter, hard against the word; `qw` a bracketed list (T260); a heredoc's terminator a word, one heredoc on a line, `~` taking the indentation off (T263). A backslash before a `qq`'s own bracket is refused (T278); `'END'` keeps every backslash (T262) |
 | `q/.../`, `q!...!`, any delimiter but a bracket; `q (x)`; `<< "END"`, `<<""`, two heredocs on a line | Cut | | D121, D123: one spelling |
 | `true`, `false`, `undef`, `defined` | In | 4 | D47: a boolean is 1 or 0 as a number, `"1"` or `""` as a string. D48: an undef where a number or a string is wanted faults; bare `undef` only where perl can't take what follows for its argument (T105) |
