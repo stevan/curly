@@ -1,0 +1,2 @@
+t/6168-16d-case-fold.pl:4:6: \F, the fold case, is not in the language: lc says it for most strings, and perl folds some characters to more than one (D256)
+exit: 1

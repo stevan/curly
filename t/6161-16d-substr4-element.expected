@@ -1,0 +1,2 @@
+t/6161-16d-substr4-element.pl:5:8: substr of 4 arguments changes its first, which is a scalar variable here: $s
+exit: 1

@@ -1,0 +1,2 @@
+t/6062-census-last-index-in-a-map.pl:5:19: $#a = N is a statement of its own here: perl gives it a value, which is not in the language
+exit: 1

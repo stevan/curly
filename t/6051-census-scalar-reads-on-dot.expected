@@ -1,0 +1,2 @@
+t/6051-census-scalar-reads-on-dot.pl:5:5: scalar @a before '.': perl reads on for scalar's argument, or does not compile it; write scalar(...)
+exit: 1

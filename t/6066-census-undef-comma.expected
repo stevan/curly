@@ -1,0 +1,2 @@
+t/6066-census-undef-comma.pl:5:9: undef ... is a statement of its own here: perl gives it a value, which is not in the language; found ',' after it
+exit: 1

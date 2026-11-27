@@ -5,7 +5,7 @@ import { refuse } from './errors.ts';
 import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, prefixOp } from './names.ts';
 import type { CallRef, Chain, Deref, Expr, Invoke, My, Pragma, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
 import type { Resolution } from './resolver.ts';
-import { handsOn } from './shapes.ts';
+import { handsOn, loneRange } from './shapes.ts';
 import { checkFormat } from './format.ts';
 import type { Gives } from './shapes.ts';
 
@@ -57,7 +57,7 @@ const derefParts = (d: Deref | Sderef): Expr[] =>
 const derefBase = (d: Deref | Sderef): Expr => (d.head.kind === 'chain' ? chainBase(d.head) : d.head);
 // Whether a builtin through a reference makes what it goes through, as
 // perl does: `push`, `unshift` and `splice` (T248).
-const makesWhole = (e: Expr): boolean => e.kind === 'arrayop' && e.deref !== undefined && (e.op === 'push' || e.op === 'unshift' || e.op === 'splice');
+const makesWhole = (e: Expr): boolean => e.kind === 'arrayop' && e.deref !== undefined && (e.op === 'push' || e.op === 'unshift' || e.op === 'splice' || e.op === '$#=');
 
 // The expressions an expression is made of, in the order they are worked
 // out.
@@ -431,7 +431,7 @@ const children = (e: Expr, ctx: Ctx): [Expr, Ctx][] => {
     case 'interp': return all(e.parts, 'list');
     case 'list': return all(e.items, 'list');
     case 'slice': return [...all(e.indexes, 'list'), ...all(e.items ?? [], 'list'), ...all(e.deref !== undefined ? [e.deref] : [], 'list')];
-    case 'arrayop': return [...all(e.deref !== undefined ? [e.deref] : [], 'list'), ...(e.op === 'splice' ? [...all(e.args.slice(0, 2), 'scalar'), ...all(e.args.slice(2), 'list')] : all(e.args, 'list'))];
+    case 'arrayop': return [...all(e.deref !== undefined ? [e.deref] : [], 'list'), ...(e.op === '$#=' ? all(e.args, 'scalar') : e.op === 'splice' ? [...all(e.args.slice(0, 2), 'scalar'), ...all(e.args.slice(2), 'list')] : all(e.args, 'list'))];
     // `join`'s separator is one value (T182).
     // A block's statements are checked as statements, by `checkExpr`.
     case 'binder': return [];
@@ -843,7 +843,7 @@ const checkPart = (w: World, e: Expr, first: boolean): void => {
 // T180), and here the list is a copy: so nothing the block does may change
 // a scalar its list names, anywhere in it (T162). An array it names is
 // frozen as the program runs.
-const bound = (w: World, what: string, binder: string, items: readonly Expr[], body: readonly Stmt[]): void => {
+const bound = (w: World, what: string, binder: string, items: readonly Expr[], body: readonly Stmt[], lone = false): void => {
     checkOrder(w, what, items, true);
     items.forEach(e => checkExpr(w, e, false, 'list'));
     const scalars = new Map<number, Expr>();
@@ -867,7 +867,9 @@ const bound = (w: World, what: string, binder: string, items: readonly Expr[], b
         if (e.kind === 'invoke' || e.kind === 'callref') for (const id of calleeChanges(w, e)) if (scalars.has(id)) refused(id, e);
         parts(e).forEach(guard);
     };
-    if (scalars.size > 0) body.forEach(b => expressions(b, guard));
+    // A loop's lone range has its ends worked out once, before the loop
+    // (step 16d, D259; T172): nothing the block stores to changes it.
+    if (scalars.size > 0 && !lone) body.forEach(b => expressions(b, guard));
 };
 
 // A statement below the top of the file. `modified`: it stands before an
@@ -925,7 +927,7 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         for (const arm of s.arms) {
             notTested(arm.test);
             tested(arm.test);
-            checkExpr(w, arm.test, !s.modifier);
+            checkExpr(w, arm.test, !s.modifier || s.joined === true);
             arm.body.forEach(b => checkStmt(w, b, s.modifier === true));
         }
         return s.otherwise?.forEach(b => checkStmt(w, b));
@@ -947,13 +949,16 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         return s.body.forEach(b => checkStmt(w, b));
     // A loop over a list (D17, D77, D80).
     case 'foreach': {
-        bound(w, "the loop's list", 'the loop', s.items, s.body);
+        const lone = loneRange(s.items);
+        bound(w, "the loop's list", 'the loop', s.items, s.body, lone);
         // A sub with no name that takes the loop's variable takes a copy,
         // and freezes for good what the loop froze (D162): so the list may
         // name no scalar variable, which is no container and has no freeze,
         // through any shape (T371, D166).
         const v = w.names.of.get(s.var)!;
-        if (w.names.captured.has(v)) {
+        // Over a lone range the variable is a new number each time round,
+        // never a scalar of the list's (D259; T669).
+        if (w.names.captured.has(v) && !lone) {
             const scalar = s.items.flatMap(e => namesScalar(e)).at(0);
             if (scalar !== undefined) {
                 refuse(`a sub with no name takes $${s.var.name}, the variable of a loop whose list names ${scalar}: to perl the sub has the scalar itself, and sees whatever is stored to it later (D166); take the value into a my in the block first, my $y = $${s.var.name};`, w.names.capturedAt.get(v)!);

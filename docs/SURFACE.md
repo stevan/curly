@@ -49,7 +49,7 @@ comparison: *in*, *out*, or *n/a*.
 | `Name::f($x)`, a sub of another package | In | 18 | in | |
 | `package Name { }`, `__PACKAGE__`, imports | Later | 18 | | |
 | `BEGIN`, `END`, `INIT`, `CHECK`, `UNITCHECK` | Cut | | in | D20; `BEGIN` as evaluation is parked |
-| `__DATA__`, `__END__`, POD | Cut; POD later | 16 | out | POD is a comment, when someone wants it |
+| `__DATA__`, `__END__`, POD | In | 16d | | D255: POD where a statement may begin, to a line `=cut` (T666: `=cut` alone begins it), a comment; a `# line N` in it refused (T667); `__END__` and `__DATA__` end the program there; `<DATA>` is out (D20) |
 | `my $x`, `my @a`, `my %h`, `my (...)` | In | 5, 9, 12 | in | D56: `my $x` at the head of a statement, or in the test of an `if`; a name is ASCII (D55) |
 | `my` under a statement modifier, right of `&&`, `\|\|`, `//`, in a branch of `? :`, or anywhere else inside an expression | Cut | | | D21, D56: perl keeps the old value, or may not reach it (T30) |
 | A second `my` of a name in one scope | Cut | | | D15: perl warns |
@@ -59,6 +59,8 @@ comparison: *in*, *out*, or *n/a*.
 | `$x =- $y`: a sign hard after `=`, and a blank after the sign | Cut | | | D56, T127: perl warns `Reversed -= operator` |
 | A name of more than 251 characters | Cut | | | D55, T126: `Identifier too long` |
 | A statement that only has a value, `$x + 1;`; two joined by a word operator, `$x = 1 and $y = 2;` | Cut | | | D56: perl warns of each (T114) |
+| `EXPR or die LIST;`, `EXPR or return ...;`, `or last`, `or next`, and `and` likewise | In | 16 census | | D260 (amends D56, D146): `STATEMENT unless EXPR;` written the other way round; a `my` on the left is the statement's; a list assignment on the left (T670) and a modifier after refused |
+| `undef $x;`, `undef @a;`, `undef %h;`, `undef $a[0];`, through a reference | In | 16 census | | D252: the assignment it is, a statement; a slice refused (T661), its value refused |
 | `state` | Later | | in | D160: no probe of the census needs it, and it is one variable per closure value; proposed when something wants it (T369) |
 | `our`, package variables, `$Pkg::x` | Cut | | in | D19 |
 | `local` | Cut | | in | D17; parked |
@@ -70,7 +72,7 @@ comparison: *in*, *out*, or *n/a*.
 | Anonymous `sub (...) { }` and `sub { }`, closures | In | 14 | in | D161: where a value may begin; a sub's body by step 8's rules, D105 with no signature; it uses the variables in scope, not copies (T360), new each time its `my` is reached; a new reference each time it is reached if it uses an outside variable, else one for the run (T363). `$_`, `$a`, `$b` are not seen in one (T362); `last` and `next` do not leave one (D165, T365); `my $f = sub { $f->() }` is refused (T376) |
 | `my sub` | Later | | | D160: no probe needs it; a `my sub` cannot call itself by name (T369) |
 | `__SUB__` | In | 14 | | D166: in a sub with no name, its own reference, in a `map`, `grep` or `sort` block inside one too; refused anywhere else |
-| `__FILE__`, `__LINE__` | In | 16 | | |
+| `__FILE__`, `__LINE__` | In | 16d | | D255: the token's own line (T665); the path compiled, printable ASCII |
 | `sub f;`, a forward declaration | Cut | | | Nothing needs one (D21) |
 | `no warnings 'recursion';`, with the pragmas | In | 8 | | D67: it changes nothing here, and keeps perl quiet past 100 calls deep |
 | Recursion past the implementation's limit | Fault | 8 | | D68: `recursion too deep`; perl has no limit |
@@ -107,8 +109,8 @@ comparison: *in*, *out*, or *n/a*.
 | `for (LIST) { }`, `foreach (LIST) { }`, `STATEMENT for LIST;` | In | 10 | in | `foreach` with `$_` for its variable (D17, D80, D77). Under the modifier: what may stand before `if`, less `last`, `next`, `return` (T191) and a second modifier (T192); `for () { }` is refused (T192) |
 | `$_` | In | 10 | in | Read-only (D17); seen in the block or statement of the `for`, `map` or `grep` that gives it, and not in a sub they call (T180, T15); not declared (`my $_`); always written (D85); `$_[0]` is refused (T192) |
 | `map { } LIST`, `grep { } LIST` | In | 10 | in | D84, D85, D87. A block and a list, no brackets of their own, no comma after the block; the list is copied, its arrays frozen, D77 for its scalars, T177's fault past the end; where one value is wanted, the count; list-shaped after `return` (D18); as statements too. In the block: no `return` (T174), no `last` or `next` to a loop outside it (T59); it ends in an expression, or a `say` (`true`, as D70); not a string or a number and a comma first, nor `{`, nor empty (T175, T192) |
-| `foreach` over `($p, $q)` naming variables | In | 9 | in | D77: copies; refused when the block, or a sub it calls, can change a scalar named anywhere in the list, the end of a range too (T13, T162, T172) |
-| A closure over a loop variable | In | 14 | in | D162: a copy, and every array and hash the loop froze stays frozen for good from the moment the sub is made (T11, T361); refused when the loop's list names a scalar variable anywhere, or reads through a reference to a scalar (D166, T371); still read-only in every sub written in the loop (T372) |
+| `foreach` over `($p, $q)` naming variables | In | 9 | in | D77: copies; refused when the block, or a sub it calls, can change a scalar named anywhere in the list (T13, T162); not for a list that is one range, whose ends perl works out once (D259, T172) |
+| A closure over a loop variable | In | 14 | in | D162: a copy, and every array and hash the loop froze stays frozen for good from the moment the sub is made (T11, T361); refused when the loop's list names a scalar variable anywhere, or reads through a reference to a scalar (D166, T371); still read-only in every sub written in the loop (T372); over a loop over one range, allowed whatever its ends name (D259, T669) |
 | `\` of a loop variable or `$_`; a closure over `$_`, `$a`, `$b` | Cut | | | D110 (T12); D162 (T362): to perl the second is the global, read when the sub runs |
 | `foreach my ($k, $v) (%h)` | Later | 12 | | 5.36's; to be proposed |
 | `last`, `next`, labels | In | 6 | in | D61, D62. Statements, not expressions (T120); only inside a loop of the same sub, as written; a label is on a loop, in capitals, and is checked as the program compiles |
@@ -126,8 +128,8 @@ comparison: *in*, *out*, or *n/a*.
 | `finally`, `defer` | Later | 21 | out | D144, T313: perl 5.42 warns that `finally` is experimental, and has no `defer` without `use feature`; with files |
 | `eval BLOCK`, `$@` | Cut | | out | D20: `try` |
 | `eval STRING` | Cut | | out | D20 |
-| `do BLOCK` | Later | 5 | | Small; when wanted |
-| `do BLOCK while COND` | Later | | | D58: left out at step 6, for the step that takes `do BLOCK`. It runs the block first, and is not a loop to perl: `last` in it leaves the loop round it (T64) |
+| `do BLOCK` as a value | Later | | | Machinery: a block in the middle of an expression (the census's reading, 5 of 14 freed) |
+| `do BLOCK while COND`, `until` | In | 16 census | | D253 (amends D58): the block, then the test; no loop to perl (T64), so no `last` or `next` with no label in it and no label on it (T662); a `my` or a `die` in its test refused (T663) |
 | `...` as a statement | In | 15 | | D145: `die "Unimplemented"`; alone, with no modifier, as perl has it (T315) |
 | `given`, `when`, smartmatch | Cut | | | Not on under `use v5.42` either |
 | `exit` | In | 21 | | |
@@ -215,7 +217,8 @@ Precedence and associativity are `perlop`'s. Chalk's
 | An identifier past ASCII, with `use utf8` | In | 5 | Until there are names: a character past ASCII outside a string or a comment is refused |
 | `'...'`, `"..."` with escapes | In | 3 | D43. `\n \t \r \f \b \a \e \0`, `\\ \" \$ \@`, `\xHH`, `\x{...}`, octal, `\o{...}`, `\N{U+...}`, a backslash before a punctuation mark. A character is a Unicode scalar value (D42) |
 | `\q` and other unknown escapes; `\x` with fewer than two digits; `\x{}`; an octal escape cut short by `8` or `9`; a backslash before a tab or a newline | Cut | | D43: perl warns, or makes a NUL in silence (T86, T95) |
-| `\c`, `\N{name}`, `\U \L \u \l \Q \E \F` | Later | 16 | D43: with interpolation |
+| `\U \L \Q \E \u \l` | In | 16d | D256: a run of `\U`, `\L` or `\Q` to `\E` or the end, none in another; `\u`, `\l` over the rest of the string, first in a run too; `\E` with nothing open refused (perl warns) |
+| `\c`, `\N{name}`, `\F` | Cut | | D43; `\F` D256: perl folds `ß` to `ss` |
 | A `$` or `@` in double quotes that begins no shape below: with a blank after it, at the end, `$1`, `$$`, `$&`, `@-`, `@_` | Cut | | D92, T34, T200, T204: a backslash says the character. perl's own variables come with the steps that have them, or not at all |
 | Interpolation: `"$x"`, `"${x}"`, `"@a"`, `"@{a}"`, `"$a[I]"`, `"@a[I, J .. K]"`, `"$#a"`, `"$#{a}"` | In | 11a | D91 to D95. One value, a Str, made where it stands (T196). I is a whole number or a scalar variable (D91). An undef is a fault (D48) |
 | An expression as an index in a string, `"$a[$i + 1]"` | Cut | | D91: take it into a `my`. perl reads a string's pieces late (T197) |
@@ -232,14 +235,15 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `q/.../`, `q!...!`, any delimiter but a bracket; `q (x)`; `<< "END"`, `<<""`, two heredocs on a line | Cut | | D121, D123: one spelling |
 | `true`, `false`, `undef`, `defined` | In | 4 | D47: a boolean is 1 or 0 as a number, `"1"` or `""` as a string. D48: an undef where a number or a string is wanted faults; bare `undef` only where perl can't take what follows for its argument (T105) |
 | Arrays: `my @a`, lists that flatten, `$a[i]`, negative index, `$#a`, `scalar(@a)` | In | 9 | D80. A read past either end is undef and makes nothing; a store past the end grows the array, before the start faults; `@a[one index]`, `$a[0][0]`, `length(@a)`, `defined(@a)`: Cut (T167, T168) |
+| `scalar @a`, `scalar %h`, `scalar keys %h`, `scalar $r->@*` without brackets | In | 16 census | D250: an operator that binds tighter after the array or hash refused, `write scalar(...)` |
 | List assignment, `my ($p, $q) = @x`, swaps, an element as a target | In | 9 | D80. The right side, then every target's index, then the stores (T158) |
 | `my $n = () = ...`, a list assignment's count as a number | Cut | | |
 | A list assignment as a value, `if ((my @r = f()))`, `my $n = () = ...` | Cut | | D78: a statement. perl gives the count of the right side |
 | An array where one value is wanted, `"x" . @a`, `-@a`, `if (@a)`, `@a \|\| LIST` | In | 9 | Its count, as in perl (T21, T150) |
-| Assigning to `$#a` | Cut | | |
+| Assigning to `$#a`, `$#{ $r }`, `$r->$#*`: `$#a = N;` | In | 16 census | D251: a statement, with `=`; N cut toward zero, a fault below -1 (T660); a change to the array for D76, D77 and the freeze; its value, `+=` and `++` refused |
 | Slices `@a[...]`, `(LIST)[...]`; `@h{...}` | In | 9, 12b | As values (D80); a slice of an empty list is empty (T164); a key that is not there is undef and makes nothing; where one value is wanted: Cut, but `(LIST)[N]` (T151); by one index or key: Cut (T167, T221) |
 | A slice on the left, `@a[...] = LIST`, `@h{...} = LIST` | In | 12b | D100: the one target of a list assignment. The right side, every index or key, then the stores; an undef for each target the list does not reach (T228). Among other targets, and `@h{...} OP= ...`: Cut |
-| `%h{...}`, `%a[...]`, slices of keys and values | Later | | D104: not proposed |
+| `%h{...}`, `%a[...]`, slices of keys and values | Cut | | D104, D108: as the Operators row says |
 | Hashes: `my %h`, `%h = LIST`, `$h{k}`, `exists`, `delete`, `keys`, `values` | In | 12a | Insertion order (D27), the one place a program may print what perl does not. A key is a string, made as `.` makes one; an undef key, and an odd list: Fault (T219). A read makes nothing, a store makes the key. `exists`, `delete`, `keys`, `values` before an operator that binds tighter, without brackets: Cut (T220, T225). `$h{a}{b}`, `$h{1, 2}`, `$h {a}`, `length(%h)`, `defined(%h)`: Cut |
 | A word alone in a hash's braces, `$h{name}`, across the end of a line; `-word` there or before `=>` | Cut | | D102: `true` is the key 1 to perl there, `v65` is `A` (T223) |
 | A hash where one value is wanted, `if (%h)`, `my $n = %h`, `keys %h` and `values %h` there | In | 12a | How many keys (T219) |
@@ -255,7 +259,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | Reading through undef or a missing key (`$h->{a}{b}`), `exists` and `delete` through one | Fault | 13a | D107: perl creates `$h->{a}` (T231, T233) |
 | Reading a whole container through undef, in a `foreach`, a `map`, `keys`, `pop`, `shift`, `->$#*` or a slice | Fault | 13b | D107 (T232): perl makes it in silence there, and dies everywhere else a read stands |
 | `defined` or `length` of a whole container through a reference | Cut | | As of `@a` (T256) |
-| `$r->$#* = N`, `++` of it | Cut | | As `$#a = N` |
+| `$r->$#* = N`, `++` of it | In; `++` Cut | 16 census | D251, as `$#a = N` |
 | `ref` | In | 13a, 13c | D112: ARRAY, HASH, SCALAR, or REF when the scalar holds a reference; else the empty string (T242) |
 | Reading the scalar through undef, `defined $$r` and a loop's list too | Fault | 13c | D107: perl makes `$r` in silence there (T350), and dies everywhere else a read stands |
 | `reftype`, `blessed`, `refaddr` | In | 17 | Imported by `use v5.42`; `refaddr`'s number is unspecified |
@@ -265,7 +269,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `=>` quoting the word on its left, `q`, `y`, `s`, `if` and a sub's name included | In | 12a | T214. The word and its `=>` on one line: across a line, Cut (D102, T224) |
 | A number as a hash key, `(1.0 => "a")` | In | 12a | The key is the number as a string, `1` (T63); `010` is refused as a literal, as everywhere |
 | `qw` with commas in it | Cut | | perl warns (D15) |
-| `keys`, `values`, `exists`, `delete` on an array; `$#a = N` | Later | | |
+| `keys`, `values`, `exists`, `delete` on an array | Later | | The census's reading, (d): Stevan's |
 | `$\|`, `$?`, `$.`, `$^O`, `$0` | Later | 21 | `$\|` first; the rest when wanted |
 | `%SIG`, `@INC`, `%INC`, `$^W`, `` $` ``, `$'`, `@-`, `@+` | Cut | | |
 
@@ -281,11 +285,11 @@ Opal's notation, `docs/BUILTINS.md`.
 | `sprintf`, `printf` to stdout | In | 16b | D124 to D128, D131. The format a literal; fifteen conversions, five flags, widths, precisions, stars; the count checked; a value past what perl converts exactly, or a negative zero to `%e %f %g`, a fault (T265, T267, T282) |
 | A format that is not a literal (T22); `%i %D %U %O %F %a %n %p %v`, `%2$s`, size letters; a width on `%c` (T277); `printf` to a handle | Cut; the handle Later | 21 | D124, D125, D131 |
 | `ucfirst`, `lcfirst`, `rindex`, `chomp` and `chop` of a variable | In | 16c |
-| `substr` with 4 arguments, `reverse` of a string where one value is wanted | Later | 16d | D120 |
-| `uc`, `lc` of a character past ASCII (T45, until perl's tables are in) | Fault | 3 |
+| `substr` with 4 arguments, `scalar reverse LIST` | In | 16d | D254: a statement on a scalar variable, its value refused; D258: the list joined and reversed, an empty list a fault (T672); `reverse` where one value is wanted by context alone stays Cut (T23) |
+| `uc`, `lc`, `ucfirst`, `lcfirst`, `quotemeta` past ASCII | In | 16d | D257: perl's own tables, generated from perl 5.42; `uc` of two U+0345 together a fault (T664) |
 | `chr` of a surrogate, of a number past U+10FFFF or below zero; printing a noncharacter | Fault | 3 |
 | `substr` and `index` without brackets; a sign after a named unary operator that perl calls ambiguous, `length - 5` | Cut | |
-| `substr` on the left of `=`, `vec`, `pos`, `lc` and friends without an argument | Cut | |
+| `substr` on the left of `=` or under `\`, `vec`, `pos`, `lc` and friends without an argument | Cut | | D254 for `substr` |
 | `join(SEP, LIST)`, `reverse(LIST)`, with brackets or without | In | 10 | D84, D87. `join`'s separator is one value, made a string always (T190), and for D76 the first item of its list (T186); `reverse` is a list, names what its list names (T185), and is refused where one value is wanted (T178); neither alone as a statement, and no `[` after their brackets |
 | `push`, `pop`, `shift`, `unshift`, `splice`, `scalar`; `reverse`, `sort`, `map`, `grep`, `join` | In | 9; 10 | D80. `pop` and `shift` in brackets unless the array ends the expression, and never without an array (T152); `splice` in brackets, as a list or a statement |
 | A later part of an expression or a list that can change what an earlier part names: an element, a slice, an array, `$#a`, a variable that is an item of a list | Cut | | D76 (T149, T157): perl reads it after the change. By one walk over the whole program |
@@ -294,12 +298,13 @@ Opal's notation, `docs/BUILTINS.md`.
 | `any`, `all` (experimental in 5.42, and not in the bundle) | Later | 10 |
 | `map EXPR, LIST`, `grep EXPR, LIST` | Cut | | D85: a block always |
 | `sort LIST`, `sort { } LIST`, `reverse sort ...` | In | 10 | D82, D83, D87. By string with no block; with one, `$a` and `$b`, read-only and the block's alone. **perl's own merge, ported: every comparison is perl's, in perl's order** (T3, T173), and stable (T4). The block's value: a whole number, a fault outside 32 bits (T173). The list is copied, its arrays frozen, D77, T188's fault past the end. Refused where one value is wanted (D84); list-shaped after `return`. A lone value is looked at for the four blocks perl throws away (T190) |
-| `sort NAME LIST`, `sort NAME(...)`, `sort $f LIST`, a word or a scalar first after `sort`; `sort(...)` with brackets of its own | Cut | | T29, T189, T190, D21: perl takes the first for a sub to compare by |
+| `sort NAME LIST`, `sort NAME(...)`, `sort $f LIST`, a word or a scalar first after `sort` or in its brackets; `sort (...)` with a blank | Cut | | T29, T189, T190, T671, D21: perl takes the first for a sub to compare by |
+| `sort(LIST)`, `sort({ } LIST)`, the bracket hard against the word | In | 16 census | D262 (amends D89) |
 | `@a = sort { } @a` with an undef in `@a` | Fault | 10 | T187, D87: perl sorts in place and drops what was never stored |
 | `ceil`, `floor`, `trim`, `indexed` (imported by `use v5.42`), `fc` | Later | 16, 22 |
 | `abs`, `int`, `sqrt`, `sin`, `cos`, `atan2`, `exp`, `log`, `hex`, `oct` | In | 22 |
 | `rand`, `srand`, `time`, `localtime`, `gmtime`, `sleep` | Later | 22 |
-| `split`, `m//`, `s///`, `tr///`, `qr//`, `quotemeta` | In | 19, 20 |
+| `split`, `m//`, `s///`, `tr///`, `qr//` | In | 19, 20 |
 | `die`, `warn` | In | 15 | D142, D148: list operators; `warn` is `true`. One reference alone is thrown as itself; uncaught, among several values, or in a `warn`, D112's fault |
 | `open` with three arguments, `close`, `readline` and `<$fh>`, `eof`, `print {$fh}`, `binmode`, `opendir` and the directory calls, `unlink`, `rename`, `mkdir`, `stat` | Later | 21 |
 | `@ARGV`, `%ENV`, `$0`, `$!` in a message | Later | 21 |

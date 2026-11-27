@@ -1,0 +1,3 @@
+0
+fault: an array was changed while a foreach is over it at t/6220-freeze-list-not-lone.pl line 7.
+exit: 1

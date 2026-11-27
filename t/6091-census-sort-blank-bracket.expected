@@ -1,0 +1,2 @@
+t/6091-census-sort-blank-bracket.pl:5:15: sort, a blank and a bracket: perl warns that it is read as a function, and the brackets hold all of its list; write sort(...) or sort LIST
+exit: 1

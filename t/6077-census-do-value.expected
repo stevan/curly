@@ -1,0 +1,2 @@
+t/6077-census-do-value.pl:4:9: expected a value, found 'do'
+exit: 1

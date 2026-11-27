@@ -1,0 +1,2 @@
+t/6169-16d-case-end-alone.pl:4:7: \E with no \U, \L or \Q before it to end: perl warns that it is useless
+exit: 1

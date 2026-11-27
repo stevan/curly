@@ -303,7 +303,8 @@ ORDERED = re.compile(r'\b(?:keys|values|each)\b|->%\*|%(?=[A-Za-z_${])')
 HEAD = r'\$\w+(?:(?:->)?(?:\[[^\[\]]*\]|\{[^{}]*\}))*'
 HASH = r'(?:%\w+|%\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|' + HEAD + r'->%\*)'
 THROUGH = ('map', 'grep', 'reverse')
-OWNERS = ('my', 'state', 'keys', 'values', 'each', 'exists', 'delete')
+# (`undef %h` empties it: step 16d, D252.)
+OWNERS = ('my', 'state', 'keys', 'values', 'each', 'exists', 'delete', 'undef')
 
 def strip_strings_and_comments(text):
     """The program with its quoted strings emptied and its comments gone,

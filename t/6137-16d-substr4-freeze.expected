@@ -1,0 +1,3 @@
+ab
+fault: an array was changed while a foreach is over it at t/6137-16d-substr4-freeze.pl line 9.
+exit: 1

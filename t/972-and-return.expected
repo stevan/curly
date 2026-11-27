@@ -1,2 +1,1 @@
-t/972-and-return.pl:5:12: return is a statement, not a value: write 'return if ...;' or 'return unless ...;'
-exit: 1
+t

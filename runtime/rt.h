@@ -262,6 +262,8 @@ rt_value rt_ord(rt_ctx *cx, rt_value a);
 rt_value rt_chr(rt_ctx *cx, rt_value a);
 rt_value rt_substr2(rt_ctx *cx, rt_value a, rt_value offset);
 rt_value rt_substr3(rt_ctx *cx, rt_value a, rt_value offset, rt_value count);
+// What `substr($s, OFFSET, LENGTH, REPLACEMENT);` leaves in `$s` (step 16d, D254).
+rt_value rt_substr4(rt_ctx *cx, rt_value a, rt_value offset, rt_value count, rt_value put);
 rt_value rt_index2(rt_ctx *cx, rt_value a, rt_value b);
 rt_value rt_index3(rt_ctx *cx, rt_value a, rt_value b, rt_value position);
 
@@ -377,6 +379,8 @@ void rt_array_assign(rt_ctx *cx, rt_value array, rt_value list);
 // How many, and the last index, -1 for none.
 rt_value rt_count(rt_ctx *cx, rt_value array);
 rt_value rt_last_index(rt_ctx *cx, rt_value array);
+// `$#a = N;` (step 16d, D251): the array made N + 1 long; below -1 a fault.
+void rt_last_index_store(rt_ctx *cx, rt_value array, rt_value n);
 // The first value of a list, or undef: `(LIST)[N]` where one is wanted.
 rt_value rt_first(rt_ctx *cx, rt_value list);
 // An element, read: undef past either end, and nothing is made.
@@ -449,6 +453,12 @@ rt_value rt_sprintf(rt_ctx *cx, rt_value list);
 void rt_printf(rt_ctx *cx, rt_value list);
 // runtime/strfn.c (step 16c).
 rt_value rt_ucfirst(rt_ctx *cx, rt_value a);
+// `\Q` in a string (step 16d, D256): perl's quotemeta, past ASCII by its table.
+rt_value rt_quotemeta(rt_ctx *cx, rt_value a);
+// `scalar reverse` (step 16d, D258): the characters of a string in the other order.
+rt_value rt_reverse_string(rt_ctx *cx, rt_value a);
+// And a fault for a list with nothing in it, which perl reads as `$_` (T672).
+void rt_reverse_some(rt_ctx *cx, rt_value list);
 rt_value rt_lcfirst(rt_ctx *cx, rt_value a);
 rt_value rt_rindex2(rt_ctx *cx, rt_value a, rt_value b);
 rt_value rt_rindex3(rt_ctx *cx, rt_value a, rt_value b, rt_value position);

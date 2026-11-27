@@ -8,6 +8,13 @@ import type { CallRef, Expr, Invoke, Stmt, Sub } from './ast.ts';
 export const behind = (e: Expr): Expr => (e.kind === 'unary' && prefixOp(e.op)?.rt === undefined ? behind(e.operand) : e);
 
 const isRange = (e: Expr): boolean => e.kind === 'binary' && infixOp(e.op)?.range === true;
+// A loop's list that is one range and no more, which the loop counts in C
+// and builds nothing for (step 9b). perl works its ends out once, before
+// the loop: nothing the block does to what they name changes the loop
+// (step 16d, D259; T668), so it freezes nothing and D77 has nothing to
+// guard.
+export const loneRange = (items: readonly Expr[]): boolean => items.length === 1 && isRange(behind(items[0]!));
+
 const isRepeat = (e: Expr): boolean => e.kind === 'binary' && infixOp(e.op)?.list === true && (e.left.kind === 'list' || e.left.bracketed === true);
 
 // Whether a call is of a sub that gives a list back. A call through a

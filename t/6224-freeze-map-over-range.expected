@@ -1,0 +1,3 @@
+start
+fault: an array was changed while a foreach is over it at t/6224-freeze-map-over-range.pl line 6.
+exit: 1

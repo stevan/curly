@@ -23,7 +23,7 @@
 // outside it (T60).
 import { refuse } from './errors.ts';
 import type { AnonSub, Binder, CallRef, Expr, Foreach, Sort, Invoke, Jump, Loop, My, MyArray, Pos, Program, Stmt, Sub, SubRef } from './ast.ts';
-import { listSubs } from './shapes.ts';
+import { listSubs, loneRange } from './shapes.ts';
 
 // A declaration is a number, in the order the `my`s are met; `of` says
 // which one each variable in the tree means, and `names` what each is
@@ -113,7 +113,7 @@ export type Each = { list: number; arrays: readonly number[]; frozen?: number };
 // (T59).
 // And a sub with no name, which no `last` or `next` may leave (T365,
 // D165): `anon`.
-type Round = { loop: Loop } | { bare: Pos } | { wall: string };
+type Round = { loop: Loop } | { bare: Pos; post?: string } | { wall: string };
 
 export const resolve = (program: Program): Resolution => {
     const of = new Map<Expr, number>();
@@ -564,6 +564,16 @@ export const resolve = (program: Program): Resolution => {
             return;
         case 'while':
             loops.set(s, loops.size);
+            // `do { } while` (D253): the block, which no `last` or `next`
+            // is for, then the test, which does not see the block's `my`s.
+            if (s.post) {
+                const only = s.body[0];
+                if (s.body.length !== 1 || only?.kind !== 'block') throw new Error('a do while with no block');
+                round.push({ bare: only.pos, post: s.negate ? 'until' : 'while' });
+                inner(only.body);
+                round.pop();
+                return whole(s.test);
+            }
             // As under `if`: the statement is written before its test.
             if (s.modifier) {
                 s.body.forEach(statement);
@@ -598,7 +608,10 @@ export const resolve = (program: Program): Resolution => {
             naming.pop();
             const chained = chains.pop()!;
             scopes.push(new Map());
-            bind(s, [s.var], arrays, chained);
+            // A lone range freezes nothing its ends name (step 16d, D259):
+            // perl works them out once, before the loop (T668).
+            const lone = loneRange(s.items);
+            bind(s, [s.var], lone ? new Set() : arrays, lone ? false : chained);
             round.push({ loop: s });
             inner(s.body);
             round.pop();
@@ -619,6 +632,9 @@ export const resolve = (program: Program): Resolution => {
             if ('wall' in nearest) return refuse(walled(s.name, nearest.wall), s.pos);
             // To perl a bare block is a loop that runs once, and this
             // would leave it and nothing more (D59).
+            if ('bare' in nearest && nearest.post) {
+                return refuse(`${s.name} with no label in do { } ${nearest.post}: it is no loop to perl, which leaves the loop round it, or dies; label the loop it is for, and say ${s.name} NAME`, s.pos);
+            }
             if ('bare' in nearest) {
                 return refuse(`${s.name} with no label would leave only the bare block that begins on line ${nearest.bare.line}, to perl: label the loop it is for, and say ${s.name} NAME`, s.pos);
             }

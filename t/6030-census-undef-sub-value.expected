@@ -1,0 +1,2 @@
+fault: f has no value: it does not end in a return or an expression at t/6030-census-undef-sub-value.pl line 6.
+exit: 1

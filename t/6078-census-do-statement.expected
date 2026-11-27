@@ -1,0 +1,2 @@
+t/6078-census-do-statement.pl:7:2: do { ... } is in the language followed by while or until, found ';': do BLOCK as a value is not (D253)
+exit: 1

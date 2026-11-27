@@ -41,7 +41,9 @@ export type Name =
     // array and a list, with brackets or without; `pop` and `shift` the
     // array, in brackets unless it ends the expression (T152); `splice`
     // and `scalar` always have brackets.
-    | { kind: 'arrayop'; shape: 'push' | 'pop' | 'splice' | 'scalar'; rt: string }
+    // And `resize`, `$#a = N;` (step 16d, D251), which no word spells: a
+    // statement of its own, its one argument the new last index.
+    | { kind: 'arrayop'; shape: 'push' | 'pop' | 'splice' | 'scalar' | 'resize'; rt: string }
     // The builtins that take a list and name no array (step 10a): `join`,
     // a separator and a list, and `reverse`, a list; with brackets or
     // without.
@@ -59,7 +61,11 @@ export type Name =
     // A builtin whose arguments are in brackets, always (D41): `min` to
     // `min + rt.length - 1` of them, each count with a runtime function
     // of its own.
-    | { kind: 'function'; min: number; rt: readonly string[] }
+    // With `changes`, the count of arguments at which the first is a
+    // variable the call changes, as a statement of its own: `substr` of
+    // four (step 16d, D254), whose last runtime function makes the new
+    // string.
+    | { kind: 'function'; min: number; rt: readonly string[]; changes?: number }
     // Step 15 (D143, D145, 15b): `try BLOCK catch ($e) BLOCK`; `...`, a
     // statement alone that dies; and `STDERR`, the one file handle, after
     // `say` or `print`, whose `err` is the runtime function then.
@@ -86,6 +92,8 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['lc', { kind: 'unary', rt: 'rt_lc' }],
     ['ucfirst', { kind: 'unary', rt: 'rt_ucfirst' }],
     ['lcfirst', { kind: 'unary', rt: 'rt_lcfirst' }],
+    // What `\Q` is in a string (step 16d, D256).
+    ['quotemeta', { kind: 'unary', rt: 'rt_quotemeta' }],
     ['ord', { kind: 'unary', rt: 'rt_ord' }],
     ['chr', { kind: 'unary', rt: 'rt_chr' }],
     ['defined', { kind: 'unary', rt: 'rt_defined' }],
@@ -94,6 +102,10 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['true', { kind: 'constant', c: 'rt_bool(1)' }],
     ['false', { kind: 'constant', c: 'rt_bool(0)' }],
     ['undef', { kind: 'constant', c: 'rt_undef()', bare: true }],
+    // `__LINE__` and `__FILE__` (step 16d, D255): the parser makes each the
+    // literal it is, the token's own line and the program's path.
+    ['__LINE__', { kind: 'constant', c: '' }],
+    ['__FILE__', { kind: 'constant', c: '' }],
     ['my', { kind: 'my' }],
     ['if', { kind: 'if' }],
     ['unless', { kind: 'if', unless: true }],
@@ -114,17 +126,21 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['shift', { kind: 'arrayop', shape: 'pop', rt: 'rt_shift' }],
     ['splice', { kind: 'arrayop', shape: 'splice', rt: 'rt_splice' }],
     ['scalar', { kind: 'arrayop', shape: 'scalar', rt: 'rt_count' }],
+    ['$#=', { kind: 'arrayop', shape: 'resize', rt: 'rt_last_index_store' }],
     ['join', { kind: 'listop', rt: 'rt_join' }],
     ['sprintf', { kind: 'listop', rt: 'rt_sprintf' }],
     ['map', { kind: 'binder' }],
     ['grep', { kind: 'binder' }],
     ['sort', { kind: 'sort' }],
     ['reverse', { kind: 'listop', rt: 'rt_list_add_reversed' }],
+    // `scalar reverse LIST` (step 16d, D258), which no one word spells: the
+    // list joined, and its characters reversed.
+    ['scalar reverse', { kind: 'listop', rt: 'rt_reverse_string' }],
     ['keys', { kind: 'hashop', shape: 'hash' }],
     ['values', { kind: 'hashop', shape: 'hash' }],
     ['exists', { kind: 'hashop', shape: 'elem' }],
     ['delete', { kind: 'hashop', shape: 'elem' }],
-    ['substr', { kind: 'function', min: 2, rt: ['rt_substr2', 'rt_substr3'] }],
+    ['substr', { kind: 'function', min: 2, rt: ['rt_substr2', 'rt_substr3', 'rt_substr4'], changes: 4 }],
     // Step 15: `die` and `warn` are list operators, with brackets or
     // without (D142, D146).
     ['die', { kind: 'listop', rt: 'rt_die' }],

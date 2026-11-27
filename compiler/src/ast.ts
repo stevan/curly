@@ -201,14 +201,20 @@ export type Block = { kind: 'block'; body: readonly Stmt[]; pos: Pos };
 // with `negate`; `STATEMENT if T;` is one arm with `modifier`, its body
 // the statement.
 export type Arm = { test: Expr; negate?: true; body: readonly Stmt[]; pos: Pos };
-export type If = { kind: 'if'; arms: readonly Arm[]; otherwise?: readonly Stmt[]; modifier?: true; pos: Pos };
+// With `joined`, `EXPR or die LIST;` and its kin (step 16d, D260): a
+// modifier written the other way round, whose test may declare a `my` for
+// what follows, as a statement's own expression may.
+export type If = { kind: 'if'; arms: readonly Arm[]; otherwise?: readonly Stmt[]; modifier?: true; joined?: true; pos: Pos };
 
 // A loop's label, `NAME:` (D61).
 export type Label = { name: string; pos: Pos };
 
 // `while (T) { }`, and `until` with `negate`; `STATEMENT while T;` with
 // `modifier`, its body the statement, which tests first all the same.
-export type While = { kind: 'while'; test: Expr; negate?: true; body: readonly Stmt[]; label?: Label; modifier?: true; pos: Pos };
+// With `post`, `do { } while T;` and `do { } until T;` (step 16d, D253):
+// the block first and then the test, its body one `block`; no loop to
+// perl, so no `last` or `next` is for it, and it takes no label.
+export type While = { kind: 'while'; test: Expr; negate?: true; body: readonly Stmt[]; label?: Label; modifier?: true; post?: true; pos: Pos };
 
 // `for (FIRST; TEST; EACH) { }`: FIRST and EACH are expressions with
 // commas between them (D60), and no TEST is true.

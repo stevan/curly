@@ -108,8 +108,8 @@ programs, as it is built. In outline:
 - **Variables:** lexical only, `my`, and `state` later (D160). No package
   variables, no `local` (D17, D19).
 - **Control:** `if`, `unless`, `while`, `until`, both `for`s, the
-  statement modifiers, `last` and `next` with labels, `try` and
-  `catch`, `die`.
+  statement modifiers, `do { } while` (D253), `EXPR or die` and its
+  kin (D260), `last` and `next` with labels, `try` and `catch`, `die`.
 - **Subs:** named and anonymous, with a signature or none (D105);
   closures (step 14; D160 to D166); lexical `my sub` later (D160).
   Called with brackets (D21). No `@_`, no `wantarray`.
@@ -345,7 +345,9 @@ step, roughly in the order it will matter:
    it.
 8. **A closure over a loop variable** (step 14): settled, D162. A
    copy, and what the loop froze stays frozen for good; refused when
-   the loop's list names a scalar variable (D166).
+   the loop's list names a scalar variable (D166), but for a list that
+   is one range, whose ends perl works out once (D259, Stevan's to
+   veto).
 9. **`finally` and `defer`; how `warn` is tested**: settled, D144
    and D149 (step 15). Both are refused, to be revisited with files at
    step 21; a test that writes to stderr is of kind `warns`, and the

@@ -110,7 +110,7 @@ every one under both.
 | `my @w = ("A", "B"); my @l = map lc, @w; say "@l";` | `a b` | Refused |
 | `my @a = (1, 2, 3); $_ *= 2 for @a; say "@a";` | `2 4 6` | Refused |
 | `my @a = (1, 2, 3); for my $x (@a) { $x *= 2 } say "@a";` | `2 4 6` | Refused |
-| `for my $i (1 .. 5) { $i == 3 and last; say $i; }` | `1` `2` | Refused |
+| `for my $i (1 .. 5) { $i == 3 and last; say $i; }` | `1` `2` | Same |
 | `sub add { my ($x, $y) = @_; return $x + $y; } say add(1, 2);` | `3` | Refused |
 | `sub hi($n) { return "hi $n"; } say hi "bob";` | `hi bob` | Refused |
 | `sub f { return 7 } say f(1, 2, 3);` | `7` | Same |
@@ -133,9 +133,12 @@ every one under both.
 | `my $h = {}; say "<$h->{a}{b}>";` | `<>`, and warns | Fault: `undef where a reference is wanted` |
 | `my %h = (a => 1, b => 2); @h{"a", "b"} = @h{"b", "a"}; say "$h{a}$h{b}";` | `21` | Same |
 | `my $s = "abc"; say substr $s, 0, 1;` | `a` | Refused |
-| `my @a = ("b", "a"); my @s = sort(@a); say "@s";` | `a b` | Refused |
-| `my $i = 0; do { say $i; $i++; } while ($i < 2);` | `0` `1` | Refused |
+| `my @a = ("b", "a"); my @s = sort(@a); say "@s";` | `a b` | Same |
+| `my @a = ("b", "a"); my @s = (sort (@a), 9); say "@s";` | `a b 9`, and warns | Refused |
+| `my $i = 0; do { say $i; $i++; } while ($i < 2);` | `0` `1` | Same |
+| `for my $k (1, 2) { do { last; } while (1); say $k; }` | (nothing) | Refused |
 | `my @a = (1, 2, 3); my $r = reverse(@a); say $r;` | `321` | Refused |
+| `my @a = (1, 2, 3); my $r = scalar reverse(@a); say $r;` | `321` | Same |
 | `my $s = "Az"; $s++; say $s;` | `Ba` | Fault: `not a numeric string` |
 | `while (1) { { last; } say "here"; last; }` | `here` | Refused |
 | `say 1 < 5 < 3;` | an empty line | Refused |
@@ -178,11 +181,13 @@ every one under both.
 | `my @rows = ([1, 2]); my @c = @rows; $c[0][0] = 9; say $rows[0][0];` | `9` | Same |
 | `try { my $x = 1 / 0; } catch ($e) { say "caught"; }` | `caught` | Fault: `division by zero` |
 | `sub f($n) { try { return $n * 2; } catch ($e) { return 0; } } say f(4);` | `8` | Same |
-| `my $x = 0; $x or die "zero\n";` | dies | Refused |
+| `my $x = 1; $x or die "zero\n"; say "ok";` | `ok` | Same |
+| `my ($p) = (0) or die "none\n"; say "here";` | `here` | Refused |
 | `my @s; for my $i (1 .. 3) { push @s, sub { $i * 10 } } say join(",", map { $_->() } @s);` | `10,20,30` | Same |
 | `my @a = (1, 2); my @s; for my $x (@a) { push @s, sub { $x } } $a[0] = 9; say $s[0]->();` | `9` | Fault: `an array was changed while a foreach is over it` |
 | `my @a = (1, 2); my @s = map { sub { $_ } } @a; say defined($s[0]->()) ? "def" : "undef";` | `undef` | Refused |
-| `my $n = 2; my @s; for my $i (1 .. $n) { push @s, sub { $i } } say $s[1]->();` | `2` | Refused |
+| `my $n = 2; my @s; for my $i (1 .. $n) { push @s, sub { $i } } say $s[1]->();` | `2` | Same |
+| `my @a = (1, 2, 3); for my $i (0 .. $#a) { push @a, 9 if $i == 0; } say scalar(@a);` | `4` | Same |
 | `my $f = sub { 1 }; &$f();` | (nothing) | Refused |
 
 ## 1. Idioms you will miss
@@ -197,7 +202,7 @@ is where the feel changes.
 | A builtin with no argument means `$_`: `say for @a;`, `grep { defined } @a` | `$_` is always written: `say $_ for @a;`, `grep { defined($_) } @a` | idiom | often | loops | D85 † |
 | `map EXPR, LIST` and `grep EXPR, LIST`: `map lc, @w` | A block always: `map { lc($_) } @w` | idiom | often | loops | D85 † |
 | A loop variable or `$_` is the element itself: `$_ *= 2 for @a;`, `for my $x (@a) { $x *= 2 }`, `chomp` or `s///` on one | Read-only (108 and 58 of the census's programs). `@a = map { $_ * 2 } @a;`, or `for my $i (0 .. $n) { $a[$i] *= 2 }` | idiom | often | loops | D17 |
-| `last` and `next` are expressions: `$done and last;`, `$ok or next;` | Statements: `last if $done;`, `next unless $ok;` | idiom | often | control | D62 † |
+| `last` and `next` are expressions: `my $x = ($done and last);`, `say 1 if $ok or next;` | Statements: alone, under `if` or `unless`, or after a statement and `or` or `and`: `$done and last;` is in (D260) | idiom | often | control | D62 † |
 | `my ($x, $y) = @_;`, `my $self = shift;`, `$_[0]` | A sub names its arguments in a signature. With none, `sub f { ... }`, it takes any arguments and sees none (about 900 of the census's programs use `@_`) | idiom | often | subs, old code | D17, D105 |
 | `eval { ... }; if ($@) { ... }` | Cut, for `try` and `catch` (step 15) | idiom | often | errors, old code | D20 |
 | `bless`, `@ISA`, `our`, package variables, `AUTOLOAD`, `can` to find code | One object system, `class`; `package` only names a file's subs (453 of the census's programs; step 17) | idiom | often | objects, old code | D19 |
@@ -210,7 +215,6 @@ is where the feel changes.
 | A set or an index built by `map`: `my %seen = map { $_ => 1 } @list;` | Refused, for the comma in the block (perl has to guess whether the braces are a block or a hash): `map { ($_ => 1) } @list` | idiom | sometimes | data | D102 † |
 | `BEGIN`, `eval STRING`, a `require` at run time, `do FILE`, `__DATA__` | Cut: the compiler sees the whole program before any of it runs | idiom | sometimes | layout | D20 |
 | A dereference without braces: `@$r`, `%$r`, `$$r`, `$$r[0]`, `$#$r`, the commonest spelling in old Perl | The arrow: `$r->[0]`, `$r->{k}`; for the whole container `$r->@*` or `@{ $r }`, and for a scalar `$r->$*` or `${ $r }`. (237 of the 795 census programs that wait for references use a spelling without braces) | idiom | often | data, old code | D108 |
-| `open(...) or die "...";`, `$ok or die "...";`: a statement joined to `die` by a word operator | Refused, as every statement joined by one is: `die "..." unless $ok;` (a guess: files, at step 21, will make it common) | idiom | sometimes | errors | D146 |
 | `chomp(my $line = <STDIN>)`, `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
 | Code in a string: `"@{[ scalar(@a) ]}"`, `"${\ join(",", @a) }"`, and anything in `"@{ ... }"` but a scalar variable and its subscripts | Refused: work the value out first, into a `my`, and put that in the string | idiom | sometimes | strings | D111 |
@@ -234,7 +238,6 @@ feels like.
 | `my $a`, `my $b` | Refused: they are `sort`'s (40 of the census's programs) | habit | sometimes | variables | D55 |
 | Changing an array inside a loop over it: `push @q, ...` in `for (@q)` | Fault, from the block or a sub it calls (the commonest fault in the census: 28 programs). Loop over a copy, or over `0 .. $n` | habit | sometimes | loops | D17 |
 | Changing a hash inside a loop over its `values`, over itself, or over a slice or an element of it: `for my $v (values %h) { $h{new} = 1 }` | Fault. A loop over `keys %h` may change it: the keys are copies | habit | sometimes | loops, data | D17 |
-| `for my $i (0 .. $#a) { ... push @a, ... }` | The same fault: `$#a` names `@a`. Take it into a `my` first | habit | sometimes | loops | D81 † |
 | `for $x (@a)` with a variable declared outside | `for my $x (@a)` | habit | sometimes | loops | D81 |
 | `try { $n / $d } catch ($e) { ... }` catches the division by zero; so with a wrong number of arguments, a method that isn't there | A fault can't be caught. Test first. `die` is caught, as in perl | habit | sometimes | errors | D13 |
 | A sub that ends in an `if` or a loop returns the last thing evaluated | It has no value, and using it is a fault. End it in a `return` | habit | sometimes | subs | D18 |
@@ -243,12 +246,12 @@ feels like.
 | A `$` or `@` in double quotes that begins no variable is text, or one of perl's own: `"cost: $ 5"`, `"@-"` | Refused: a backslash says the character (74 of the census's programs) | habit | sometimes | strings | D92 |
 | `"$x::y"`, `"$x{"`, `"@a->[0]"`, `"$r->[0]->@x"`: the variable goes on | Refused; `"${x}::y"` or a backslash says what is meant. A chain through a reference goes on as in perl, `"$r->[0]{k}"` (step 13d) | habit | sometimes | strings | D92, D95, D111 |
 | `substr $s, 0, 1;`, `index $s, "a";` | Brackets. `length`, `uc`, `lc`, `ord` and `chr` go without, as in perl | habit | sometimes | strings | D41 † |
-| `substr($s, 0, 1) = "x";`, and assigning to any place that isn't a variable or an element | Refused: values flow, places don't | habit | sometimes | strings | D17, D56 |
-| `uc` and `lc` of a character past ASCII | Fault, until a step brings perl's tables | habit | sometimes | strings | D41 |
+| `substr($s, 0, 1) = "x";`, and assigning to any place that isn't a variable or an element | Refused: values flow, places don't; `substr($s, 0, 1, "x");` says it | habit | sometimes | strings | D17, D56, D254 |
+| `my $old = substr($s, 0, 1, "x");`: the piece `substr` of four takes out | A statement on a scalar variable: take the piece with `substr` of three first | habit | sometimes | strings | D254 |
 | Printing a character past ASCII with no layer: bytes, or `Wide character` | Fault, unless the file says `use open ':std', ':encoding(UTF-8)';`, in that spelling | habit | sometimes | printing | D39 |
-| `sort(@a)`, `map(...)`, `grep(...)` with brackets of their own | Without: `sort @a` | habit | sometimes | data | D89 † |
-| `reverse` where one value is wanted reverses a string's characters; `sort` there is undef | Both refused there. `grep` and `map` are their count, as in perl | habit | sometimes | strings, data | D84 |
-| `do { ... } while (...);` | Left out, for the step that takes `do BLOCK`. It is not a loop to perl either: `last` in it leaves the loop round it | habit | sometimes | control | D58 † |
+| `map(...)`, `grep(...)` with brackets of their own; `sort (...)` with a blank | Without, or `sort(...)` hard against the word | habit | sometimes | data | D89, D262 † |
+| `reverse` where one value is wanted reverses a string's characters; `sort` there is undef | Both refused there; `scalar reverse LIST` says the first. `grep` and `map` are their count, as in perl | habit | sometimes | strings, data | D84, D258 |
+| `do { ... }` as a value; `last` or `next` with no label in `do { } while`; a label on it | Refused: it is no loop to perl, whose `last` leaves the loop round it | habit | sometimes | control | D58, D253 |
 | Reading through what is not there makes it, in silence: `if ($seen{$x}{$y})`, `my $n = $tree->{left}{size};`, `exists $h{a}{b}` | Fault: `undef where a reference is wanted`. `if ($seen{$x} && $seen{$x}{$y})`. Storing makes it, as in perl | habit | often | data | D107 |
 | The whole container through undef in a `for`, `keys`, `pop`, `shift` or a slice is made in silence, where everywhere else perl dies: `for (@{ $h{list} })`, `keys %{ $h{$k} }` | Fault: `undef where a reference is wanted`, everywhere a whole container is read. `@{ $h{list} // [] }`. `push`, `unshift`, `splice` and an assignment make it, as in perl (six of the census's programs met it) | habit | often | data, loops | D107 |
 | A subscript after the braces, `@{$r}[0]`, `${$r}[0]`, `@{$h}{qw(a b)}` | Refused: the slice is `$r->@[0]`, the element `$r->[0]` | habit | sometimes | data, old code | D108 |
@@ -273,6 +276,7 @@ someone.
 | String increment: `"aa"++` is `"ab"`, `"Az"++` is `"Ba"` | Fault. A numeric string that is stepped becomes a number | idiom | rarely | strings | D52 |
 | A list assignment has a value, its right side's count: `my $n = () = f();`, `if ((my @r = f()))` | A statement, and refused as a value | idiom | rarely | data | D78 |
 | A bare block is a loop that runs once: `{ ...; last if $x; ... }` | A scope and nothing else; an unlabelled `last` nearest one is refused. Label the loop that is meant | idiom | rarely | control | D59 † |
+| `for my $i (0 .. $#a, 9) { ... push @a, ... }`, `for my $i (reverse 0 .. $#a)`: a range that is not the whole list | The freeze's fault: a loop over one range alone freezes nothing (D259) | habit | rarely | loops | D81, D259 |
 | The flip-flop, `..` where one value is wanted; a range of strings, `"a" .. "e"` | Refused; a string as the end of a range is a fault | idiom | rarely | control, data | D80 |
 | `redo`, `goto`, `continue` blocks | Cut | idiom | rarely | control | D62 |
 | `last` or `next` in a called sub, a sub with no name, or a `map`, `grep` or `sort` block, leaves the loop round it | Refused | habit | rarely | control | D87, D165 |
@@ -287,7 +291,7 @@ someone.
 | A hash's slice through a reference in a string, `"$r->@{'a', 'b'}"` | Refused, as `"@h{...}"` is: join it | habit | rarely | strings | D99, D111 |
 | A loop over a scalar through a reference, or over a scalar whose reference is taken, whose block stores to a scalar under another name: `for my $v ($$r) { $x = 9 }` | Refused: perl's loop walks the scalar itself, and a store under any name shows in the loop's variable | habit | rarely | loops, data | D109, D77 |
 | A reference printed, joined, used as a hash's key or compared with `<`: `say $r;`, `$seen{$r}++` | Fault: `a reference where a string is wanted`, `... a number ...`. `==` and `!=` between two references say whether they are one container | habit | rarely | printing, data | D112 |
-| `$#a = N` to cut or grow an array | Refused | habit | rarely | data | D80 |
+| `$#a = -2` empties an array; `$#a += 1`, `$#a++`, `($#a = 0)` as a value | A fault below -1; the rest refused: `$#a = N;` is a statement | habit | rarely | data | D251 |
 | `%h{...}`, the slice of keys and values | Not in, and not proposed. `@h{...}` and `@a[...]` are in, on the left of `=` too | idiom | rarely | data | D100, D104 |
 | A slice among other targets, `($x, @h{"a", "b"}) = ...`; `@a[0, 1] += 1` | A slice is the one target of its assignment, with `=` | habit | rarely | data | D100 |
 | `exists $a[0]`, `delete $a[0]`, `keys @a`: the hash builtins on an array | For a hash alone | habit | rarely | data | D104 |
@@ -366,7 +370,15 @@ quiet has met few of them.
 | After a string read as a number underflows (`"1e-310" + 0`), an uncaught `die` exits 34, perl's `$!`, not 255 | A fault at the `die` | accident | rarely | errors | D151 |
 | `sprintf("%d", 1e30)` is `-1`; `%g` of `-$x` is `-0` or `0` by what `$x` was; `%3c` pads a wide character by its bytes | A fault where perl's conversion is the machine's or has two answers; `%c` takes no width | accident | rarely | printing | D127, D131 |
 | `qq[$x\[0\]]` is an element of `@x`: the backslash before the bracket goes before the variables are read | A backslash before a `qq`'s own bracket is refused | accident | rarely | strings | D131 |
-| `ucfirst("éa")` is `Éa`, by perl's tables | A first character past ASCII is a fault, as for `uc` | accident | rarely | strings | D129 |
+| `uc` of two U+0345 together is one U+0399 | Fault; every other character by perl's own tables | accident | rarely | strings | D257 |
+| `my ($n) = f() or die "...";`, `$x = f() or die "..." if $y;`: a list assignment before `or die`, a modifier after it | Refused: perl tests the list assignment's count (T670); the modifier is over the whole | accident | rarely | errors | D260 |
+| `"\Uab\Lcd\E"`, `"\Ua\Qb\E"`, `"\Uh\lello"`, `"x\E"`, `"\F..."`: case escapes in each other, or past a run's start | Refused: a run of `\U`, `\L` or `\Q` ends at `\E`, and none is inside another | accident | rarely | strings | D256 |
+| `undef @a[0, 1]` makes only the last element undef; `my $y = undef $x;` | Refused: `undef $x;` is a statement | accident | rarely | variables | D252 |
+| `scalar @a + 1` is `scalar(@a + 1)` | Refused: `scalar(@a) + 1` | accident | rarely | data | D250 † |
+| `scalar reverse(@e)` of an empty array reverses `$_` | Fault | accident | rarely | strings | D258 |
+| A line `=pod` in the middle of a statement; a `# line` comment inside POD | Refused | accident | rarely | layout | D255 |
+| `do { } while (die "x\n")` runs for ever | Refused: a `die` in that test | accident | rarely | control | D253 |
+| `die join(" ", @l)` over two lines, its last item ending in a newline | Refused: only a literal, a concatenation's last piece or a `sprintf`'s format is looked at | accident | rarely | errors | D261 |
 
 The thread through the last six rows: **in perl a value remembers
 what was done with it, and in Curly a value has no past.** `my $x =
@@ -437,11 +449,9 @@ took work, and was done.
 What the decisions already say of steps to come. Each is proposed in
 full when its step is, and its rows join the sections above then.
 
-- **Strings, the rest, 16d** (D120): the case escapes `\U \L \u \l
-  \Q \E`, `substr` of four arguments, `reverse` of a string where one
-  value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle
-  (step 21). 16a to 16c (D121 to D131) are built, and their rows are in
-  the sections above.
+- **Strings, the rest** (D120): `printf` to a handle (step 21). 16a to
+  16d (D121 to D131, D254 to D258) are built, and their rows are in the
+  sections above.
 - **Objects** (step 17; D19). `class` as 5.42 has it, on a core
   the runtime holds, `Object`, `Role` and `Class`, of which every
   class and role is an instance (D182). Roles are wanted, and perl

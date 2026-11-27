@@ -1,0 +1,2 @@
+t/6174-16d-end-mid-statement.pl:4:9: __END__ in the middle of a statement: perl ends the program there, and does not compile what came before it
+exit: 1

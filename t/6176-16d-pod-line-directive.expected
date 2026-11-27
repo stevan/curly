@@ -1,0 +1,2 @@
+t/6176-16d-pod-line-directive.pl:6:1: a line '# line' and a number in POD: perl takes it for a line directive even there, which changes the line and the file a die names: reword it
+exit: 1

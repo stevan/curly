@@ -1,0 +1,2 @@
+t/6064-census-undef-hash-value.pl:5:10: undef before '%h': perl takes what follows undef for its argument; write (undef)
+exit: 1

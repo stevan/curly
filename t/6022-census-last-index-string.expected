@@ -1,0 +1,2 @@
+fault: not a numeric string at t/6022-census-last-index-string.pl line 5.
+exit: 1

@@ -1,0 +1,2 @@
+fault: not a reference to a hash at t/6028-census-undef-through-a-string.pl line 5.
+exit: 1

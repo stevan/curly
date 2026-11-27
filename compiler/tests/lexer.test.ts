@@ -112,7 +112,8 @@ test('a string in double quotes: the escapes (D43)', () => {
     at('"\\q"', '\\q is not an escape in the language', 2);
     at('"ab\\8"', '\\8 is not an escape in the language', 4);
     at('"\\c["', '\\c is not an escape in the language', 2);
-    at('"\\Ux"', '\\U is not an escape in the language', 2);
+    at('"\\Fx"', '\\F, the fold case, is not in the language: lc says it for most strings, and perl folds some characters to more than one (D256)', 2);
+    at('"x\\E"', '\\E with no \\U, \\L or \\Q before it to end: perl warns that it is useless', 3);
     at('"\\N{LATIN SMALL LETTER A}"', '\\N{...} is not an escape in the language', 2);
     at('"\\x"', '\\x: \\x takes two hex digits, or any number in braces: \\x0A, \\x{263A}', 2);
     at('"\\x4"', '\\x4: \\x takes two hex digits, or any number in braces: \\x0A, \\x{263A}', 2);

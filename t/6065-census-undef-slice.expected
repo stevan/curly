@@ -1,0 +1,2 @@
+t/6065-census-undef-slice.pl:5:7: undef takes a scalar variable, an element, an array or a hash here, found a slice: perl makes only its last element undef
+exit: 1

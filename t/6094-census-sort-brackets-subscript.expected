@@ -1,0 +1,2 @@
+t/6094-census-sort-brackets-subscript.pl:5:18: '[' after sort(...): perl does not compile it; bracket the whole, (sort(...))[...]
+exit: 1

@@ -1,0 +1,2 @@
+t/6061-census-last-index-plus-equals-ref.pl:5:8: '+=' on $#{...}: the last index is set with =, $#{...} = N;
+exit: 1
