@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/2268-fault-sref-reference-died-uncaught.pl line 6.
+exit: 1

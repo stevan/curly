@@ -245,6 +245,85 @@ static void body(rt_ctx *cx) {
         apply(cx, which + 3, slots[1]);
         printf("not faulted\n");
     }
+    // Step 13c: a scalar whose reference is taken lives in a cell.
+    if (strncmp(which, "sop-", 4) == 0) {
+        slots[0] = rt_int(1);
+        rt_cell_wrap(cx, &slots[0]);
+        slots[1] = rt_sref(cx, slots[0]);
+        printf("2\n");
+        apply(cx, which + 4, slots[1]);
+        printf("not faulted\n");
+    }
+    if (is("cell")) {
+        // A value put in a cell, a reference to it, read and stored
+        // through it, and what `ref` says: SCALAR, or REF when the cell
+        // holds a reference. The cell is kept while a slot holds it or a
+        // reference to it, and freed when none does.
+        slots[0] = rt_concat(cx, rt_string(&AB), rt_int(7));
+        rt_cell_wrap(cx, &slots[0]);
+        slots[1] = rt_sref(cx, slots[0]);
+        rt_collect(cx);
+        rt_say(cx, RT_CELL(rt_deref(cx, slots[1], 2)));
+        rt_say(cx, rt_ref(cx, slots[1]));
+        RT_CELL(rt_deref(cx, slots[1], 2)) = rt_aref(cx, rt_array_new(cx));
+        rt_say(cx, rt_ref(cx, slots[1]));
+        rt_say(cx, rt_ref(cx, RT_CELL(slots[0])));
+        rt_say(cx, rt_bool(rt_is_true(cx, slots[1])));
+        rt_say(cx, rt_num_eq(cx, slots[1], rt_sref(cx, slots[0])));
+        slots[2] = rt_undef();
+        rt_cell_wrap(cx, &slots[2]);
+        rt_say(cx, rt_num_ne(cx, slots[1], rt_sref(cx, slots[2])));
+        slots[0] = rt_undef();
+        slots[2] = rt_undef();
+        rt_collect(cx);
+        report(cx, "a reference held");
+        slots[1] = rt_undef();
+        rt_collect(cx);
+        report(cx, "none held");
+    }
+    if (is("cell-deep")) {
+        // A million cells, each holding a reference to the one before.
+        slots[0] = rt_undef();
+        for (int k = 0; k < 1000000; k++) {
+            rt_cell_wrap(cx, &slots[0]);
+            slots[0] = rt_sref(cx, slots[0]);
+        }
+        rt_collect(cx);
+        report(cx, "a million kept");
+        rt_value r = slots[0];
+        int64_t n = 0;
+        while (r.tag == RT_TAG_SREF) {
+            r = RT_CELL(rt_deref(cx, r, 2));
+            n += 1;
+        }
+        printf("%" PRId64 " deep\n", n);
+        slots[0] = rt_undef();
+        rt_collect(cx);
+        report(cx, "dropped");
+    }
+    if (is("deref-scalar-undef")) rt_deref(cx, rt_undef(), 2);
+    if (is("deref-scalar-array")) rt_deref(cx, rt_aref(cx, rt_array_new(cx)), 2);
+    if (is("deref-scalar-number")) rt_deref(cx, rt_int(5), 2);
+    if (is("deref-array-scalar")) {
+        slots[0] = rt_undef();
+        rt_cell_wrap(cx, &slots[0]);
+        rt_deref(cx, rt_sref(cx, slots[0]), 0);
+    }
+    if (is("vivify-scalar")) {
+        // undef made a cell holding undef, an element too, and a hop that
+        // holds a reference to a scalar only read.
+        slots[0] = rt_undef();
+        slots[1] = rt_vivify(cx, &slots[0], 2);
+        RT_CELL(slots[1]) = rt_int(4);
+        rt_say(cx, rt_ref(cx, slots[0]));
+        rt_say(cx, RT_CELL(rt_vivify(cx, &slots[0], 2)));
+        slots[2] = rt_hash_new(cx);
+        slots[3] = rt_helem_hop(cx, slots[2], rt_string(&A), 2);
+        rt_say(cx, rt_bool(rt_is_undef(cx, RT_CELL(slots[3]))));
+        rt_say(cx, rt_ref(cx, rt_helem(cx, slots[2], rt_string(&A))));
+        rt_say(cx, rt_num_eq(cx, rt_sref(cx, rt_helem_hop(cx, slots[2], rt_string(&A), 2)), rt_helem(cx, slots[2], rt_string(&A))));
+        rt_vivify(cx, &slots[0], 1);
+    }
     rt_leave(cx, &frame);
 }
 

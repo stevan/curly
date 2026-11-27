@@ -1,0 +1,2 @@
+t/2320-sref-reference-to-a-loop-variable.pl:7:14: \$x: a reference to a loop's variable is cut (D110): to perl it is the list's own element; take the value into a my first
+exit: 1

@@ -1,0 +1,2 @@
+t/2308-sref-arrow-after-postfix.pl:6:7: an arrow after ->$*: going on through a reference that a scalar through a reference holds is not in the language; take the scalar into a my first, my $s = $r->$*; $s->[0]
+exit: 1

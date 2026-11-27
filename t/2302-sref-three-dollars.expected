@@ -1,0 +1,2 @@
+t/2302-sref-three-dollars.pl:7:5: $$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }
+exit: 1

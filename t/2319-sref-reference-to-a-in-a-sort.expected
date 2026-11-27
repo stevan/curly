@@ -1,0 +1,2 @@
+t/2319-sref-reference-to-a-in-a-sort.pl:5:24: \$a: a reference to $a is cut (D110): to perl it is the list's own element; take the value into a my first
+exit: 1

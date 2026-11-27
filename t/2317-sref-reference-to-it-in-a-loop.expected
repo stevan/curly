@@ -1,0 +1,2 @@
+t/2317-sref-reference-to-it-in-a-loop.pl:7:14: \$_: a reference to $_ is cut (D110): to perl it is the list's own element; take the value into a my first
+exit: 1

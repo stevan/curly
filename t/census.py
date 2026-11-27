@@ -86,6 +86,8 @@ REASONS = [
     # (Step 13a: what references reach is D109's name in D76's walk, and
     # making a hop changes the head of its chain, D114.)
     (r"can change what references reach", 'design', 'D109'),
+    # (Step 13c: and its part, the scalars references reach, in D77's.)
+    (r"can change a scalar that a reference reaches", 'design', 'D109'),
     (r"^the store makes what", 'design', 'D114'),
     (r"^a later part of .* can change .* which an earlier part names", 'design', 'D76'),
     (r"^a later piece of a concatenation", 'design', 'D57'),
@@ -140,8 +142,7 @@ REASONS = [
     (r"\(D108\)", 'design', 'D108'),
     (r"^a subscript after ->", 'design', 'D108'),
     (r"D114 refuses it|^'\{' first in the braces of", 'design', 'D114'),
-    # ---- later, by the step
-    (r"\(step 13c\)", 'later', '13c'),
+    # ---- later, by the step (step 13c's row went with it)
     (r"\(step 13d\)", 'later', '13d'),
     (r"\(step 14\)", 'later', '14'),
     (r"\(step 17\)", 'later', '17'),
@@ -420,7 +421,7 @@ def self_test():
         ("a comma in the block of a map, a grep or a sort: put the list in brackets, map { ($_ => 1) } ...", 'design D102'),
         ("'=~' is not in the language yet", 'later 19'),
         ("@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }", 'design D108'),
-        ("->$*: a scalar through a reference is not in the language yet (step 13c)", 'later 13c'),
+        ("this can change a scalar that a reference reaches, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop", 'design D109'),
         ("a word alone in @{ ... } is the name of a variable, to perl (@{true} is @true): D114 refuses it; name a variable, @{ $r }", 'design D114'),
         ("an arrow after the braces of a dereference: to perl it is an array used as a reference, which dies (D108); write the arrow after the reference itself", 'design D108'),
         ("'[' hard after $a[0] in a string: another index, to perl, and an element through a reference in a string is not in the language yet (step 13d); write $a[0]\\[", 'later 13d'),

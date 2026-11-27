@@ -1,0 +1,2 @@
+t/2304-sref-arrow-after-braces.pl:6:11: an arrow after ${ ... }: going on through a reference that a scalar through a reference holds is not in the language; take the scalar into a my first, my $s = ${ $r }; $s->[0]
+exit: 1

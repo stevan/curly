@@ -1,2 +1,2 @@
-t/583-name-braces.pl:6:5: ${ ... }: a scalar through a reference is not in the language yet (step 13c); a variable is written $name
+t/583-name-braces.pl:6:6: a word alone in ${ ... } is the name of a variable, to perl (${x} is $x): D114 refuses it; name a variable, ${ $r }
 exit: 1

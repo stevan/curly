@@ -1,0 +1,3 @@
+1
+fault: not a reference to a scalar at t/2234-fault-sref-read-a-string.pl line 6.
+exit: 1

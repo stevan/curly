@@ -1,0 +1,2 @@
+t/2329-sref-keys-of-a-scalar.pl:6:10: keys names a hash, found '$r': keys %h, or keys $r->%*
+exit: 1

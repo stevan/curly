@@ -17,10 +17,12 @@
 // never made a value then faults at the first operator that checks it.
 // A reference (step 13a; D112) is a value of its own: AREF to an array,
 // HREF to a hash, its payload the container's block, `as.a`, the very
-// block an array's or a hash's variable holds. (13c brings one to a
-// scalar, which will point at a cell.)
+// block an array's or a hash's variable holds.
+// A scalar whose reference is taken lives in a cell (step 13c): an array's
+// block holding one value, which the variable's slot holds as a CELL, and
+// SREF is a reference to it, its payload the same block.
 enum { RT_TAG_INT = 1, RT_TAG_NUM = 2, RT_TAG_STR = 3, RT_TAG_UNDEF = 4, RT_TAG_BOOL = 5, RT_TAG_ARRAY = 6, RT_TAG_ABSENT = 7, RT_TAG_HASH = 8,
-       RT_TAG_AREF = 9, RT_TAG_HREF = 10 };
+       RT_TAG_AREF = 9, RT_TAG_HREF = 10, RT_TAG_CELL = 11, RT_TAG_SREF = 12 };
 
 // An array (D80): a row of values that grows and shrinks in place, the
 // collector's as a heap string is, with storage of its own. It is what an
@@ -461,8 +463,16 @@ rt_value rt_deref(rt_ctx *cx, rt_value v, int hash);
 rt_value rt_vivify(rt_ctx *cx, rt_value *slot, int hash);
 rt_value rt_elem_hop(rt_ctx *cx, rt_value array, rt_value index, int hash);
 rt_value rt_helem_hop(rt_ctx *cx, rt_value container, rt_value key, int hash);
-// `ref`: ARRAY, HASH, or the empty string.
+// `ref`: ARRAY, HASH, SCALAR or REF, or the empty string.
 rt_value rt_ref(rt_ctx *cx, rt_value v);
+// References to scalars (step 13c; D110). `hash` above is 2 for the scalar
+// through a reference, and what is given back then is the cell, a CELL.
+// `rt_cell_wrap` puts what a slot holds in a new cell, which the slot then
+// holds; `rt_sref` is a reference to the cell a slot holds. RT_CELL is the
+// value in a cell, a place: the cell's one value, which never moves.
+void rt_cell_wrap(rt_ctx *cx, rt_value *slot);
+rt_value rt_sref(rt_ctx *cx, rt_value cell);
+#define RT_CELL(v) ((v).as.a->items[0])
 // The containers a chain in the list of a loop, a `map`, a `grep` or a
 // `sort` went through, every one frozen while it runs (D114, T251): each
 // added to a list of its own as the list is built, then all frozen, and

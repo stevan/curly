@@ -15,11 +15,36 @@
 #define UNDEF_REFERENCE "undef where a reference is wanted"
 #define NOT_ARRAY "not a reference to an array"
 #define NOT_HASH "not a reference to a hash"
+#define NOT_SCALAR "not a reference to a scalar"
 
+// `hash` is 0 for an array, 1 for a hash, and 2 for a scalar's cell (step
+// 13c), throughout.
 static rt_value container(rt_array *a, int hash) {
     rt_value v;
-    v.tag = hash ? RT_TAG_HASH : RT_TAG_ARRAY;
+    v.tag = hash == 2 ? RT_TAG_CELL : hash ? RT_TAG_HASH : RT_TAG_ARRAY;
     v.as.a = a;
+    return v;
+}
+
+static uint64_t reference_tag(int hash) {
+    return hash == 2 ? RT_TAG_SREF : hash ? RT_TAG_HREF : RT_TAG_AREF;
+}
+
+// A new cell holding what the slot holds, which the slot holds after
+// (step 13c). The allocation is made while the value is still in the slot.
+void rt_cell_wrap(rt_ctx *cx, rt_value *slot) {
+    if (!a_scalar(slot->tag)) rt_internal(cx, "a cell made of what is no value");
+    rt_value c = rt_array_new(cx);
+    append(cx, c.as.a, *slot);
+    c.tag = RT_TAG_CELL;
+    *slot = c;
+}
+
+rt_value rt_sref(rt_ctx *cx, rt_value cell) {
+    if (cell.tag != RT_TAG_CELL || cell.as.a->dead) rt_internal(cx, "a reference to a scalar that has no cell");
+    rt_value v;
+    v.tag = RT_TAG_SREF;
+    v.as.a = cell.as.a;
     return v;
 }
 
@@ -43,23 +68,29 @@ rt_value rt_href(rt_ctx *cx, rt_value hash) {
 // reference (T234).
 rt_value rt_deref(rt_ctx *cx, rt_value v, int hash) {
     if (v.tag == RT_TAG_UNDEF) rt_fault(cx, UNDEF_REFERENCE);
-    if (v.tag != (hash ? RT_TAG_HREF : RT_TAG_AREF)) {
+    if (v.tag != reference_tag(hash)) {
         if (!a_scalar(v.tag)) rt_fault(cx, "not a value");
-        rt_fault(cx, hash ? NOT_HASH : NOT_ARRAY);
+        rt_fault(cx, hash == 2 ? NOT_SCALAR : hash ? NOT_HASH : NOT_ARRAY);
     }
     if (v.as.a->dead) rt_internal(cx, "a reference to a container that was collected");
     return container(v.as.a, hash);
 }
 
 // A new container, empty: the one allocation of the two functions below,
-// and the last thing either does before it stores what it made.
+// and the last thing either does before it stores what it made. A cell
+// holds one undef from the start (step 13c), which is storage, and no
+// collection.
 static rt_value made_container(rt_ctx *cx, int hash) {
-    return hash ? rt_hash_new(cx) : rt_array_new(cx);
+    if (hash != 2) return hash ? rt_hash_new(cx) : rt_array_new(cx);
+    rt_value c = rt_array_new(cx);
+    append(cx, c.as.a, rt_undef());
+    c.tag = RT_TAG_CELL;
+    return c;
 }
 
 static rt_value reference_to(rt_value c) {
     rt_value v;
-    v.tag = c.tag == RT_TAG_HASH ? RT_TAG_HREF : RT_TAG_AREF;
+    v.tag = c.tag == RT_TAG_CELL ? RT_TAG_SREF : c.tag == RT_TAG_HASH ? RT_TAG_HREF : RT_TAG_AREF;
     v.as.a = c.as.a;
     return v;
 }
@@ -103,10 +134,15 @@ rt_value rt_helem_hop(rt_ctx *cx, rt_value h, rt_value key, int hash) {
 
 static const rt_str STR_ARRAY = { 5, 5, "ARRAY", RT_STR_CONSTANT };
 static const rt_str STR_HASH = { 4, 4, "HASH", RT_STR_CONSTANT };
+static const rt_str STR_SCALAR = { 6, 6, "SCALAR", RT_STR_CONSTANT };
+static const rt_str STR_REF = { 3, 3, "REF", RT_STR_CONSTANT };
 
+// A reference to a scalar is SCALAR, or REF when the scalar holds a
+// reference now (T242).
 rt_value rt_ref(rt_ctx *cx, rt_value v) {
     if (v.tag == RT_TAG_AREF) return rt_string(&STR_ARRAY);
     if (v.tag == RT_TAG_HREF) return rt_string(&STR_HASH);
+    if (v.tag == RT_TAG_SREF) return rt_string(is_ref(RT_CELL(v)) ? &STR_REF : &STR_SCALAR);
     if (!a_scalar(v.tag)) rt_fault(cx, "not a value");
     return rt_string(&STR_FALSE);
 }

@@ -459,6 +459,20 @@ test('a reference where a number or a string is wanted is a fault, at every oper
         }
     }
 });
+// Step 13c: references to scalars (D107, D110, D112).
+test('a scalar whose reference is taken lives in a cell, which the collector keeps while it is reached', () => {
+    assert.deepEqual(run('ref', 'cell', { CURLY_GC_STRESS: '1', CURLY_GC_POISON: '1' }),
+        { status: 0, output: 'ab7\nSCALAR\nREF\nARRAY\n1\n1\n1\na reference held: 2 on the heap\nnone held: 0 on the heap\n' });
+    assert.deepEqual(run('ref', 'cell-deep'), { status: 0, output: 'a million kept: 1000000 on the heap\n1000000 deep\ndropped: 0 on the heap\n' });
+    const faults: [string, string][] = [['deref-scalar-undef', 'undef where a reference is wanted'], ['deref-scalar-array', 'not a reference to a scalar'],
+        ['deref-scalar-number', 'not a reference to a scalar'], ['deref-array-scalar', 'not a reference to an array']];
+    for (const [which, what] of faults) assert.deepEqual(run('ref', which), { status: 1, output: `fault: ${what} at ref.pl line 1.\n` }, which);
+    assert.deepEqual(run('ref', 'vivify-scalar'), { status: 1, output: 'SCALAR\n4\n1\nSCALAR\n1\nfault: not a reference to a hash at ref.pl line 1.\n' });
+    for (const which of ['add', 'neg', 'inc', 'lt', 'eq-num-right', 'concat', 'length', 'say', 'key', 'join', 'sort']) {
+        const what = ['add', 'neg', 'inc', 'lt', 'eq-num-right'].includes(which) ? 'number' : 'string';
+        assert.deepEqual(run('ref', `sop-${which}`), { status: 1, output: `2\nfault: a reference where a ${what} is wanted at ref.pl line 1.\n` }, which);
+    }
+});
 // Step 15 (D141): a die unwinds frames, freezes and a sort by hand, under
 // a collection at every allocation and poison.
 test('a die puts back the frames, the freezes and the sorts a try had open', () => {

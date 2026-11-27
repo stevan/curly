@@ -71,6 +71,8 @@ export type Resolution = {
     // The arrays and hashes whose reference is taken anywhere in the
     // program, `\@a` or `\%h` (step 13a; D109): what a reference reaches
     // may be one of them, under any name.
+    // And the scalar variables, `\$x` (step 13c): each lives in a cell,
+    // its slot holding the cell and every use of it going through it.
     taken: ReadonlySet<number>;
 };
 
@@ -235,10 +237,26 @@ export const resolve = (program: Program): Resolution => {
             walk(e.head, declared);
             if (!quoted) chains.fill(true);
             return;
-        case 'ref':
-            array(e.of, e.of.name, true);
-            taken.add(of.get(e.of)!);
+        // Step 13c: the scalar through a reference, its head first, which a
+        // loop freezes the containers of as it does an element's.
+        case 'sderef':
+            walk(e.head, declared);
+            if (!quoted) chains.fill(true);
             return;
+        case 'ref': {
+            if (e.of.kind === 'array') array(e.of, e.of.name, true);
+            else walk(e.of, declared);
+            const id = of.get(e.of)!;
+            // `\$x` (step 13c; D110): a loop's variable, `$_`, `$a` and `$b`
+            // are the list's own elements to perl, and a reference to one
+            // reaches into the list (D17, T12).
+            if (e.of.kind === 'var' && readonly.has(id)) {
+                return refuse(['_', 'a', 'b'].includes(e.of.name) ? `\\$${e.of.name}: a reference to $${e.of.name} is cut (D110): to perl it is the list's own element; take the value into a my first`
+                    : `\\$${e.of.name}: a reference to a loop's variable is cut (D110): to perl it is the list's own element; take the value into a my first`, e.pos);
+            }
+            taken.add(id);
+            return;
+        }
         case 'slice':
             // Its indexes are worked out first (T163).
             e.indexes.forEach(x => walk(x, declared));

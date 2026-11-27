@@ -1,0 +1,3 @@
+1
+fault: a reference where a number is wanted at t/2253-fault-sref-reference-compared.pl line 7.
+exit: 1

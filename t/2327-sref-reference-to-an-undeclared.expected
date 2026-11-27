@@ -1,0 +1,2 @@
+t/2327-sref-reference-to-an-undeclared.pl:4:10: $y is not declared: my $y
+exit: 1

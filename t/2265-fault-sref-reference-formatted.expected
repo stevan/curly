@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/2265-fault-sref-reference-formatted.pl line 7.
+exit: 1
