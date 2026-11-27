@@ -1,0 +1,2 @@
+t/4192-obj-new-indirect.pl:6:9: 'new' is not in the language; a call of a sub of the program's has brackets: new(...)
+exit: 1

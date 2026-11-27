@@ -1,0 +1,2 @@
+t/4188-obj-method-by-a-variable.pl:7:15: '->' and a variable: a method chosen by what a variable holds is not in the language yet
+exit: 1

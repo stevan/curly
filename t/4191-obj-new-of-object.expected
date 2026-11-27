@@ -1,0 +1,2 @@
+t/4191-obj-new-of-object.pl:5:9: Object->new: Object, Role and Class are held back (D177)
+exit: 1

@@ -1,0 +1,2 @@
+t/4181-obj-super-not-in-the-parent.pl:6:37: ->SUPER::m: no parent of B has a method called m, and perl dies when the call is made
+exit: 1

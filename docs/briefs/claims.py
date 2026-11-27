@@ -1074,7 +1074,11 @@ def main(argv):
     # which has no other way to be asked; without that perl the row fails.
     roles = os.environ.get('CURLY_PERL_ROLES', '/opt/perl-5.42-roles/bin/perl')
     print(f'roles perl ({roles}) for the rows marked roles')
+    # (A row that could not be run is counted apart, so that the rest can
+    # be seen to hold: it is no statement shown wrong, and still fails the
+    # run, since nothing has shown it right.)
     differ = 0
+    unrun = 0
     for id, where, code, said in CLAIMS:
         if only and id not in only:
             continue
@@ -1082,8 +1086,8 @@ def main(argv):
         flags = ['-c'] if not compiles else ['-CSDA'] if said.get('csda') else []
         which = roles if said.get('roles') else perl
         if said.get('roles') and not shutil.which(roles):
-            differ += 1
-            print(f'DIFFERS {id} ({where})\n    not run: no roles perl at {roles} (tools/perl-roles/build.sh)')
+            unrun += 1
+            print(f'NOT RUN {id} ({where})\n    no roles perl at {roles} (tools/perl-roles/build.sh)')
             continue
         status, out, err = run(which, '' if said.get('raw') else prelude, code, flags)
         wrong, out, err = judge(said, status, out, err)
@@ -1094,8 +1098,8 @@ def main(argv):
                 print(f'    {w}')
             print(f'    exit {status}; stdout {out!r}; stderr {err!r}')
     n = len(only) or len(CLAIMS)
-    print(f'{n} claims, {differ} differ from what the documents say')
-    return 1 if differ else 0
+    print(f'{n} claims: {n - differ - unrun} as said, {differ} differ from what the documents say, {unrun} not run')
+    return 1 if differ or unrun else 0
 
 # ---- step 15, proposed (PLAN 15; TRAPS T300 to T315). The program is
 # claim.pl, and its first line is `use v5.42;`: a statement written on

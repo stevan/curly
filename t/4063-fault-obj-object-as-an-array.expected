@@ -1,0 +1,3 @@
+1
+fault: not a reference to an array at t/4063-fault-obj-object-as-an-array.pl line 8.
+exit: 1

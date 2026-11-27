@@ -1,0 +1,2 @@
+t/4102-obj-pragma-other-feature.pl:4:1: 'use experimental' is written: use experimental 'class';
+exit: 1

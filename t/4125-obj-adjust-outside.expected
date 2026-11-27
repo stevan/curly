@@ -1,0 +1,2 @@
+t/4125-obj-adjust-outside.pl:5:1: ADJUST outside a class's block: it is a declaration of a class, class NAME { ADJUST ... }
+exit: 1

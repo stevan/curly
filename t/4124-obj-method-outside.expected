@@ -1,0 +1,2 @@
+t/4124-obj-method-outside.pl:5:1: method outside a class's block: it is a declaration of a class, class NAME { method ... }
+exit: 1

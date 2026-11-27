@@ -1,0 +1,2 @@
+t/4183-obj-lexical-of-a-public-method.pl:5:30: ->&b: class P has no my method called b; perl calls the sub of that name in the class's package, with no dispatch (D178, T424)
+exit: 1

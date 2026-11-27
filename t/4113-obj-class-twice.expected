@@ -1,0 +1,2 @@
+t/4113-obj-class-twice.pl:6:7: class P again: perl dies, "Cannot reopen existing class" (T409)
+exit: 1

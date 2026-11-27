@@ -1,0 +1,2 @@
+t/4134-obj-attribute-blank-inside.pl:5:28: :param(...) takes a name hard against its brackets, :param(name); perl trims the blanks, and the language does not (T434)
+exit: 1

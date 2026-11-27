@@ -1,0 +1,2 @@
+t/4170-obj-sub-reference-in-a-class.pl:8:29: \&helper in a class: perl takes the class's package's sub, \&P::helper (D178, T422); write \&main::helper
+exit: 1

@@ -1,0 +1,2 @@
+t/4153-obj-my-method-perl-word.pl:5:21: my method join: a my method of a word of perl's takes every use of the word below it (D178, T424)
+exit: 1

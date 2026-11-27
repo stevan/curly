@@ -513,3 +513,29 @@ test('a die puts back the frames, the freezes and the sorts a try had open', () 
         + 'msg at unwind.pl line 9.\n' });
 });
 
+// Step 17a: classes and objects (D172, D176, D182, D187). The core is four
+// blocks of the collector's (Class, Object, Role, and the list of the
+// roles Class does), and each class one more.
+test('a class dispatches by its table, its parent\'s where it has none, and an instance is kept while it is reached', () => {
+    const knobs = { CURLY_GC_STRESS: '1', CURLY_GC_POISON: '1' };
+    assert.deepEqual(run('obj', 'dispatch', knobs),
+        { status: 0, output: 'ab7\n2\n3\n1\n\n\nQ\nP\nOBJECT\n1\n1\n1\nQ\n99\nSCALAR\n1\ntwo instances held: 11 on the heap\nnone held: 6 on the heap\n' });
+    assert.deepEqual(run('obj', 'deep'), { status: 0, output: 'a million kept: 1000006 on the heap\n1000000 deep\ndropped: 6 on the heap\n' });
+    assert.deepEqual(run('obj', 'cycle', knobs), { status: 0, output: 'one held: 8 on the heap\nnone held: 6 on the heap\n' });
+    // Object and Role are instances of Class, and Class of itself; Role is
+    // below Object; the core is kept with no frame holding it.
+    assert.deepEqual(run('obj', 'core', knobs), { status: 0, output: 'Class\nClass\n1\n1\n\nClass\nthe core alone: 4 on the heap\n' });
+});
+test("a constructor's pairs are looked at before anything is made, and a call's faults (D178, D187)", () => {
+    assert.deepEqual(run('obj', 'new-ok'), { status: 0, output: '3\n1\n' });
+    const faults: [string, string][] = [['new-odd', 'an odd number of arguments for P->new: they are names and values by turns'],
+        ['new-twice', 'P->new was given x twice'], ['new-missing', 'P->new was not given x, which it needs'],
+        ['new-unknown', 'P->new was given ab, which is no parameter of P'], ['new-undef', 'undef where a string is wanted'],
+        ['call-undef', 'undef where an object is wanted'], ['call-string', 'not an object'], ['call-reference', 'not an object'],
+        ['call-missing', 'an object of Q has no method z'], ['call-container', 'not a value'], ['deref', 'not a reference to an array']];
+    for (const [which, what] of faults) assert.deepEqual(run('obj', which), { status: 1, output: `fault: ${what} at obj.pl line 1.\n` }, which);
+    for (const which of ['add', 'neg', 'lt', 'eq-num-right', 'concat', 'length', 'say', 'key', 'eq-str']) {
+        const what = ['add', 'neg', 'lt', 'eq-num-right'].includes(which) ? 'number' : 'string';
+        assert.deepEqual(run('obj', `op-${which}`), { status: 1, output: `2\nfault: a reference where a ${what} is wanted at obj.pl line 1.\n` }, which);
+    }
+});

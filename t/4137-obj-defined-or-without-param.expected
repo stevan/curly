@@ -1,0 +1,2 @@
+t/4137-obj-defined-or-without-param.pl:5:20: '//=' on a field with no :param: a default with //= is for a parameter that may be given undef or false
+exit: 1

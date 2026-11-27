@@ -1,0 +1,3 @@
+1
+fault: undef where an object is wanted at t/4029-fault-obj-call-undef.pl line 8.
+exit: 1

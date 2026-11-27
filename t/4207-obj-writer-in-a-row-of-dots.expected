@@ -1,0 +1,2 @@
+t/4207-obj-writer-in-a-row-of-dots.pl:5:69: a later piece of a concatenation calls the method set_x, which can change $x, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the call a statement of its own
+exit: 1

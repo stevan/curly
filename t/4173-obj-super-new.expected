@@ -1,0 +1,2 @@
+t/4173-obj-super-new.pl:6:37: ->SUPER::new: new is called on a class's name (D173): NAME->new(...), or __CLASS__->new(...) in a method
+exit: 1

@@ -1,0 +1,2 @@
+t/4112-obj-class-class.pl:5:7: class Class: Object, Role and Class are the runtime's own, held back until the metaobject protocol shows them (D177, T415)
+exit: 1

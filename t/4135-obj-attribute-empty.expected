@@ -1,0 +1,2 @@
+t/4135-obj-attribute-empty.pl:5:26: :param() with nothing in its brackets: write :param for the field's own name (T434)
+exit: 1

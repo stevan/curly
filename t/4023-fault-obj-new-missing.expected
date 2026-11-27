@@ -1,0 +1,3 @@
+1
+fault: P->new was not given x, which it needs at t/4023-fault-obj-new-missing.pl line 7.
+exit: 1

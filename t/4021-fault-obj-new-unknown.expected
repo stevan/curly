@@ -1,0 +1,3 @@
+1
+fault: P->new was given z, which is no parameter of P at t/4021-fault-obj-new-unknown.pl line 7.
+exit: 1

@@ -71,7 +71,15 @@ export type Name =
     // variable, built as the variable assigned what `rt` makes of it.
     | { kind: 'changer'; rt: string }
     // `__SUB__` (step 14): in a sub with no name, its own reference.
-    | { kind: 'cursub' };
+    | { kind: 'cursub' }
+    // Step 17a (D19, D170 to D178): `class NAME { ... }`, and the words of
+    // a class's block, `field`, `method` and `ADJUST`; `__CLASS__`, in a
+    // method, an `ADJUST` or a field's default, the object's own class.
+    | { kind: 'class' }
+    | { kind: 'field' }
+    | { kind: 'method' }
+    | { kind: 'adjust' }
+    | { kind: 'curclass' };
 
 export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['use', { kind: 'use' }],
@@ -138,6 +146,15 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['chomp', { kind: 'changer', rt: 'rt_chomp' }],
     ['chop', { kind: 'changer', rt: 'rt_chop' }],
     ['__SUB__', { kind: 'cursub' }],
+    // Step 17a: `blessed` and `reftype`, which `use v5.42` brings in from
+    // `builtin`, are named unary operators to perl as `ref` is (D176).
+    ['blessed', { kind: 'unary', rt: 'rt_blessed' }],
+    ['reftype', { kind: 'unary', rt: 'rt_reftype' }],
+    ['class', { kind: 'class' }],
+    ['field', { kind: 'field' }],
+    ['method', { kind: 'method' }],
+    ['ADJUST', { kind: 'adjust' }],
+    ['__CLASS__', { kind: 'curclass' }],
 ]);
 
 // Every word perl 5.42 gives a meaning to: its own keyword table, whole
@@ -218,7 +235,40 @@ export const PRAGMAS: ReadonlyMap<string, Pragma> = new Map<string, Pragma>([
     ['no warnings', { args: ['recursion'] }],
     // perl's standard streams as UTF-8 (D39).
     ['open', { args: [':std', ':encoding(UTF-8)'], rt: 'rt_use_open' }],
+    // perl 5.42 compiles `class` only under it (step 17a): `use v5.42`
+    // alone does not bring the feature in.
+    ['experimental', { args: ['class'] }],
 ]);
+
+// Step 17a. The names no method, reader, writer or `my method` may have
+// (D19, D178): what `UNIVERSAL` gives every object and what perl calls by
+// itself (T409, T416); the special blocks, which a method of their name is
+// (T423); the thirteen functions `use v5.42` brings in, which perl will
+// not install a method over (T423); and its file handles. Run under perl
+// 5.42.0, 2026-11-27: of the 299 words of the table above as a method's
+// name, these 25 and no others failed to be a method, declared and called
+// with brackets and without (and the first list works, but means more).
+export const METHOD_RESERVED: ReadonlySet<string> = new Set([
+    'new', 'isa', 'can', 'DOES', 'VERSION', 'DESTROY', 'AUTOLOAD', 'import', 'unimport', 'CLONE', 'CLONE_SKIP', 'ADJUST',
+    'BEGIN', 'CHECK', 'END', 'INIT', 'UNITCHECK',
+    'true', 'false', 'weaken', 'unweaken', 'is_weak', 'blessed', 'refaddr', 'reftype', 'ceil', 'floor', 'is_tainted', 'trim', 'indexed',
+    'STDIN', 'STDOUT', 'STDERR', 'ARGV', 'ARGVOUT', 'ENV', 'INC', 'DATA',
+]);
+
+// The packages perl holds by the end of a program's preamble, every pragma
+// of D16's said (step 17a, T426): a class whose name begins with one of
+// these is that package, or one inside it, to perl. Run under perl 5.42.0,
+// 2026-11-27, walking %main:: after the preamble; those that begin with a
+// capital, the rest being refused by the capital a class's name begins
+// with.
+export const HELD_PACKAGES: ReadonlySet<string> = new Set([
+    'CORE', 'Carp', 'DB', 'DynaLoader', 'Encode', 'Exporter', 'ExtUtils', 'Fcntl', 'IO', 'Internals', 'Log', 'PerlIO',
+    'Regexp', 'Storable', 'Tie', 'UNIVERSAL', 'XSLoader', 'SUPER',
+]);
+
+// The three classes the runtime holds (D182), which no program may name
+// until the metaobject protocol shows them (D177).
+export const CORE_CLASSES: ReadonlySet<string> = new Set(['Object', 'Role', 'Class']);
 
 // The largest Unicode scalar value, and the surrogates, which aren't any
 // (D42).
@@ -286,7 +336,8 @@ export const PRECEDENCE: readonly Level[] = [
     { assoc: 'left', infix: [{ op: '+', in: true, rt: 'rt_add' }, { op: '-', in: true, rt: 'rt_sub' }, { op: '.', in: true, rt: 'rt_concat', concat: true }] },
     { assoc: 'left', infix: ops('<<', '>>') },
     { assoc: 'nonassoc', what: NAMED_UNARY },
-    { assoc: 'nonassoc', infix: ops('isa') },
+    // `EXPR isa NAME` (step 17a), NAME a class of the program's.
+    { assoc: 'nonassoc', infix: [{ op: 'isa', in: true }] },
     { assoc: 'chained', infix: [live('<', 'rt_num_lt'), live('>', 'rt_num_gt'), live('<=', 'rt_num_le'), live('>=', 'rt_num_ge'),
         live('lt', 'rt_str_lt'), live('gt', 'rt_str_gt'), live('le', 'rt_str_le'), live('ge', 'rt_str_ge')] },
     { assoc: 'chain/na', infix: [live('==', 'rt_num_eq'), live('!=', 'rt_num_ne'), live('eq', 'rt_str_eq'), live('ne', 'rt_str_ne'),

@@ -1,0 +1,2 @@
+t/4184-obj-lexical-above-its-method.pl:5:30: ->&b above its my method: perl does not see it there, and dies (D178, T424); declare the my method first
+exit: 1

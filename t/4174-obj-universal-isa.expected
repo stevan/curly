@@ -1,0 +1,2 @@
+t/4174-obj-universal-isa.pl:6:17: ->isa: the methods UNIVERSAL gives every object are not in the language (T416): the operator says it, $o isa NAME
+exit: 1

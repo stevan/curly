@@ -1,0 +1,2 @@
+t/4131-obj-reader-twice.pl:5:29: :reader twice on one field: perl makes two readers (T434)
+exit: 1

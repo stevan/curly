@@ -1,0 +1,2 @@
+t/4203-obj-new-adjust-in-a-row-of-dots.pl:7:18: a later piece of a concatenation calls P->new, which can change $log, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the call a statement of its own
+exit: 1

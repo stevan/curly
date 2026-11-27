@@ -214,3 +214,30 @@ STEP17 += [
     c('R17-17-perl-segfault', 'TRAPS; briefs/step17-review', 'class P { field @a = (1..5); method drop { shift @a; 1 } method go { my @g = grep { $self->drop } @a; scalar @g } } say P->new->go;', out='', exit='nonzero'),
     ('R17-17-pragma-late', 'TRAPS; briefs/step17-review', 'say "a";\nuse experimental "class";\nclass P { method m { 1 } }\nsay P->new->m;', dict(out='a\n1\n')),
 ]
+
+# ---- building 17a (PLAN 17, "17a, as built"; TRAPS T440): what the build
+# leaned on that no row above says.
+STEP17 += [
+    c('17a-words', 'PLAN 17a', 'class P { method last { "z" } method x { "x" } method q { "q" } method not { "n" } method print { "p" } method say { "s" } } my $p = P->new; say $p->last, $p->x, $p->q, $p->not, $p->print, $p->say;', out='zxqnps\n'),
+    c('17a-word-ops-after', 'PLAN 17a', 'class P { method m { 3 } } my $p = P->new; say $p->m x 2, " ", $p->m % 2, " ", $p->m -1;', out='33 1 2\n'),
+    c('17a-writer-count', 'PLAN 17a', 'class P { field $x :writer = 3; } P->new->set_x();', exit=255, err=r"Too few arguments for subroutine 'P::set_x' \(got 0; expected 1\)"),
+    c('17a-writer-name', 'PLAN 17a', 'class P { field $x :writer(put_x) = 3; method x { $x } } say P->new->put_x(5)->x;', out='5\n'),
+    c('17a-reader-count', 'PLAN 17a', 'class P { field $x :reader = 3; } say P->new->x(1);', exit=255, err=r"Too many arguments for subroutine 'P::x' \(got 1; expected 0\)"),
+    c('17a-defined-or-no-param', 'PLAN 17a', 'class P { field $x //= 3; method x { $x } } say P->new->x;', out='3\n'),
+    c('17a-field-last', 'PLAN 17a', 'class P { field $x } say ref P->new;', out='P\n'),
+    c('17a-blessed-unary', 'PLAN 17a', 'class P { } my $o = P->new; say blessed $o . "x";', out='\n', err=r'Use of uninitialized value in say'),
+    c('17a-reftype', 'PLAN 17a', 'class P { } my $o = P->new; say reftype $o; say reftype([]); say defined(reftype(1)) ? 1 : 0; say defined(blessed(1)) ? 1 : 0; say defined(blessed("P")) ? 1 : 0;', out='OBJECT\nARRAY\n0\n0\n0\n'),
+    c('17a-isa-bang', 'PLAN 17a', 'class P { } my $x = P->new; say !$x isa P ? 1 : 0;', out='0\n', err=r'Possible precedence problem between ! and derived class test'),
+    c('17a-isa-other', 'PLAN 17a', 'class P { } my $u; say((undef) isa P ? 1 : 0, "P" isa P ? 1 : 0, [] isa P ? 1 : 0, P->new isa P ? 1 : 0);', out='0001\n'),
+    c('17a-param-twice-attr', 'PLAN 17a', 'class P { field $x :param :param; }', exit=255, err=r'Field already has a parameter name, cannot add another'),
+    c('17a-isa-twice', 'PLAN 17a', 'class A { } class B :isa(A) :isa(A) { }', exit=255, err=r'Class already has a superclass, cannot add another'),
+    c('17a-field-masks', 'PLAN 17a', 'class P { field $x; field $x; }', err=r'"field" variable \$x masks earlier declaration in same scope'),
+    c('17a-curclass-closure', 'PLAN 17a', 'class P { method m { return sub { __CLASS__ } } }', exit=255, err=r'Cannot use __CLASS__ outside of a method or field initializer expression'),
+    c('17a-underscores', 'PLAN 17a', 'class P { method __x { "u" } } say P->new->__x;', out='u\n'),
+    c('17a-held-inside', 'PLAN 17a', 'class IO::Thing { method v { "t" } } say IO::Thing->new->v;', out='t\n'),
+    c('17a-held-packages', 'PLAN 17a; names.ts HELD_PACKAGES', "use utf8;\nuse open ':std', ':encoding(UTF-8)';\nno warnings 'recursion';\nsub walk($s) { no strict 'refs'; return join ' ', grep { /^[A-Z]/ } map { s/::$//r } grep { /::$/ && $_ ne 'main::' } sort keys %$s } say walk(\\%main::);", out='CORE Carp DB DynaLoader Encode Exporter ExtUtils Fcntl IO Internals Log PerlIO Regexp Storable Tie UNIVERSAL XSLoader\n'),
+    c('17a-new-key-number', 'PLAN 17a', 'class P { field $x :param :reader; } P->new(1, 2);', exit=255, err=r"Required parameter 'x' is missing"),
+    c('17a-nested-10000', 'PLAN 17a; TRAPS T440', "no warnings 'recursion'; class N { field $d :param; field $kid = $d < 10000 ? N->new(d => $d + 1) : undef; } N->new(d => 0); say 'done';", out='done\n'),
+    c('T440', 'TRAPS; PLAN 17a', "no warnings 'recursion'; class N { field $d :param; field $kid = $d < 100000 ? N->new(d => $d + 1) : undef; } N->new(d => 0); say 'done';", out='', exit='nonzero'),
+    c('17a-adjust-dispatch-die', 'PLAN 17a', 'class P { field @a = (1, 2); method boom { for my $x (@a) { die "x\\n" } } method add { push @a, 3; scalar(@a) } } my $p = P->new; try { $p->boom } catch ($e) { print "caught $e" } say $p->add;', out='caught x\n3\n'),
+]

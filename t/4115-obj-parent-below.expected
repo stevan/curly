@@ -1,0 +1,2 @@
+t/4115-obj-parent-below.pl:5:14: :isa(A): the parent is a class declared above this one; to perl any other is a module to load (T410)
+exit: 1

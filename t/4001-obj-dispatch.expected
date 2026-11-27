@@ -1,0 +1,15 @@
+shape 0|sq 9|cu 24
+Shape|Square|Cube
+Shape|Square|Cube
+twin of cu
+cube:cu 24
+4
+100,110,111
+Shape,Square,Cube
+Square OBJECT
+uARRAYHASHSCALARREFu
+24
+4 5 6
+5
+no
+nonono

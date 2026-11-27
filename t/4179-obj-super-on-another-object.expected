@@ -1,0 +1,2 @@
+t/4179-obj-super-on-another-object.pl:6:31: ->SUPER::m on what is not $self: perl takes the parent of the class it is written in whatever the object, and the language calls it on $self alone (D178, T431)
+exit: 1

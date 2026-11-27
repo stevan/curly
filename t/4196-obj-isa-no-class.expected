@@ -1,0 +1,2 @@
+t/4196-obj-isa-no-class.pl:6:16: isa Nope: the program has no class called Nope; perl gives false for any other name (17-isa)
+exit: 1

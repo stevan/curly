@@ -143,7 +143,7 @@ static void mark(rt_ctx *cx, rt_value v) {
         if (v.as.s->where == RT_STR_DEAD) rt_internal(cx, "a slot holds a string that was collected");
         if (v.as.s->where == RT_STR_HEAP) ((rt_block *)v.as.s - 1)->marked |= REACHED;
         return;
-    case RT_TAG_ARRAY: case RT_TAG_HASH: case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_CELL: case RT_TAG_SREF: case RT_TAG_CODE:
+    case RT_TAG_ARRAY: case RT_TAG_HASH: case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_CELL: case RT_TAG_SREF: case RT_TAG_CODE: case RT_TAG_OBJ:
         mark_container(cx, v.as.a);
         return;
     default:
@@ -160,6 +160,8 @@ void rt_collect(rt_ctx *cx) {
     for (rt_frame *frame = cx->frames; frame; frame = frame->prev) {
         for (uint64_t k = 0; k < frame->count; k++) mark(cx, frame->slots[k]);
     }
+    // The core of the object system (step 17a; D182).
+    for (int k = 0; k < 3; k++) mark(cx, cx->core[k]);
     while (cx->marking > 0) {
         rt_array *a = cx->marks[--cx->marking];
         for (uint64_t n = 0; n < a->count; n++) mark(cx, a->items[n]);
@@ -592,7 +594,7 @@ static number numeric(rt_ctx *cx, rt_value v) {
     case RT_TAG_UNDEF:
         rt_fault(cx, "undef where a number is wanted");
     // perl takes the address, in silence (D112, T241).
-    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE:
+    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE: case RT_TAG_OBJ:
         rt_fault(cx, "a reference where a number is wanted");
     default:
         rt_fault(cx, "not a numeric value");
@@ -1133,7 +1135,7 @@ int rt_is_true(rt_ctx *cx, rt_value v) {
         return !(s->len == 0 || (s->len == 1 && s->bytes[0] == '0'));
     }
     // A reference is true (D112).
-    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE: return 1;
+    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE: case RT_TAG_OBJ: return 1;
     default: rt_fault(cx, "not a value");
     }
 }
@@ -1701,3 +1703,4 @@ void rt_internal(rt_ctx *cx, const char *what) {
 #include "unwind.c"
 #include "format.c"
 #include "strfn.c"
+#include "obj.c"

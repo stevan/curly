@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/4055-fault-obj-object-sorted.pl line 9.
+exit: 1

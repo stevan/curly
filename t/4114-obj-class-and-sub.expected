@@ -1,0 +1,2 @@
+t/4114-obj-class-and-sub.pl:8:7: class P and a sub of the same name: perl calls the sub, and takes what it gives for the class (T407)
+exit: 1

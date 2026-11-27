@@ -1,0 +1,2 @@
+t/4129-obj-writer-on-an-array.pl:5:21: :writer on @a: perl takes it on a scalar field alone
+exit: 1

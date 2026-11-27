@@ -1,0 +1,2 @@
+t/4150-obj-reader-trim.pl:5:24: the reader trim: perl gives the name a meaning of its own, and the method is not what a call of it reaches (D178, T409, T416, T423)
+exit: 1

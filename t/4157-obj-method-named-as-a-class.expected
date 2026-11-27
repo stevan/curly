@@ -1,0 +1,2 @@
+t/4157-obj-method-named-as-a-class.pl:6:18: method Q where a class is called Q: perl takes the class's name for a call of the method (D178, T425)
+exit: 1

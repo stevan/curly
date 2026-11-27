@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/4062-fault-obj-object-died-uncaught.pl line 8.
+exit: 1

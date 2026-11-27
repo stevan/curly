@@ -1,0 +1,2 @@
+t/4167-obj-bare-call-in-a-default.pl:8:23: helper(...) in a class: perl looks it up in the class's package, P::helper, and dies there (D178, T422); write main::helper(...)
+exit: 1

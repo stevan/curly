@@ -1,0 +1,2 @@
+t/4133-obj-attribute-blank-before-bracket.pl:5:27: a blank between :param and its bracket: perl does not compile it (T434)
+exit: 1

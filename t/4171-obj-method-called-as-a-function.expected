@@ -1,0 +1,2 @@
+t/4171-obj-method-called-as-a-function.pl:6:9: P::m(...): a sub of another package, or a method called as a function, which is not in the language (T411); call a method as $obj->m(...)
+exit: 1

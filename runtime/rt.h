@@ -26,12 +26,16 @@
 // which no program sees, and then what the sub captured, each a cell or a
 // container, in the order the compiler numbered them.
 enum { RT_TAG_INT = 1, RT_TAG_NUM = 2, RT_TAG_STR = 3, RT_TAG_UNDEF = 4, RT_TAG_BOOL = 5, RT_TAG_ARRAY = 6, RT_TAG_ABSENT = 7, RT_TAG_HASH = 8,
-       RT_TAG_AREF = 9, RT_TAG_HREF = 10, RT_TAG_CELL = 11, RT_TAG_SREF = 12, RT_TAG_CODE = 13, RT_TAG_FN = 14 };
+       RT_TAG_AREF = 9, RT_TAG_HREF = 10, RT_TAG_CELL = 11, RT_TAG_SREF = 12, RT_TAG_CODE = 13, RT_TAG_FN = 14, RT_TAG_OBJ = 15 };
+// An object (step 17a; D176, runtime/obj.c) is OBJ, its payload an
+// instance, a block of the collector's: its class, then its fields. It is
+// a reference by D112, true, `==` by identity, and a fault as a number or
+// a string.
 
 // Whether a tag is one of the references, each true, defined, `==` by
 // identity, and a fault as a number or a string (D112).
 static inline int rt_ref_tag(uint64_t tag) {
-    return tag == RT_TAG_AREF || tag == RT_TAG_HREF || tag == RT_TAG_SREF || tag == RT_TAG_CODE;
+    return tag == RT_TAG_AREF || tag == RT_TAG_HREF || tag == RT_TAG_SREF || tag == RT_TAG_CODE || tag == RT_TAG_OBJ;
 }
 
 // An array (D80): a row of values that grows and shrinks in place, the
@@ -194,7 +198,11 @@ typedef struct rt_ctx {
     struct rt_array **marks;
     uint64_t marking;       // how many are on it
     uint64_t mark_room;     // and how many it has room for
+    // The core of the object system (step 17a; D182): `Object`, `Role`
+    // and `Class`, made as the program starts, roots of the collector's.
+    rt_value core[3];
 } rt_ctx;
+enum { RT_CORE_OBJECT = 0, RT_CORE_ROLE = 1, RT_CORE_CLASS = 2 };
 
 // Run a compiled program: make its context, call its body, return the
 // status main should. The generated C's main is this and nothing else.
@@ -536,6 +544,33 @@ void rt_die(rt_ctx *cx, rt_value list) __attribute__((noreturn));
 rt_value rt_warn(rt_ctx *cx, rt_value list);
 void rt_say_err_list(rt_ctx *cx, rt_value list);
 void rt_print_err_list(rt_ctx *cx, rt_value list);
+
+// Classes and objects (step 17a; D170 to D178, D182, D187; obj.c). The
+// generated code makes each class as the program starts, `rt_class_new`
+// with its parent (undef for none, which is `Object`), how many fields an
+// instance has, its constructor and how many method numbers there are,
+// then `rt_class_method` for each of its own; `rt_core` makes the three
+// of the core before anything else, called by the generated code of a
+// program that declares a class (a program with none makes nothing). A constructor is generated code: it
+// calls `rt_new_args`, which looks at the pairs and faults before anything
+// is made, `rt_object_new`, and then the functions of the fields and the
+// `ADJUST` blocks. `rt_method` finds a method by its number, the faults of
+// a call that has none; `rt_class_maker` is `__CLASS__->new`'s
+// constructor; RT_FIELD is a field's place in an instance, which never
+// moves.
+void rt_core(rt_ctx *cx);
+rt_value rt_class_new(rt_ctx *cx, const rt_str *name, rt_value parent, int64_t fields, rt_code_fn make, int64_t methods);
+void rt_class_method(rt_ctx *cx, rt_value cls, int64_t id, rt_code_fn fn);
+rt_value rt_object_new(rt_ctx *cx, rt_value cls);
+rt_code_fn rt_method(rt_ctx *cx, rt_value v, int64_t id, const char *name);
+rt_code_fn rt_class_maker(rt_ctx *cx, rt_value obj);
+rt_value rt_class_name(rt_ctx *cx, rt_value obj);
+rt_value rt_isa(rt_ctx *cx, rt_value v, rt_value cls);
+rt_value rt_blessed(rt_ctx *cx, rt_value v);
+rt_value rt_reftype(rt_ctx *cx, rt_value v);
+void rt_new_args(rt_ctx *cx, const char *cls, int64_t argc, rt_value **argv, rt_value *flat, int64_t count,
+                 const rt_str *const *names, const unsigned char *required, rt_value **places);
+#define RT_FIELD(o, k) ((o).as.a->items[(k) + 1])
 
 // A fault (D13): stdout as far as it got, then
 // `fault: WHAT at FILE line N.` on stderr, and exit 1. Never returns, and

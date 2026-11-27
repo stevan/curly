@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/4052-fault-obj-object-a-key.pl line 8.
+exit: 1

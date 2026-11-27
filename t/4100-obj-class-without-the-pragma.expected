@@ -1,0 +1,2 @@
+t/4100-obj-class-without-the-pragma.pl:4:1: class needs use experimental 'class'; at the top, with the pragmas: perl 5.42 does not compile it without
+exit: 1

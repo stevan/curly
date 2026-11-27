@@ -1,0 +1,2 @@
+t/4118-obj-statement-in-the-block.pl:5:11: 'say' in a class's block: it holds field, method, my method and ADJUST, and perl runs anything else where the block stands (D171, T408)
+exit: 1

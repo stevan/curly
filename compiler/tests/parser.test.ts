@@ -479,7 +479,7 @@ test('where an operator or an end is wanted', () => {
     refused('say (1) (2);', "expected ';', found '('", 1, 9);
     refused('say 1 + (2 3);', "expected ')', found 3", 1, 12);
     // One of perl's operators that is a word.
-    refused('say 1 isa 2;', "'isa' is not in the language yet", 1, 7);
+    refused('say 1 isa 2;', "after isa comes a class's name, found 2: a class named by what a value holds is not in the language", 1, 11);
     refused('say lt 1;', "expected a value, found 'lt'", 1, 5);
     refused('say 1 foo 2;', "expected ';', found 'foo'", 1, 7);
 });
@@ -768,4 +768,28 @@ test('a slice of a hash, a slice on the left, and a hash as the last parameter',
     assert.ok(said?.kind === 'call' && said.args[0]?.kind === 'interp');
     const parts = said.args[0].parts;
     assert.deepEqual(parts.map(p => p.kind === 'elem' && [p.name, p.hash, p.index.kind, p.index.kind === 'str' ? p.index.value : p.index.kind === 'var' && p.index.name]), [['h', true, 'str', 'a'], ['h', true, 'var', 'k']]);
+});
+
+// Step 17a: a class's block, its fields' attributes, and method calls.
+test('a class: its declarations, readers and writers made as methods, and the fields of init', () => {
+    const [c] = parse(lex("class P :isa(Q) { field $x :param(ex) :reader = 1; field @a; method m($v) { $v } my method n { 1 } ADJUST { 2 } }")).body;
+    assert.ok(c?.kind === 'class');
+    assert.equal(c.isa?.name, 'Q');
+    assert.deepEqual(c.body.map(b => (b.kind === 'field' ? `field ${b.var.name}` : `${b.method!.how} ${b.name}`)), ['field x', 'reader x', 'field a', 'method m', 'lexical n', 'adjust ADJUST']);
+    const f = c.body[0]!;
+    assert.ok(f.kind === 'field');
+    assert.deepEqual([f.param?.name, f.reader?.name, f.op], ['ex', 'x', '=']);
+    assert.equal(c.init.body.length, 1);
+    refused('class P { field $x :param :param; }', ':param twice on one field (T434)', 1, 28);
+    refused('class P { say 1; }', "'say' in a class's block: it holds field, method, my method and ADJUST, and perl runs anything else where the block stands (D171, T408)", 1, 11);
+    refused('method m { 1 }', "method outside a class's block: it is a declaration of a class, class NAME { method ... }", 1, 1);
+});
+
+test('a method call, SUPER and a my method; new on a class\'s name; isa', () => {
+    const [s] = parse(lex('$o->m(1)->SUPER::n->&k; P->new(a => 1); $o isa A::B;')).body;
+    assert.ok(s?.kind === 'do' && s.expr.kind === 'methcall');
+    assert.deepEqual([s.expr.name, s.expr.lexical, s.expr.invocant.kind === 'methcall' && s.expr.invocant.super], ['k', true, true]);
+    refused('P->m;', 'P->m: a method called on a class\'s name, which perl calls with the name for its object and which dies "Cannot invoke method on a non-instance" for a method of a class (T411); P->new(...) makes an object', 1, 4);
+    refused('$o->new;', "->new: new is called on a class's name (D173): NAME->new(...), or __CLASS__->new(...) in a method", 1, 5);
+    refused('my $x = !$o isa P;', "'!' before 'isa': perl warns of a precedence problem; write !(... isa ...)", 1, 9);
 });

@@ -1,0 +1,2 @@
+t/4110-obj-class-perl-word-part.pl:5:7: class P::STDIN: STDIN is perl's own name (D178, T426)
+exit: 1

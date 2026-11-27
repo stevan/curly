@@ -1,0 +1,2 @@
+t/4109-obj-class-inside-a-held-package.pl:5:7: class IO::Thing: perl holds the package IO by the end of the preamble, and a class of it is that package or one inside it (D178, T426)
+exit: 1

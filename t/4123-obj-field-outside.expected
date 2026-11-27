@@ -1,0 +1,2 @@
+t/4123-obj-field-outside.pl:5:1: field outside a class's block: it is a declaration of a class, class NAME { field ... }
+exit: 1

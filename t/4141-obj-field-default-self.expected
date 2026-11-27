@@ -1,0 +1,2 @@
+t/4141-obj-field-default-self.pl:5:36: $self in a field's default: perl does not compile it (T401); a field's default sees the fields above it, and an ADJUST block sees $self
+exit: 1

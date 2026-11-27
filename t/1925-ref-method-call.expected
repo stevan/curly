@@ -1,2 +1,2 @@
-t/1925-ref-method-call.pl:5:7: '->' and a name: a method call, and classes are not in the language yet (step 17)
+t/1925-ref-method-call.pl:5:9: ->size: no class of the program has a method called size, and perl dies when the call is made
 exit: 1

@@ -1,0 +1,2 @@
+t/4190-obj-new-of-no-class.pl:6:9: Q->new: the program has no class called Q
+exit: 1

@@ -33,7 +33,8 @@
 // (D28: nothing is global). After every call the caller's line is stored
 // again (D34).
 import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
-import type { ArrayOp, Binder, CallRef, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
+import type { ArrayOp, Binder, Chain, Class, Deref, Expr, If, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
+import type { ClassInfo } from './resolver.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn, shaped } from './shapes.ts';
@@ -105,7 +106,19 @@ const slotOfId = (names: Resolution, fn: number, id: number): string => {
     // (Through the slot that holds the reference, each time: a sub may drop
     // the last other reference to itself as it runs, and the slot is what
     // keeps it.)
-    return k >= 0 ? `RT_CAPTURES(self)[${k}]` : `g[${slot}]`;
+    if (k >= 0) return `RT_CAPTURES(self)[${k}]`;
+    // A field (step 17a): its place in the instance `$self` is, a cell
+    // for a scalar's, which never moves (D178, T432).
+    if (names.fieldOf.has(id)) return `RT_FIELD(${selfValue(names, fn)}, ${slot})`;
+    return `g[${slot}]`;
+};
+
+// The object a class's function was called for: its `$self`, which a
+// sub with no name that uses it holds in a cell (step 17a).
+const selfValue = (names: Resolution, fn: number): string => {
+    const id = names.selfOf[fn];
+    if (id === undefined) throw new Error('a field outside a function of its class');
+    return inCell(names, id) ? `RT_CELL(f[${names.slots[id]}])` : `f[${names.slots[id]}]`;
 };
 
 // The slot of the variable or the array a node names (D80: an element, a
@@ -119,12 +132,19 @@ const slotOf = (b: Code, e: Expr): string => {
 // Whether a declaration is a scalar whose reference is taken (step 13c):
 // its slot holds a cell, and the variable is the cell's one value. So is a
 // scalar a sub with no name captures (step 14; D161).
-const inCell = (names: Resolution, id: number): boolean => (names.taken.has(id) || names.captured.has(id)) && !names.isArray[id];
+// A scalar field is a cell from construction (step 17a; D178, T432).
+const inCell = (names: Resolution, id: number): boolean => (names.taken.has(id) || names.captured.has(id) || names.fieldOf.has(id)) && !names.isArray[id];
 
 // The C function of function `n` (step 14: a sub with no name has one too).
-const cFn = (names: Resolution, n: number): string => (names.subs[n - 1]!.anon ? `anon_${n}` : `sub_${names.subs[n - 1]!.name}`);
+// (And a class's, by its number, step 17a: a method's name may be any word.)
+const cFn = (names: Resolution, n: number): string => (names.subs[n - 1]!.anon ? `anon_${n}` : names.subs[n - 1]!.method ? `fn_${n}` : `sub_${names.subs[n - 1]!.name}`);
 // What a fault calls a sub.
-const label = (s: Sub): string => (s.anon ? 'an anonymous sub' : s.name);
+const label = (s: Sub): string => {
+    if (s.anon) return 'an anonymous sub';
+    const m = s.method;
+    if (m === undefined) return s.name;
+    return m.how === 'adjust' ? `an ADJUST block of ${m.cls}` : m.how === 'init' ? `the fields of ${m.cls}` : m.how === 'lexical' ? `${m.cls}->&${s.name}` : `${m.cls}->${s.name}`;
+};
 
 // Where the variable a node names is: its slot, or for a scalar whose
 // reference is taken, the value in the cell its slot holds, which is a
@@ -167,7 +187,10 @@ const listy = (in_: Expr): boolean => {
 type Strict = 0 | 1 | 2;
 
 // Whether a call is of a sub that gives a list back (D18).
-const gives = (names: Resolution): Gives => (call: Invoke | CallRef) => (call.kind === 'invoke' ? names.lists[names.calls.get(call)!] === true : names.targets.some(t => names.lists[t] === true));
+const gives = (names: Resolution): Gives => call => (call.kind === 'invoke' ? names.lists[names.calls.get(call)!] === true
+    : call.kind === 'callref' ? names.targets.some(t => names.lists[t] === true)
+    : call.kind === 'new' ? false
+    : names.targetsOf.get(call)!.some(t => names.lists[t] === true));
 
 // The arguments of a call, worked out left to right, each a list to perl;
 // the number that names the C locals they are handed over in (`av`, `ac`,
@@ -907,6 +930,55 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
     case 'subref': return temp(b, slotOfId(b.names, b.fn, b.names.constants.get(b.names.subrefs.get(e)!)!));
     // `__SUB__`: the reference the sub was called through.
     case 'cursub': return temp(b, '*self');
+    // A method call (step 17a; D172): the invocant, where it is, then the
+    // arguments as a sub's, then the method its object's class has for the
+    // name, found by the runtime, with the invocant read there, late (T405,
+    // T429); then the call, handed where the invocant is as `self`. A `my
+    // method` and `SUPER::` are called with no dispatch (T424, T431).
+    case 'methcall': {
+        const inv = genExpr(e.invocant, b);
+        const where = pointTo(b, inv);
+        const kept = `iv${++b.temps}`;
+        b.decls.push(`rt_value *${kept} RT_UNUSED;`);
+        b.lines.push(`${kept} = ${where};`);
+        const n = genArguments(e.args, Math.max(1, e.args.length), b);
+        const id = b.names.methodIds.get(e.name);
+        const fn = e.lexical || e.super ? cFn(b.names, b.names.targetsOf.get(e)![0]!)
+            : `rt_method(cx, *${kept}, ${id}, ${cString(e.name)})`;
+        let call = fn;
+        if (!e.lexical && !e.super) {
+            const f = `mf${++b.temps}`;
+            b.decls.push(`rt_code_fn ${f} RT_UNUSED;`);
+            b.lines.push(`${f} = ${fn};`);
+            call = f;
+        }
+        const result = temp(b, `${call}(cx, ${WANT[want]}, ac${n}, av${n}, fl${n}, ${kept})`);
+        b.lines.push(`cx->line = ${b.line};`);
+        return result;
+    }
+    // `NAME->new(...)` (step 17a): the arguments, places, then the class's
+    // constructor; `__CLASS__->new(...)` the constructor of the object's
+    // own class.
+    case 'new': {
+        const n = genArguments(e.args, Math.max(1, e.args.length), b);
+        let fn: string;
+        if (e.cls === undefined) {
+            const f = `mf${++b.temps}`;
+            b.decls.push(`rt_code_fn ${f} RT_UNUSED;`);
+            b.lines.push(`${f} = rt_class_maker(cx, ${selfValue(b.names, ownerFn(b))});`);
+            fn = f;
+        } else {
+            fn = `new_${b.names.newOf.get(e)!}`;
+        }
+        const result = temp(b, `${fn}(cx, RT_SCALAR, ac${n}, av${n}, fl${n}, NULL)`);
+        b.lines.push(`cx->line = ${b.line};`);
+        return result;
+    }
+    case 'curclass': return temp(b, `rt_class_name(cx, ${selfValue(b.names, ownerFn(b))})`);
+    case 'isa': {
+        const left = genExpr(e.left, b);
+        return temp(b, `rt_isa(cx, ${left.c}, ${slotOfId(b.names, b.fn, b.names.classes[b.names.isaOf.get(e)!]!.slot)})`);
+    }
     case 'binary': {
         const op = infixOp(e.op);
         const left = genExpr(e.left, b);
@@ -925,6 +997,10 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
     }
     }
 };
+
+// The class's function an expression is in (step 17a): `__CLASS__` is
+// refused in a sub with no name, so it is the function itself.
+const ownerFn = (b: Code): number => b.fn;
 
 // What is being generated: the whole program's strings and names, and the
 // function in hand, its frame, and its sub if it is one.
@@ -1145,6 +1221,9 @@ const genStmt = (s: Stmt, out: Out): string[] => {
     }
     // A sub is a function of its own, written by `genSub`.
     case 'sub': return [];
+    // A class is made as the program starts, and its functions are written
+    // by `genSub`, `genInit` and `genNew` (step 17a).
+    case 'class': return [];
     // `try { } catch ($e) { }` (step 15; D141). The runtime notes what is
     // open and the code `setjmp`s; a `die` puts it all back and comes back
     // here with 1. Every way out of the block closes the `try` on the way,
@@ -1197,6 +1276,14 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
     const out: Out = { strings, names, frame: { temporaries: 0 }, fn, sub: s, open: [], base: 0 };
     const name = cString(label(s));
     const lines: string[] = [];
+    // A class's sub (step 17a): `$self` is where the caller said the
+    // invocant is, read now, late (T405).
+    const selfId = names.selfOf[fn];
+    if (s.method !== undefined && selfId !== undefined) {
+        const slot = `f[${names.slots[selfId]}]`;
+        lines.push(`${slot} = *self; // $self`, ...(inCell(names, selfId) ? [`rt_cell_wrap(cx, &${slot});`] : []));
+    }
+    if (s.method?.how === 'init') return genInit(s, fn, out, lines);
     for (const [n, p] of s.params.entries()) {
         const slot = p.my === undefined ? undefined : `f[${names.slots[names.of.get(p.my)!]}]`;
         const given = p.op === '//=' ? `a${n} != NULL && !rt_is_undef(cx, *a${n})`
@@ -1245,8 +1332,17 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
     } else if (last.kind !== 'return') {
         lines.push(`if (want != RT_VOID) {`, `    cx->line = ${last.pos.line};`, `    rt_fault_sub(cx, ${name}, RT_NO_VALUE);`, '}');
     }
+    return closeSub(s, fn, names, out, lines);
+};
+
+// A sub's function about its lines: the count of its arguments, its frame
+// opened and closed.
+const closeSub = (s: Sub, fn: number, names: Resolution, out: Out, lines: string[]): string[] => {
+    const name = cString(label(s));
     const slots = Math.max(1, names.frames[fn]! + out.frame.temporaries);
     const slurpy = s.params.at(-1)?.slurpy === true;
+    // (The fields of a class are handed one place a parameter, step 17a.)
+    const counted = s.method?.how !== 'init';
     const least = s.params.filter(p => p.op === undefined && !p.slurpy).length;
     return [
         `${prototype(names, fn)} {`,
@@ -1255,8 +1351,8 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
         '    rt_value r = rt_undef();',
         '    rt_value *g RT_UNUSED = cx->shared;',
         // The count first, while the line is still the caller's.
-        slurpy ? `    if (argc < ${least}) rt_fault_arguments(cx, ${name}, argc, ${least}, INT64_MAX);`
-            : `    if (argc < ${least} || argc > ${s.params.length}) rt_fault_arguments(cx, ${name}, argc, ${least}, ${s.params.length});`,
+        ...(!counted ? [] : slurpy ? [`    if (argc < ${least}) rt_fault_arguments(cx, ${name}, argc, ${least}, INT64_MAX);`]
+            : [`    if (argc < ${least} || argc > ${s.params.length}) rt_fault_arguments(cx, ${name}, argc, ${least}, ${s.params.length});`]),
         // And for a last parameter that is a hash, an odd number left for
         // it, before any default runs (T226).
         ...(s.params.at(-1)?.hash ? [`    if (argc > ${s.params.length - 1} && (argc - ${s.params.length - 1}) % 2 != 0) rt_fault_odd_arguments(cx, ${name});`] : []),
@@ -1264,6 +1360,91 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
         `    rt_enter(cx, &frame, f, ${slots});`,
         ...indent(lines),
         'done: RT_UNUSED;',
+        '    rt_leave(cx, &frame);',
+        '    return r;',
+        '}',
+        '',
+    ];
+};
+
+// The fields of a class (step 17a): the function the constructor calls for
+// each class of the chain, root first, handed where each of the class's
+// own parameters is, or NULL for one not given. Each field in turn: the
+// argument, copied now, at its turn, or its default worked out (T400,
+// T427); a scalar's then put in a cell, which the instance holds from now
+// on (D178, T432), an array's or a hash's a new container filled from the
+// list. A fault in a default names the field's line.
+const genInit = (s: Sub, fn: number, out: Out, lines: string[]): string[] => {
+    const names = out.names;
+    const info = names.classes[names.fnClass[fn]!]!;
+    let param = 0;
+    for (const { field, index } of info.fields) {
+        const place = `RT_FIELD(${selfValue(names, fn)}, ${index})`;
+        const line = field.pos.line;
+        const v = field.var;
+        if (v.kind === 'my') {
+            const fallback = field.default === undefined ? [`${place} = rt_undef();`] : genWhole(field.default, line, out, c => [`${place} = ${c};`]).code;
+            if (field.param !== undefined) {
+                const a = `argv[${param++}]`;
+                const given = field.op === '//=' ? `${a} != NULL && !rt_is_undef(cx, *${a})` : field.op === '||=' ? `${a} != NULL && rt_is_true(cx, *${a})` : `${a} != NULL`;
+                lines.push('{', `    cx->line = ${line};`, `    if (${given}) {`, `        ${place} = *${a}; // $${v.name}`, '    } else {', ...indent(indent(fallback)), '    }', '}');
+            } else {
+                lines.push('{', ...indent(fallback), '}');
+            }
+            lines.push(`rt_cell_wrap(cx, &${place});`);
+        } else {
+            const make = v.hash ? 'rt_hash' : 'rt_array';
+            if (field.default === undefined) {
+                lines.push(`${place} = ${make}_new(cx); // ${v.hash ? '%' : '@'}${v.name}`);
+            } else {
+                // The list first, in a temporary, then the container.
+                const list = genListWhole([field.default], line, out, c => [`${place} = ${make}_new(cx);`, `${make}_assign(cx, ${place}, ${c});`]);
+                lines.push('{', ...indent(list.code), '}');
+            }
+        }
+    }
+    return closeSub(s, fn, names, out, lines);
+};
+
+// The constructor of a class (step 17a; D178, D187): the pairs looked at
+// before anything is made (an odd count, a name that is no parameter of
+// the class or a parent, a name twice, a required one missing), each
+// parameter's place found; then the instance, in a slot; then the fields
+// of every class of the chain, root first, and then every `ADJUST`, root
+// first (T400); then the object. The runtime makes the instance and finds
+// the places, and calls nothing: this code calls the functions (D83).
+const genNew = (c: number, names: Resolution, strings: string[]): string[] => {
+    const info = names.classes[c]!;
+    const chain: ClassInfo[] = [];
+    for (let k = c; k >= 0; k = names.classes[k]!.parent) chain.unshift(names.classes[k]!);
+    const params = chain.flatMap(k => k.params);
+    const literal = (text: string): string => {
+        strings.push(`static const rt_str s${strings.length + 1} = { ${new TextEncoder().encode(text).length}, ${[...text].length}, ${cString(text)} };`);
+        return `&s${strings.length}`;
+    };
+    const keys = params.map(p => literal(p.name));
+    const room = Math.max(1, params.length);
+    let offset = 0;
+    const inits = chain.map(k => {
+        const call = `${cFn(names, k.init)}(cx, RT_VOID, ${k.params.length}, p + ${offset}, NULL, &f[0]);`;
+        offset += k.params.length;
+        return call;
+    });
+    return [
+        `static rt_value new_${c}(rt_ctx *cx, int want RT_UNUSED, int64_t argc, rt_value **argv RT_UNUSED, rt_value *flat RT_UNUSED, rt_value *self RT_UNUSED) {`,
+        '    rt_value f[1];',
+        '    rt_frame frame;',
+        '    rt_value r;',
+        '    rt_value *g RT_UNUSED = cx->shared;',
+        `    rt_value *p[${room}] RT_UNUSED;`,
+        `    static const rt_str *const names[${room}] = { ${keys.length ? keys.join(', ') : 'NULL'} };`,
+        `    static const unsigned char required[${room}] = { ${params.length ? params.map(p => (p.required ? 1 : 0)).join(', ') : '0'} };`,
+        `    rt_new_args(cx, ${cString(info.name)}, argc, argv, flat, ${params.length}, names, required, p);`,
+        '    rt_enter(cx, &frame, f, 1);',
+        `    f[0] = rt_object_new(cx, g[${names.slots[info.slot]}]);`,
+        ...inits.map(l => `    ${l}`),
+        ...chain.flatMap(k => k.adjusts).map(a => `    ${cFn(names, a)}(cx, RT_VOID, 0, NULL, NULL, &f[0]);`),
+        '    r = f[0];',
         '    rt_leave(cx, &frame);',
         '    return r;',
         '}',
@@ -1285,6 +1466,18 @@ const prototype = (names: Resolution, n: number): string =>
 export const generate = (program: Program, names: Resolution, file: string): string => {
     const out: Out = { strings: [], names, frame: { temporaries: 0 }, fn: 0, open: [], base: 0 };
     const subs = names.subs.flatMap((s, n) => genSub(s, n + 1, out.strings, names));
+    const makers = names.classes.flatMap((_, c) => genNew(c, names, out.strings));
+    // Each class, made as the program starts (step 17a; D182): its name,
+    // its parent, how many fields an instance has, its constructor, and
+    // then its own methods, by their numbers; a parent's are its until
+    // then.
+    const made = names.classes.flatMap((info, c) => {
+        const name = info.name;
+        out.strings.push(`static const rt_str s${out.strings.length + 1} = { ${new TextEncoder().encode(name).length}, ${[...name].length}, ${cString(name)} };`);
+        const at = `f[${names.slots[info.slot]}]`;
+        return [`    ${at} = rt_class_new(cx, &s${out.strings.length}, ${info.parent < 0 ? 'rt_undef()' : `f[${names.slots[names.classes[info.parent]!.slot]}]`}, ${info.total}, new_${c}, ${names.methodIds.size});`,
+            ...[...info.methods].map(([m, fn]) => `    rt_class_method(cx, ${at}, ${names.methodIds.get(m)}, ${cFn(names, fn)});`)];
+    });
     const body = program.body.flatMap(s => genStmt(s, out));
     // A frame has a slot at least: C has no array of none.
     const slots = Math.max(1, names.frames[0]! + out.frame.temporaries);
@@ -1294,8 +1487,10 @@ export const generate = (program: Program, names: Resolution, file: string): str
         ...out.strings,
         ...(out.strings.length ? [''] : []),
         ...names.subs.map((_, n) => `${prototype(names, n + 1)};`),
+        ...names.classes.map((_, c) => `static rt_value new_${c}(rt_ctx *cx, int want, int64_t argc, rt_value **argv, rt_value *flat, rt_value *self);`),
         ...(names.subs.length ? [''] : []),
         ...subs,
+        ...makers,
         'static void curly_main(rt_ctx *cx) {',
         `    rt_value f[${slots}];`,
         '    rt_frame frame;',
@@ -1309,6 +1504,8 @@ export const generate = (program: Program, names: Resolution, file: string): str
                 ...(inCell(names, id) ? [`    rt_cell_wrap(cx, &f[${names.slots[id]}]);`] : [])] : [])),
         // The one value of each sub that has one (step 14; D161).
         ...[...names.constants].map(([n, id]) => `    f[${names.slots[id]}] = rt_code_new(cx, ${cFn(names, n)}, 0);`),
+        ...(names.classes.length ? ['    rt_core(cx);'] : []),
+        ...made,
         '    cx->shared = f;',
         ...indent(body),
         '    rt_leave(cx, &frame);',

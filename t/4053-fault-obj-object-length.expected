@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/4053-fault-obj-object-length.pl line 8.
+exit: 1

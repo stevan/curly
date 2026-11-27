@@ -1,0 +1,2 @@
+t/4136-obj-attribute-unknown.pl:5:21: :weak is not an attribute the language has here: :param, :reader, :writer
+exit: 1

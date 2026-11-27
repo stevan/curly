@@ -1,0 +1,2 @@
+t/4187-obj-method-no-class-has.pl:6:9: ->nope: no class of the program has a method called nope, and perl dies when the call is made
+exit: 1

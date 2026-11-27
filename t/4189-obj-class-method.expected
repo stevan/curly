@@ -1,0 +1,2 @@
+t/4189-obj-class-method.pl:6:4: P->m: a method called on a class's name, which perl calls with the name for its object and which dies "Cannot invoke method on a non-instance" for a method of a class (T411); P->new(...) makes an object
+exit: 1

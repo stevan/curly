@@ -1,0 +1,2 @@
+t/4152-obj-method-underscores.pl:5:18: method __x: a name perl reads as one of its own words or a version
+exit: 1

@@ -22,8 +22,26 @@
 // declared before it, and no `last` or `next` in it reaches a loop
 // outside it (T60).
 import { refuse } from './errors.ts';
-import type { AnonSub, Binder, CallRef, Expr, Foreach, Sort, Invoke, Jump, Loop, My, MyArray, Pos, Program, Stmt, Sub, SubRef } from './ast.ts';
+import type { AnonSub, Binder, CallRef, Class, Expr, Field, Foreach, Sort, Invoke, Isa, Jump, Loop, My, MyArray, New, Pos, Program, Stmt, Sub, SubRef } from './ast.ts';
 import { listSubs } from './shapes.ts';
+import { CORE_CLASSES, HELD_PACKAGES, METHOD_RESERVED, NAMES, PERL_WORDS, isVersionString } from './names.ts';
+
+// Step 17a. A class, as the program declares it (D170 to D178): `parent`
+// its index, -1 for none; `fields` its own, each with its declaration and
+// its place in an instance, after every field of its parents (`base`);
+// `params` its own fields' parameters, in order; `init` the function of
+// its fields, and `adjusts` its `ADJUST` blocks; `methods` its own, a
+// reader and a writer too, and `lexicals` its `my method`s, each by name
+// to its function; `table` every method its objects answer to, its
+// parent's where it has none of its own; `slot` the file declaration whose
+// slot holds the class, made as the program starts.
+export type ClassInfo = {
+    name: string; decl: Class; parent: number;
+    fields: { id: number; field: Field; index: number }[];
+    params: { name: string; field: Field; required: boolean }[];
+    base: number; total: number; init: number; adjusts: number[];
+    methods: Map<string, number>; lexicals: Map<string, { fn: number; item: number }>; table: Map<string, number>; slot: number;
+};
 
 // A declaration is a number, in the order the `my`s are met; `of` says
 // which one each variable in the tree means, and `names` what each is
@@ -96,6 +114,22 @@ export type Resolution = {
     targets: readonly number[];
     capturedAt: ReadonlyMap<number, Pos>;
     loopVars: ReadonlyMap<number, Each>;
+    // Step 17a. The classes, in the order declared; each method name's
+    // number, by which the runtime dispatches (D172); every function a
+    // method call or a `new` may run (a method call's every method of its
+    // name, a `new`'s every field default and `ADJUST` of its class and
+    // the parents, and for `__CLASS__->new` of every class below too,
+    // D178); the class a `new` or an `isa` names; each function's `$self`
+    // and class (-1 for none); and where each field is in an instance.
+    classes: readonly ClassInfo[];
+    classOf: ReadonlyMap<string, number>;
+    methodIds: ReadonlyMap<string, number>;
+    targetsOf: ReadonlyMap<Expr, readonly number[]>;
+    newOf: ReadonlyMap<New, number>;
+    isaOf: ReadonlyMap<Isa, number>;
+    selfOf: readonly (number | undefined)[];
+    fnClass: readonly number[];
+    fieldOf: ReadonlyMap<number, { cls: number; index: number }>;
 };
 
 // What a `foreach` has beside its variable: `list`, a declaration no
@@ -189,7 +223,11 @@ export const resolve = (program: Program): Resolution => {
 
     // The subs, before anything is read: a call may come before its sub.
     // The subs with no name are added as they are met (step 14).
-    const subs: Sub[] = program.body.filter(s => s.kind === 'sub');
+    const named: Sub[] = program.body.filter(s => s.kind === 'sub');
+    // Step 17a: the functions of the classes after the named subs, each
+    // class's fields first and then its subs in the order written.
+    const classDecls: Class[] = program.body.filter(s => s.kind === 'class');
+    const subs: Sub[] = [...named, ...classDecls.flatMap(c => [c.init, ...c.body.filter(b => b.kind === 'sub')])];
     const anonOf = new Map<AnonSub, number>();
     const parents: number[] = [0, ...subs.map(() => 0)];
     const captures: number[][] = [[], ...subs.map(() => [])];
@@ -208,11 +246,119 @@ export const resolve = (program: Program): Resolution => {
     let hidden = new Set<string>();
     const pending: { fn: number; ds: (My | MyArray)[] }[] = [];
     const called = new Map<string, number>();
-    for (const [n, s] of subs.entries()) {
+    for (const [n, s] of named.entries()) {
         if (called.has(s.name)) refuse(`a second sub called ${s.name}: perl warns that it is redefined, and takes this one`, s.named);
         called.set(s.name, n + 1);
     }
     const calls = new Map<Invoke, number>();
+
+    // ---- step 17a: the classes, before anything is read, since a class
+    // may be used above its declaration (17-used-before).
+    const classes: ClassInfo[] = [];
+    const classOf = new Map<string, number>();
+    const methodIds = new Map<string, number>();
+    const fnClass: number[] = [-1, ...subs.map(() => -1)];
+    const selfOf: (number | undefined)[] = [];
+    const fieldOf = new Map<number, { cls: number; index: number }>();
+    const targetsOf = new Map<Expr, readonly number[]>();
+    const newOf = new Map<New, number>();
+    const isaOf = new Map<Isa, number>();
+    const itemOf = new Map<Sub, number>();
+    {
+        let fnNext = named.length + 1;
+        for (const c of classDecls) {
+            const parts = c.name.split('::');
+            if (parts.some(p => !/^[A-Z]/.test(p))) refuse(`class ${c.name}: every part of a class's name begins with a capital letter (D178): perl takes other names for its own words, its packages or a version (T426)`, c.named);
+            const own = parts.find(p => PERL_WORDS.has(p) || NAMES.has(p) || METHOD_RESERVED.has(p));
+            if (own !== undefined) refuse(`class ${c.name}: ${own} is perl's own name (D178, T426)`, c.named);
+            if (HELD_PACKAGES.has(parts[0]!)) refuse(`class ${c.name}: perl holds the package ${parts[0]} by the end of the preamble, and a class of it is that package or one inside it (D178, T426)`, c.named);
+            if (CORE_CLASSES.has(c.name)) refuse(`class ${c.name}: Object, Role and Class are the runtime's own, held back until the metaobject protocol shows them (D177, T415)`, c.named);
+            if (classOf.has(c.name)) refuse(`class ${c.name} again: perl dies, "Cannot reopen existing class" (T409)`, c.named);
+            if (called.has(c.name)) refuse(`class ${c.name} and a sub of the same name: perl calls the sub, and takes what it gives for the class (T407)`, c.named);
+            let parent = -1;
+            if (c.isa !== undefined) {
+                if (CORE_CLASSES.has(c.isa.name)) refuse(`:isa(${c.isa.name}): Object, Role and Class are held back (D177)`, c.isa.pos);
+                const found = classOf.get(c.isa.name);
+                if (found === undefined) refuse(`:isa(${c.isa.name}): the parent is a class declared above this one; to perl any other is a module to load (T410)`, c.isa.pos);
+                parent = found!;
+            }
+            const base = parent < 0 ? 0 : classes[parent]!.total;
+            const ownFields = c.body.filter(b => b.kind === 'field');
+            const keys = new Set<string>();
+            for (const f of ownFields) {
+                const k = (f.var.kind === 'myarray' ? (f.var.hash ? '%' : '@') : '$') + f.var.name;
+                if (keys.has(k)) refuse(`field ${k} again in one class: perl warns that it masks the first`, f.var.pos);
+                keys.add(k);
+            }
+            const index = classes.length;
+            const init = fnNext++;
+            fnClass[init] = index;
+            const info: ClassInfo = {
+                name: c.name, decl: c, parent, fields: [], base, total: base + ownFields.length, init, adjusts: [],
+                params: ownFields.filter(f => f.param !== undefined).map(f => ({ name: f.param!.name, field: f, required: f.default === undefined })),
+                methods: new Map(), lexicals: new Map(), table: new Map(parent < 0 ? [] : classes[parent]!.table), slot: -1,
+            };
+            // A parameter's name once along the chain (17-param-collide).
+            const taken_ = new Set<string>();
+            for (let p = parent; p >= 0; p = classes[p]!.parent) classes[p]!.params.forEach(q => taken_.add(q.name));
+            for (const q of info.params) {
+                if (taken_.has(q.name)) refuse(`:param(${q.name}) where the name is a parameter of this class or a parent already: perl dies, "that name is already in use"`, q.field.param!.pos);
+                taken_.add(q.name);
+            }
+            for (const [k, b] of c.body.entries()) {
+                if (b.kind !== 'sub') continue;
+                const fn = fnNext++;
+                fnClass[fn] = index;
+                itemOf.set(b, k);
+                const how = b.method!.how;
+                if (how === 'adjust') {
+                    info.adjusts.push(fn);
+                    continue;
+                }
+                const name = b.name;
+                const said = how === 'lexical' ? `my method ${name}` : how === 'reader' ? `the reader ${name}` : how === 'writer' ? `the writer ${name}` : `method ${name}`;
+                if (METHOD_RESERVED.has(name)) refuse(`${said}: perl gives the name a meaning of its own, and the method is not what a call of it reaches (D178, T409, T416, T423)`, b.named);
+                if (name.startsWith('__') || isVersionString(name)) refuse(`${said}: a name perl reads as one of its own words or a version`, b.named);
+                if (how === 'lexical' && (PERL_WORDS.has(name) || NAMES.has(name))) refuse(`${said}: a my method of a word of perl's takes every use of the word below it (D178, T424)`, b.named);
+                if (info.methods.has(name) || info.lexicals.has(name)) refuse(`${said} again in class ${c.name}: perl warns that it is redefined, and takes the last (T409)`, b.named);
+                if (how === 'lexical') info.lexicals.set(name, { fn, item: k });
+                else {
+                    info.methods.set(name, fn);
+                    info.table.set(name, fn);
+                    if (!methodIds.has(name)) methodIds.set(name, methodIds.size);
+                }
+            }
+            classes.push(info);
+            classOf.set(c.name, index);
+        }
+        // A method named as a class is, or `N` of `C` beside a class `C::N`,
+        // hides the class (T425): checked once every class is known.
+        for (const info of classes) {
+            for (const b of info.decl.body) {
+                if (b.kind !== 'sub' || b.method!.how === 'adjust') continue;
+                if (classOf.has(b.name) || classOf.has(`${info.name}::${b.name}`)) {
+                    refuse(`${b.method!.how === 'lexical' ? 'my method' : b.method!.how === 'reader' ? 'the reader' : b.method!.how === 'writer' ? 'the writer' : 'method'} ${b.name} where a class is called ${classOf.has(b.name) ? b.name : `${info.name}::${b.name}`}: perl takes the class's name for a call of the method (D178, T425)`, b.named);
+                }
+            }
+        }
+    }
+    // The number of a class's sub.
+    const fnOf = (b: Sub): number => subs.indexOf(b) + 1;
+    // The class whose functions are being read (-1 for none), and the item
+    // of its block being read.
+    let inClass = -1;
+    let inItem = -1;
+    // Every field name of the class being read: no `my` or parameter may
+    // take one, nor `$self` (D178, T430).
+    const guardName = (d: My | MyArray): void => {
+        if (inClass < 0 || d.name.startsWith(' ')) return;
+        const k = (d.kind === 'myarray' ? (d.hash ? '%' : '@') : '$') + d.name;
+        if (d.kind === 'my' && d.name === 'self') refuse('$self declared again in a class: perl hides the object behind it, in silence (D178, T430); choose another name', d.pos);
+        const fields = classes[inClass]!.decl.body.filter(b => b.kind === 'field');
+        if (fields.some(f => (f.var.kind === 'myarray' ? (f.var.hash ? '%' : '@') : '$') + f.var.name === k)) {
+            refuse(`${k} declared in a class with a field ${k}: perl hides the field behind it, in silence (D178, T430); choose another name`, d.pos);
+        }
+    };
 
     // A declaration comes into scope: a file variable in a slot of its
     // own, any other at its depth among those in scope.
@@ -262,6 +408,7 @@ export const resolve = (program: Program): Resolution => {
             }
             if (found === undefined && (e.name === 'a' || e.name === 'b')) return refuse(`$${e.name} outside the block of a sort: $a and $b are the two values a sort gives its block, and are seen there alone`, e.pos);
             if (found === undefined && e.name === '_') return refuse('$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)', e.pos);
+            if (found === undefined && e.name === 'self' && inClass >= 0) return refuse("$self in a field's default: perl does not compile it (T401); a field's default sees the fields above it, and an ADJUST block sees $self", e.pos);
             if (found === undefined) {
                 return refuse(`$${e.name} is not declared: my $${e.name}${quoted ? '; in a string, \\$ is the character, and ${name} ends a name sooner' : ''}`, e.pos);
             }
@@ -288,7 +435,8 @@ export const resolve = (program: Program): Resolution => {
             e.args.forEach(a => walk(a, declared));
             return walk(e.head, declared);
         case 'subref': {
-            const found = called.get(e.name);
+            if (inClass >= 0 && !e.name.startsWith('main::')) return refuse(`\\&${e.name} in a class: perl takes the class's package's sub, \\&${classes[inClass]!.name}::${e.name} (D178, T422); write \\&main::${e.name}`, e.pos);
+            const found = called.get(e.name.replace(/^main::/, ''));
             if (found === undefined) return refuse(`\\&${e.name}: the program has no sub called ${e.name}`, e.pos);
             subrefs.set(e, found);
             referred.add(found);
@@ -345,6 +493,9 @@ export const resolve = (program: Program): Resolution => {
             // `\$x` (step 13c; D110): a loop's variable, `$_`, `$a` and `$b`
             // are the list's own elements to perl, and a reference to one
             // reaches into the list (D17, T12).
+            // `\$self` (D178, T432): to perl the variable that holds the
+            // object, which a store through the reference replaces.
+            if (e.of.kind === 'var' && e.of.name === 'self' && inClass >= 0) return refuse('\\$self: to perl it is the variable that holds the object, and a store through it replaces the object (D178, T432); the object itself, $self, is a reference already', e.pos);
             if (e.of.kind === 'var' && readonly.has(id)) {
                 return refuse(['_', 'a', 'b'].includes(e.of.name) ? `\\$${e.of.name}: a reference to $${e.of.name} is cut (D110): to perl it is the list's own element; take the value into a my first`
                     : `\\$${e.of.name}: a reference to a loop's variable is cut (D110): to perl it is the list's own element; take the value into a my first`, e.pos);
@@ -417,6 +568,64 @@ export const resolve = (program: Program): Resolution => {
             if (e.target.kind === 'my') pending.pop();
             return walk(e.target, declared);
         case 'step': return walk(e.target, declared);
+        // Step 17a: a method call, its invocant first (T429); `new`; the
+        // class of the object; `isa`.
+        case 'methcall': {
+            walk(e.invocant, declared);
+            e.args.forEach(a => walk(a, declared));
+            const self = e.invocant.kind === 'var' && e.invocant.name === 'self' && inClass >= 0;
+            if (e.lexical) {
+                if (!self) return refuse(`->&${e.name}: a my method is called on $self alone (D178, T424): perl calls it on any object, of any class, with no dispatch`, e.pos);
+                const lexical = classes[inClass]!.lexicals.get(e.name);
+                if (lexical === undefined) return refuse(`->&${e.name}: class ${classes[inClass]!.name} has no my method called ${e.name}; perl calls the sub of that name in the class's package, with no dispatch (D178, T424)`, e.pos);
+                if (lexical.item > inItem) return refuse(`->&${e.name} above its my method: perl does not see it there, and dies (D178, T424); declare the my method first`, e.pos);
+                targetsOf.set(e, [lexical.fn]);
+                return;
+            }
+            if (e.super) {
+                if (!self) return refuse(`->SUPER::${e.name} on what is not $self: perl takes the parent of the class it is written in whatever the object, and the language calls it on $self alone (D178, T431)`, e.pos);
+                const parent = classes[inClass]!.parent;
+                const fn = parent < 0 ? undefined : classes[parent]!.table.get(e.name);
+                if (fn === undefined) return refuse(`->SUPER::${e.name}: ${parent < 0 ? `class ${classes[inClass]!.name} has no parent` : `no parent of ${classes[inClass]!.name} has a method called ${e.name}`}, and perl dies when the call is made`, e.pos);
+                targetsOf.set(e, [fn]);
+                return;
+            }
+            const found = classes.flatMap(c => (c.methods.has(e.name) ? [c.methods.get(e.name)!] : []));
+            if (found.length === 0) return refuse(`->${e.name}: no class of the program has a method called ${e.name}, and perl dies when the call is made`, e.pos);
+            targetsOf.set(e, found);
+            return;
+        }
+        case 'new': {
+            e.args.forEach(a => walk(a, declared));
+            const chain = (c: number): number[] => (c < 0 ? [] : [...chain(classes[c]!.parent), c]);
+            const runs = (c: number): number[] => {
+                const all = chain(c);
+                return [...all.map(k => classes[k]!.init), ...all.flatMap(k => classes[k]!.adjusts)];
+            };
+            if (e.cls === undefined) {
+                if (inClass < 0 || isAnon[fn]) return refuse('__CLASS__->new outside a method, an ADJUST block or a field\'s default: perl has no object there to take the class of', e.pos);
+                const below = classes.map((_, k) => k).filter(k => chain(k).includes(inClass));
+                targetsOf.set(e, [...new Set(below.flatMap(runs))]);
+                return;
+            }
+            if (CORE_CLASSES.has(e.cls)) return refuse(`${e.cls}->new: Object, Role and Class are held back (D177)`, e.pos);
+            const c = classOf.get(e.cls);
+            if (c === undefined) return refuse(`${e.cls}->new: the program has no class called ${e.cls}`, e.pos);
+            newOf.set(e, c);
+            targetsOf.set(e, runs(c));
+            return;
+        }
+        case 'curclass':
+            if (inClass < 0 || isAnon[fn]) return refuse('__CLASS__ outside a method, an ADJUST block or a field\'s default: perl does not compile it there', e.pos);
+            return;
+        case 'isa': {
+            walk(e.left, declared);
+            if (CORE_CLASSES.has(e.cls)) return refuse(`isa ${e.cls}: Object, Role and Class are held back until the metaobject protocol shows them (D177, T415)`, e.pos);
+            const c = classOf.get(e.cls);
+            if (c === undefined) return refuse(`isa ${e.cls}: the program has no class called ${e.cls}; perl gives false for any other name (17-isa)`, e.pos);
+            isaOf.set(e, c);
+            return;
+        }
         case 'unary': return walk(e.operand, declared);
         case 'binary':
             walk(e.left, declared);
@@ -428,8 +637,15 @@ export const resolve = (program: Program): Resolution => {
         case 'apply': return e.args.forEach(a => walk(a, declared));
         case 'invoke': {
             e.args.forEach(a => walk(a, declared));
-            const found = called.get(e.name);
-            if (found === undefined) return refuse(`the program has no sub called ${e.name}`, e.pos);
+            // Step 17a: in a class a call by name is of the class's package
+            // to perl, `P::helper`, which dies (T422); `main::helper(...)`
+            // is the program's sub.
+            if (e.name.includes('::') && !e.name.startsWith('main::')) return refuse(`${e.name}(...): a sub of another package, or a method called as a function, which is not in the language (T411); call a method as $obj->m(...)`, e.pos);
+            if (e.name.startsWith('main::') && e.name.slice(6).includes('::')) return refuse(`${e.name}(...): a sub of another package is not in the language`, e.pos);
+            const bare = e.name.replace(/^main::/, '');
+            if (inClass >= 0 && bare === e.name && called.has(bare)) return refuse(`${e.name}(...) in a class: perl looks it up in the class's package, ${classes[inClass]!.name}::${e.name}, and dies there (D178, T422); write main::${e.name}(...)`, e.pos);
+            const found = called.get(bare);
+            if (found === undefined) return refuse(`the program has no sub called ${bare}`, e.pos);
             calls.set(e, found);
             return;
         }
@@ -457,6 +673,7 @@ export const resolve = (program: Program): Resolution => {
         // fault.
         declared.sort((a, b) => a.pos.line - b.pos.line || a.pos.col - b.pos.col);
         for (const d of declared) {
+            guardName(d);
             const scope = scopes.at(-1)!;
             if (scope.has(key(d))) refuse(`my ${d.kind === 'myarray' ? (d.hash ? '%' : '@') : '$'}${d.name} again in one scope: perl warns that it masks the first`, d.pos);
             declare(d);
@@ -477,6 +694,7 @@ export const resolve = (program: Program): Resolution => {
             declare(d);
         }
         variables.forEach(v => readonly.add(of.get(v)!));
+        variables.forEach(guardName);
         const held: Each = chained ? { list: of.get(list)!, arrays: [...arrays], frozen: of.get(frozen)! } : { list: of.get(list)!, arrays: [...arrays] };
         each.set(binder, held);
         if (binder.kind === 'foreach') loopVars.set(of.get(binder.var)!, held);
@@ -498,8 +716,12 @@ export const resolve = (program: Program): Resolution => {
     // `last` or `next` leaves it (T365). What the statement round it is
     // reading (a loop's list, the slots in use) is put aside while it is
     // read.
-    const function_ = (s: Sub, number?: number): void => {
-        const outer = { fn, inScope, variables, scopes, round, peak, quoted, nest, hidden };
+    // A sub of a class (step 17a), `inside` its class, the fields it sees
+    // and its item in the class's block: a function of its own as a named
+    // sub is, with the fields above it in a scope round its own, and its
+    // `$self` first, read-only (D175).
+    const function_ = (s: Sub, number?: number, inside?: { cls: number; fields: Map<string, number>; item: number }): void => {
+        const outer = { fn, inScope, variables, scopes, round, peak, quoted, nest, hidden, inClass, inItem };
         const lists = naming.splice(0);
         const chained = chains.splice(0);
         fn = number ?? called.get(s.name)!;
@@ -507,10 +729,20 @@ export const resolve = (program: Program): Resolution => {
         variables = 0;
         peak = 0;
         quoted = false;
-        if (number === undefined) {
+        if (inside !== undefined) {
+            scopes = [fileScope, new Map(inside.fields), new Map()];
+            round = [];
+            nest = [0, fn];
+            hidden = new Set();
+            inClass = inside.cls;
+            inItem = inside.item;
+            declareSelf(s.method!.how === 'init' ? ' self' : 'self', s.pos);
+        } else if (number === undefined) {
             scopes = [fileScope, new Map()];
             round = [];
             nest = [0, fn];
+            inClass = -1;
+            inItem = -1;
         } else {
             hidden = new Set(hidden);
             scopes = [...scopes.map(scope => {
@@ -530,7 +762,9 @@ export const resolve = (program: Program): Resolution => {
                 names.push(p.rest.name);
                 declare(p.rest);
             }
+            if (p.rest !== undefined) guardName(p.rest);
             if (p.my === undefined) continue;
+            guardName(p.my);
             if (scopes.at(-1)!.has(p.my.name)) refuse(`two parameters called $${p.my.name}: perl warns that the second masks the first`, p.my.pos);
             of.set(p.my, names.length);
             isArray.push(false);
@@ -538,11 +772,53 @@ export const resolve = (program: Program): Resolution => {
             names.push(p.my.name);
             declare(p.my);
         }
-        s.body.forEach(statement);
+        if (s.method?.how === 'init') fields(inside!);
+        else s.body.forEach(statement);
         frames[fn] = variables;
-        ({ fn, inScope, variables, scopes, round, peak, quoted, nest, hidden } = outer);
+        ({ fn, inScope, variables, scopes, round, peak, quoted, nest, hidden, inClass, inItem } = outer);
         naming.push(...lists);
         chains.push(...chained);
+    };
+
+    // `$self`, in the scope of a class's function before its parameters.
+    const declareSelf = (name: string, at: Pos): void => {
+        const d: My = { kind: 'my', name, pos: at };
+        of.set(d, names.length);
+        isArray.push(false);
+        isHash.push(false);
+        names.push(name);
+        declare(d);
+        readonly.add(of.get(d)!);
+        selfOf[fn] = of.get(d);
+    };
+
+    // The fields of a class, in its function `init` (step 17a): each
+    // default read with the fields above it in scope (T401, T430), and then
+    // the field declared, a declaration of no function's, `owner` -1, whose
+    // slot is its place in an instance. What each item of the block sees is
+    // kept, for the subs, which are read after.
+    const seenBy = new Map<Sub, Map<string, number>>();
+    const fields = (inside: { cls: number; fields: Map<string, number> }): void => {
+        const info = classes[inside.cls]!;
+        for (const b of info.decl.body) {
+            if (b.kind === 'sub') {
+                seenBy.set(b, new Map(inside.fields));
+                continue;
+            }
+            if (b.default !== undefined) whole(b.default);
+            const id = names.length;
+            of.set(b.var, id);
+            isArray.push(b.var.kind === 'myarray');
+            isHash.push(b.var.kind === 'myarray' && b.var.hash === true);
+            names.push(b.var.name);
+            owner[id] = -1;
+            const index = info.base + info.fields.length;
+            slots[id] = index;
+            info.fields.push({ id, field: b, index });
+            fieldOf.set(id, { cls: inside.cls, index });
+            inside.fields.set(key(b.var), id);
+            scopes[1]!.set(key(b.var), id);
+        }
     };
 
     // perl's `last` in a `map` block leaves the loop round the `map`, and
@@ -554,6 +830,18 @@ export const resolve = (program: Program): Resolution => {
     const statement = (s: Stmt): void => {
         switch (s.kind) {
         case 'sub': return function_(s);
+        // Step 17a: a class's fields, then its subs, each seeing the fields
+        // above it; its slot, a file declaration holding the class.
+        case 'class': {
+            const c = classOf.get(s.name)!;
+            const info = classes[c]!;
+            function_(s.init, info.init, { cls: c, fields: new Map(), item: -1 });
+            for (const [k, b] of s.body.entries()) {
+                if (b.kind !== 'sub') continue;
+                function_(b, fnOf(b), { cls: c, fields: seenBy.get(b)!, item: k });
+            }
+            return;
+        }
         case 'return': return s.value === undefined ? undefined : whole(s.value);
         case 'call': return s.args.forEach(a => whole(a));
         case 'do': return whole(s.expr);
@@ -631,6 +919,7 @@ export const resolve = (program: Program): Resolution => {
         case 'try': {
             inner(s.body);
             scopes.push(new Map());
+            guardName(s.var);
             of.set(s.var, names.length);
             isArray.push(false);
             isHash.push(false);
@@ -661,6 +950,19 @@ export const resolve = (program: Program): Resolution => {
     };
 
     program.body.forEach(statement);
+    // Each class's slot (step 17a): a file variable's, which the program
+    // fills as it starts, before anything else runs.
+    for (const info of classes) {
+        const id = names.length;
+        names.push(` the class ${info.name}`);
+        isArray.push(false);
+        isHash.push(false);
+        owner[id] = 0;
+        slots[id] = file;
+        file += 1;
+        fileSlots.add(id);
+        info.slot = id;
+    }
     // The one value of each sub with no name that uses nothing from outside
     // it, and of each named sub with a `\&name` (D161): a file variable's
     // slot, which the program fills as it starts.
@@ -683,6 +985,7 @@ export const resolve = (program: Program): Resolution => {
         if (owner[id] === 0 && !fileSlots.has(id)) slots[id]! += file;
     }
     frames[0] = file + variables;
-    return { of, names, isArray, isHash, slots, owner, frames, file, fileIds: fileSlots, subs, calls, lists: listSubs(subs, calls, targets), loops, jumps, each, readonly, taken,
-        anonOf, parents, captures, captured, constants, subrefs, targets, capturedAt, loopVars };
+    return { of, names, isArray, isHash, slots, owner, frames, file, fileIds: fileSlots, subs, calls, lists: listSubs(subs, calls, targets, targetsOf), loops, jumps, each, readonly, taken,
+        anonOf, parents, captures, captured, constants, subrefs, targets, capturedAt, loopVars,
+        classes, classOf, methodIds, targetsOf, newOf, isaOf, selfOf, fnClass, fieldOf };
 };

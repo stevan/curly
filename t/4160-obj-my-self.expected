@@ -1,0 +1,2 @@
+t/4160-obj-my-self.pl:5:22: $self declared again in a class: perl hides the object behind it, in silence (D178, T430); choose another name
+exit: 1

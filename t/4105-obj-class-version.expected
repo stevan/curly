@@ -1,0 +1,2 @@
+t/4105-obj-class-version.pl:5:9: class P and a version: not in the language yet (D174)
+exit: 1

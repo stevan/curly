@@ -1,0 +1,2 @@
+t/4161-obj-parameter-shadows-a-field.pl:5:34: $x declared in a class with a field $x: perl hides the field behind it, in silence (D178, T430); choose another name
+exit: 1

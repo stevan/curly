@@ -1,0 +1,2 @@
+t/4104-obj-class-statement-form.pl:5:8: class P; with no block: a class that runs to the end of the file is not in the language yet (D174); class P { ... }
+exit: 1

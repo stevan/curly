@@ -2,7 +2,7 @@
 // has to agree on it (D18): whether a `return`'s value is list-shaped, and
 // which subs give a list back.
 import { infixOp, prefixOp } from './names.ts';
-import type { CallRef, Expr, Invoke, Stmt, Sub } from './ast.ts';
+import type { CallRef, Expr, Invoke, MethCall, New, Stmt, Sub } from './ast.ts';
 
 // An expression behind any unary plus, which hands on where it stands.
 export const behind = (e: Expr): Expr => (e.kind === 'unary' && prefixOp(e.op)?.rt === undefined ? behind(e.operand) : e);
@@ -12,13 +12,17 @@ const isRepeat = (e: Expr): boolean => e.kind === 'binary' && infixOp(e.op)?.lis
 
 // Whether a call is of a sub that gives a list back. A call through a
 // reference is of any sub a reference can be to (step 14; D163).
-export type Gives = (call: Invoke | CallRef) => boolean;
+// (And a method call, of any method of its name, D172; `new` gives one
+// value, step 17a.)
+export type Call = Invoke | CallRef | MethCall | New;
+export type Gives = (call: Call) => boolean;
+export const isCall = (e: Expr): e is Call => e.kind === 'invoke' || e.kind === 'callref' || e.kind === 'methcall' || e.kind === 'new';
 
 // A call whose values a place hands on as they come: the call itself,
 // through a unary plus, a branch of `? :`, or the right of `|| && //`.
 export const handsOn = (in_: Expr, gives: Gives): boolean => {
     const e = behind(in_);
-    return ((e.kind === 'invoke' || e.kind === 'callref') && gives(e))
+    return (isCall(e) && gives(e))
         || (e.kind === 'ternary' && (handsOn(e.then, gives) || handsOn(e.else, gives)))
         || (e.kind === 'binary' && infixOp(e.op)?.when !== undefined && handsOn(e.right, gives));
 };
@@ -78,9 +82,12 @@ const returned = (s: Sub): Expr[] => {
 // of a call of such a sub; and so on until nothing is added.
 // (And a call through a reference hands on the values of any of `targets`
 // that gives a list: step 14, D163.)
-export const listSubs = (subs: readonly Sub[], calls: ReadonlyMap<Invoke, number>, targets: readonly number[]): boolean[] => {
+export const listSubs = (subs: readonly Sub[], calls: ReadonlyMap<Invoke, number>, targets: readonly number[], targetsOf: ReadonlyMap<Expr, readonly number[]>): boolean[] => {
     const lists = [false, ...subs.map(() => false)];
-    const gives: Gives = call => (call.kind === 'invoke' ? lists[calls.get(call)!] === true : targets.some(t => lists[t] === true));
+    const gives: Gives = call => (call.kind === 'invoke' ? lists[calls.get(call)!] === true
+        : call.kind === 'callref' ? targets.some(t => lists[t] === true)
+        : call.kind === 'new' ? false
+        : (targetsOf.get(call) ?? []).some(t => lists[t] === true));
     for (let grew = true; grew;) {
         grew = false;
         for (const [n, s] of subs.entries()) {

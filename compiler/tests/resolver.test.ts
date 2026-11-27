@@ -212,3 +212,17 @@ test('a map in a statement: its slots, its $_, and the wall its block is', () =>
     refused('say $_;', '$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)', 1, 5);
     refused('sub f() { return $_; } for (1) { f(); }', '$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)', 1, 18);
 });
+
+// Step 17a: a field is seen from its declaration on, by its class alone;
+// a method call reaches every method of its name.
+test('fields, $self and the targets of a method call (D172, D178)', () => {
+    const program = parse(lex("class A { field $x = 1; method m { $x } } class B :isa(A) { field $y; method m { $y } method n { $self->SUPER::m } } my $o = B->new; $o->m;"));
+    const names = resolve(program);
+    assert.deepEqual(names.classes.map(c => [c.name, c.parent, c.base, c.total]), [['A', -1, 0, 1], ['B', 0, 1, 2]]);
+    const call = program.body.at(-1)!;
+    assert.ok(call.kind === 'do' && call.expr.kind === 'methcall');
+    assert.equal(names.targetsOf.get(call.expr)!.length, 2);
+    refused('class A { method m { $x } field $x; }', '$x is not declared: my $x', 1, 22);
+    refused('class A { field $x; } class B :isa(A) { method m { $x } }', '$x is not declared: my $x', 1, 52);
+    refused('class P { field $x; method m($x) { 1 } }', '$x declared in a class with a field $x: perl hides the field behind it, in silence (D178, T430); choose another name', 1, 30);
+});

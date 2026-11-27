@@ -1,0 +1,2 @@
+t/4139-obj-field-modifier.pl:5:24: if after a field: a field is declared whatever happens; a modifier is not in the language there
+exit: 1

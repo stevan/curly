@@ -1,0 +1,2 @@
+t/4106-obj-isa-version.pl:6:16: a version in :isa(...) is not in the language yet (D174)
+exit: 1

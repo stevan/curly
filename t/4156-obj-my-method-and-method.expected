@@ -1,0 +1,2 @@
+t/4156-obj-my-method-and-method.pl:5:36: method b again in class P: perl warns that it is redefined, and takes the last (T409)
+exit: 1

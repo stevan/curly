@@ -1,0 +1,2 @@
+t/4154-obj-method-twice.pl:5:33: method m again in class P: perl warns that it is redefined, and takes the last (T409)
+exit: 1

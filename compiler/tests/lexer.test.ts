@@ -359,7 +359,7 @@ test("the longest of perl's operators is the token, in the language or not (T27)
     refused('say 1 ~~ 2;', "'~~' is not in the language yet", 1, 7);
     refused('say 1 =~ 2;', "'=~' is not in the language yet", 1, 7);
     refused('say 1 !~ 2;', "'!~' is not in the language yet", 1, 7);
-    refused('say 1 -> 2;', "after '->' comes '[' or '{', hard against it: $r->[0], $r->{k}", 1, 7);
+    refused('say 1 -> 2;', "after '->' comes '[', '{', '(' or a method's name, hard against it: $r->[0], $r->{k}, $f->(...), $o->m", 1, 7);
     refused('say 7 <<= 2;', "'<<=' is not in the language yet", 1, 7);
     refused('say 7 |= 2;', "'|=' is not in the language yet", 1, 7);
     refused('say 1 ... 5;', "'...' is not in the language yet", 1, 7);
@@ -572,7 +572,9 @@ test('a brace where a value may begin is a new hash; where a statement may, a bl
     assert.deepEqual(marks('say ref {};'), ['h', 'h']);
     // After a new hash, as after any value, `x` repeats and `%` divides.
     assert.deepEqual(lex('my $x = [1] x 2; my $y = {} % 3;').filter(t => t.kind === 'op').map(t => t.text), ['=', 'x', '=', '%']);
-    refused('$r->foo;', "'->' and a name: a method call, and classes are not in the language yet (step 17)", 1, 3);
+    // A method call (step 17a): an arrow, and the name a plain word.
+    assert.deepEqual(lex('$r->foo;').map(t => t.kind), ['var', 'op', 'word', ';', 'eof']);
+    refused('$r->$m;', "'->' and a variable: a method chosen by what a variable holds is not in the language yet", 1, 3);
     refused('say @$r;', '@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }', 1, 5);
     refused('say $$r[0];', '$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }', 1, 5);
 });

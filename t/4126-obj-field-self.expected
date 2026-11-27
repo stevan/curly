@@ -1,0 +1,2 @@
+t/4126-obj-field-self.pl:5:17: field $self: perl hides the object behind it, in silence (D178, T430); choose another name
+exit: 1

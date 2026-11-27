@@ -1,0 +1,2 @@
+t/4120-obj-sub-in-the-block.pl:5:11: a sub in a class, which perl calls as a method with the class's name or an object first (D171, T411); a method says it
+exit: 1

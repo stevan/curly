@@ -1,0 +1,2 @@
+t/4165-obj-reference-to-self.pl:5:30: \$self: to perl it is the variable that holds the object, and a store through it replaces the object (D178, T432); the object itself, $self, is a reference already
+exit: 1

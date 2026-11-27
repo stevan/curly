@@ -1,0 +1,2 @@
+t/4117-obj-isa-twice.pl:6:18: :isa twice: a class has one parent
+exit: 1

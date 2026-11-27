@@ -1,0 +1,12 @@
+A.a1 A.adjust1 A.adjust2 B.adjust C.adjust 
+5,105,b1d,b2d,3
+1,2,3
+v
+A.a1 A.adjust1 A.adjust2 B.adjust C.adjust 
+7,b1d,b2d
+given,also
+3 []
+9 [D.default ]
+5q
+5
+12101102

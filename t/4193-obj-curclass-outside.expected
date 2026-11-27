@@ -1,0 +1,2 @@
+t/4193-obj-curclass-outside.pl:5:9: __CLASS__ outside a method, an ADJUST block or a field's default: perl does not compile it there
+exit: 1

@@ -1,0 +1,2 @@
+t/4164-obj-self-assigned.pl:5:28: $self is read-only (D175, T413): perl lets a method assign it, and the object is lost to the rest of the method
+exit: 1

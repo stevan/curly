@@ -1,0 +1,3 @@
+1
+fault: an object of Q has no method m at t/4034-fault-obj-call-missing.pl line 9.
+exit: 1

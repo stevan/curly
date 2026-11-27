@@ -1,0 +1,2 @@
+t/4127-obj-field-twice.pl:5:27: field $x again in one class: perl warns that it masks the first
+exit: 1

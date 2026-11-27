@@ -1,0 +1,2 @@
+t/4178-obj-qualified-method.pl:6:17: ->A::m: a method named with its class is called with no dispatch, and is not in the language (T431); $self->SUPER::m(...) calls the parent's
+exit: 1

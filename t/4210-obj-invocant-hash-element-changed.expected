@@ -1,0 +1,2 @@
+t/4210-obj-invocant-hash-element-changed.pl:7:39: a later part of the call of the method m can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
+exit: 1

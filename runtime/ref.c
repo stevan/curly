@@ -146,6 +146,8 @@ rt_value rt_ref(rt_ctx *cx, rt_value v) {
     if (v.tag == RT_TAG_HREF) return rt_string(&STR_HASH);
     if (v.tag == RT_TAG_SREF) return rt_string(is_ref(RT_CELL(v)) ? &STR_REF : &STR_SCALAR);
     if (v.tag == RT_TAG_CODE) return rt_string(&STR_CODE);
+    // An object's class's name (D176, step 17a).
+    if (v.tag == RT_TAG_OBJ) return rt_class_name(cx, v);
     if (!a_scalar(v.tag)) rt_fault(cx, "not a value");
     return rt_string(&STR_FALSE);
 }

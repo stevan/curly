@@ -1,0 +1,2 @@
+t/4199-obj-isa-after-not.pl:7:9: '!' before 'isa': perl warns of a precedence problem; write !(... isa ...)
+exit: 1

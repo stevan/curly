@@ -1,0 +1,2 @@
+t/4103-obj-class-in-a-block.pl:6:5: a class stands at the top level of the file: not in a block, a loop or a sub
+exit: 1

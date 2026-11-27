@@ -5,7 +5,7 @@
 import { refuse } from './errors.ts';
 import { AND_ROW, COMMA_ROW, NAMED_UNARY_ROW, NAMES, NAME_MAX_LENGTH, OPERATORS, PERL_KEYWORDS, PERL_WORDS, PRAGMAS, PRECEDENCE, TERNARY_ROW, infixOp, isLabel, isVersionString, prefixOp, stepOp } from './names.ts';
 import type { Index, Key, Piece, Token } from './lexer.ts';
-import type { Arm, CallRef, Chain, Deref, Elem, Expr, HashOp, Label, Param, Pos, Program, Stmt } from './ast.ts';
+import type { Arm, Attribute, CallRef, Chain, Class, Deref, Elem, Expr, Field, HashOp, Label, Param, Pos, Program, Stmt, Sub } from './ast.ts';
 
 // A token as a diagnostic names it. A string is shown if it is short.
 const show = (t: Token): string =>
@@ -197,8 +197,9 @@ export const parse = (tokens: readonly Token[]): Program => {
             const arg = expression(NAMED_UNARY_ROW);
             // `ref $r . "x"` is `ref($r . "x")` to perl, which is never a
             // reference (T242): what was meant is the other grouping.
-            if (head.text === 'ref' && arg.kind === 'binary' && !arg.bracketed) {
-                refuse(`ref before '${arg.op}': perl takes all of it for ref's argument, which is then no reference; write ref(...) ${arg.op} ...`, head.pos);
+            // (And `blessed` and `reftype`, step 17a.)
+            if ((head.text === 'ref' || head.text === 'blessed' || head.text === 'reftype') && arg.kind === 'binary' && !arg.bracketed) {
+                refuse(`${head.text} before '${arg.op}': perl takes all of it for ${head.text}'s argument, which is then no reference; write ${head.text}(...) ${arg.op} ...`, head.pos);
             }
             return { kind: 'apply', name: head.text, args: [arg], pos: head.pos };
         }
@@ -353,7 +354,20 @@ export const parse = (tokens: readonly Token[]): Program => {
     // `__SUB__`; `\&name` in brackets, T373.)
     const arrowable = (e: Expr): boolean =>
         e.kind === 'var' || e.kind === 'elem' || e.kind === 'chain' || e.kind === 'invoke' || e.kind === 'anon' || (e.bracketed === true && e.kind !== 'list')
-        || e.kind === 'callref' || e.kind === 'anonsub' || e.kind === 'cursub';
+        || e.kind === 'callref' || e.kind === 'anonsub' || e.kind === 'cursub'
+        // (Step 17a: and a method call, and `new`.)
+        || e.kind === 'methcall' || e.kind === 'new';
+
+    // A method's name, after its arrow, and its arguments (step 17a): in
+    // brackets hard against the name, or none. `$o->m (1)` is perl's too,
+    // and refused, as a blank before the bracket of a call through a
+    // reference is.
+    const methodArguments = (name: Token): Expr[] => {
+        const open = peek();
+        if (open.kind !== '(') return [];
+        if (!touching(i - 1)) refuse(`a blank between the method's name ${name.text} and its bracket: perl takes it, and reads on; write it hard against the name, ->${name.text}(...)`, open.pos);
+        return callArguments();
+    };
 
     // The arguments of a call through a reference, its bracket next (step
     // 14): as a call by name has them (D72, T137).
@@ -423,6 +437,25 @@ export const parse = (tokens: readonly Token[]): Program => {
                 e = call;
                 continue;
             }
+            // A method call (step 17a; D172), `->&` a `my method`'s (T424).
+            if (t.kind === 'op' && (t.text === '->' || t.text === '->&') && tokens[i + 1]!.kind === 'word' && arrowable(e)) {
+                next();
+                const name = next();
+                const lexical = t.text === '->&';
+                if (name.text.includes('::') && !(name.text.startsWith('SUPER::') && !name.text.slice(7).includes('::') && !lexical)) {
+                    refuse(name.text.startsWith('next::') ? `->${name.text}: perl's next::method is not in the language (T417); $self->SUPER::m(...) says it`
+                        : `->${name.text}: a method named with its class is called with no dispatch, and is not in the language (T431); $self->SUPER::m(...) calls the parent's`, name.pos);
+                }
+                const method = name.text.startsWith('SUPER::') ? name.text.slice(7) : name.text;
+                if (!lexical && method === 'new') refuse(`->${name.text}: new is called on a class's name (D173): NAME->new(...), or __CLASS__->new(...) in a method`, name.pos);
+                if (!lexical && ['isa', 'can', 'DOES', 'VERSION'].includes(method)) refuse(`->${method}: the methods UNIVERSAL gives every object are not in the language (T416)${method === 'isa' ? ': the operator says it, $o isa NAME' : ''}`, name.pos);
+                const args = methodArguments(name);
+                e = name.text.startsWith('SUPER::') ? { kind: 'methcall', invocant: e, name: method, args, super: true, pos: name.pos }
+                    : lexical ? { kind: 'methcall', invocant: e, name: method, args, lexical: true, pos: name.pos }
+                    : { kind: 'methcall', invocant: e, name: method, args, pos: name.pos };
+                continue;
+            }
+            if (t.kind === 'op' && t.text === '->&') refuse("'->&' after this: a call of a my method is $self->&name(...)", t.pos);
             if (e.kind === 'var' && t.kind === '(' && touching(i - 1)) refuse(`$${e.name}(...) is not perl's: a call through a reference is $${e.name}->(...)`, t.pos);
             if (e.kind === 'invoke' && t.kind === '(') refuse("a bracket after a call by name: perl does not compile name()(...) (T374); write name()->(...)", t.pos);
             if (e.kind === 'callref' && t.kind === '{' && touching(i - 1)) refuse("'{' hard after a call through a reference: perl takes it for a key of what the call gives; write the arrow, ->{...}", t.pos);
@@ -737,6 +770,21 @@ export const parse = (tokens: readonly Token[]): Program => {
         return { kind: 'invoke', name: head.text, args, pos: head.pos };
     };
 
+    // A class's name, or `__CLASS__` (`cls` undefined), and the arrow
+    // after it (step 17a): `new` and its arguments, and no other method
+    // (T411, D173).
+    const classCall = (head: Token, cls: string | undefined): Expr => {
+        const arrow = next();
+        const shown = cls ?? '__CLASS__';
+        if (arrow.text === '->&' || tokens[i]!.kind !== 'word') refuse(`${shown}${arrow.text}...: after a class's name comes ->new(...)`, arrow.pos);
+        const name = next();
+        if (name.text !== 'new') {
+            refuse(`${shown}->${name.text}: a method called on a class's name, which perl calls with the name for its object and which ${name.text.includes('::') ? 'is not in the language' : 'dies "Cannot invoke method on a non-instance" for a method of a class (T411)'}; ${shown}->new(...) makes an object`, name.pos);
+        }
+        const args = methodArguments(name);
+        return cls === undefined ? { kind: 'new', args, pos: head.pos } : { kind: 'new', cls, args, pos: head.pos };
+    };
+
     // A prefix operator and its operand, the operator just read: the
     // operand may hold only what binds tighter than the operator.
     const prefixed = (t: Token, row: number): Expr => {
@@ -997,11 +1045,24 @@ export const parse = (tokens: readonly Token[]): Program => {
             if (peek().kind === '(') refuse('__SUB__ is written without brackets: __SUB__->(...) calls the sub', peek().pos);
             return stepAfter(chained({ kind: 'cursub', pos: t.pos }));
         }
+        // `__CLASS__` (step 17a): the object's own class, as a value, or
+        // before `->new`.
+        if (name?.kind === 'curclass') {
+            if (peek().kind === '(') refuse('__CLASS__ is written without brackets', peek().pos);
+            if (peek().kind === 'op' && peek().text === '->' && tokens[i + 1]!.kind === 'word') return stepAfter(chained(classCall(t, undefined)));
+            return { kind: 'curclass', pos: t.pos };
+        }
+        // `NAME->new(...)` (step 17a; D173): a class's name and an arrow.
+        if (t.kind === 'word' && (callable(t) || t.text.includes('::')) && peek().kind === 'op' && (peek().text === '->' || peek().text === '->&')) {
+            return stepAfter(chained(classCall(t, t.text)));
+        }
         // perl refuses each of these where a value stands (T315, D143).
         if (name?.kind === 'try' || name?.kind === 'catch') return refuse(`${t.text} is a statement, not a value: perl does not compile it here`, t.pos);
         if (t.kind === 'op' && NAMES.get(t.text)?.kind === 'yada') return refuse("'...' is a statement alone, which dies: perl does not compile it anywhere else", t.pos);
         if (name?.kind === 'changer') return refuse(`${t.text} is a statement here, and has no value: perl gives ${t.text === 'chomp' ? 'how many characters it took' : 'the character it took'} (D130)`, t.pos);
-        if (callable(t)) {
+        // `main::f(...)` (step 17a, T422): a sub of the program's by its
+        // whole name, which is how a class calls one.
+        if (callable(t) || (t.text.includes('::') && t.kind === 'word')) {
             if (peek().kind === '(') return stepAfter(chained(invoke(t)));
             return refuse(`'${t.text}' is not in the language; a call of a sub of the program's has brackets: ${t.text}(...)`, t.pos);
         }
@@ -1033,6 +1094,18 @@ export const parse = (tokens: readonly Token[]): Program => {
             const infix = t.kind === 'op' ? infixOp(t.text) : undefined;
             if (!infix || infix.row >= limit) return left;
             next();
+            // `EXPR isa NAME` (step 17a): NAME a class's name, which the
+            // resolver says is one. perl warns of `!$x isa P` (T115's kin).
+            if (t.text === 'isa') {
+                let first = left;
+                while (first.kind === 'unary' && !first.bracketed && prefixOp(first.op)?.rt === undefined) first = first.operand;
+                if (first.kind === 'unary' && !first.bracketed && prefixOp(first.op)?.bang) refuse(`'${first.op}' before 'isa': perl warns of a precedence problem; write ${first.op}(... isa ...)`, first.pos);
+                const cls = next();
+                if (cls.kind !== 'word' || NAMES.has(cls.text)) refuse(`after isa comes a class's name, found ${show(cls)}: a class named by what a value holds is not in the language`, cls.pos);
+                left = { kind: 'isa', left, cls: cls.text, pos: t.pos };
+                if (peek().kind === 'op' && peek().text === 'isa') refuse("'isa' after 'isa': perl does not compile it", peek().pos);
+                continue;
+            }
             // An assignment: its left side is a variable, and nothing
             // else. perl takes `($x = 5) = 7` and `(1 ? $x : $y) = 8`;
             // values flow here, and places don't (D17, D56). `($x) = 5`
@@ -1195,7 +1268,9 @@ export const parse = (tokens: readonly Token[]): Program => {
     const simple = (): Stmt => {
         const head = peek();
         const name = head.kind === 'word' ? NAMES.get(head.text) : undefined;
-        if (head.kind === 'word' && name === undefined && !(callable(head) && tokens[i + 1]!.kind === '(')) {
+        // (A class's name and an arrow begins one too, step 17a.)
+        const arrow = tokens[i + 1]!;
+        if (head.kind === 'word' && name === undefined && !(callable(head) && arrow.kind === '(') && !(arrow.kind === 'op' && arrow.text.startsWith('->'))) {
             return refuse(callable(head) ? `'${head.text}' is not in the language; a call of a sub of the program's has brackets: ${head.text}(...)`
                 : `'${head.text}' is not in the language`, head.pos);
         }
@@ -1445,6 +1520,10 @@ export const parse = (tokens: readonly Token[]): Program => {
             return loop({ name: head.text, pos: head.pos });
         }
         if (name?.kind === 'while' || name?.kind === 'for') return loop(undefined);
+        if (name?.kind === 'class') return classStatement();
+        if (name?.kind === 'field' || name?.kind === 'method' || name?.kind === 'adjust') {
+            return refuse(`${head.text} outside a class's block: it is a declaration of a class, class NAME { ${head.text} ... }`, head.pos);
+        }
         // `try { } catch ($e) { }` (step 15; D143). perl wants the catch
         // and its variable (T53), takes one catch, and warns of `finally`
         // (T313, D144).
@@ -1500,6 +1579,173 @@ export const parse = (tokens: readonly Token[]): Program => {
             return otherwise === undefined ? { kind: 'if', arms, pos: head.pos } : { kind: 'if', arms, otherwise, pos: head.pos };
         }
         return unit(head.pos, () => modified(head));
+    };
+
+    // An attribute, its colon next (step 17a): hard against its colon, its
+    // argument in brackets hard against it, a word, and nothing else in the
+    // brackets (T434). `wanted` says which may stand here.
+    const attribute = (wanted: readonly string[]): { name: Attribute; arg?: Attribute } => {
+        const colon = next();
+        const word = next();
+        if (word.kind !== 'word' || !touching(i - 2)) return refuse(`an attribute is written hard against its colon, :${wanted[0]}${word.kind === 'word' ? `; perl takes ': ${word.text}' too, and the language does not` : `, found ${show(word)}`}`, word.kind === 'word' ? colon.pos : word.pos);
+        if (!wanted.includes(word.text)) return refuse(`:${word.text} is not an attribute the language has here: ${wanted.map(w => ':' + w).join(', ')}`, word.pos);
+        const name = { name: word.text, pos: word.pos };
+        if (peek().kind !== '(') return { name };
+        if (!touching(i - 1)) refuse(`a blank between :${word.text} and its bracket: perl does not compile it (T434)`, peek().pos);
+        const open = next();
+        const arg = next();
+        if (arg.kind === ')') return refuse(`:${word.text}() with nothing in its brackets: write :${word.text} for the field's own name (T434)`, open.pos);
+        if (arg.kind !== 'word' || !touching(i - 2)) return refuse(`:${word.text}(...) takes a name hard against its brackets, :${word.text}(name)${arg.kind === 'word' ? '; perl trims the blanks, and the language does not (T434)' : `, found ${show(arg)}`}`, arg.pos);
+        const close = next();
+        if (close.kind !== ')' || !touching(i - 2)) {
+            if (close.kind === 'version' || close.kind === 'num' || close.kind === 'int') refuse(`a version in :${word.text}(...) is not in the language yet (D174)`, close.pos);
+            return refuse(`:${word.text}(...) takes one name hard against its brackets, :${word.text}(name) (T434)`, close.pos);
+        }
+        return { name, arg: { name: arg.text, pos: arg.pos } };
+    };
+
+    // `class NAME { DECLARATIONS }` and `class NAME :isa(PARENT) { ... }`,
+    // the word next (step 17a; D171, D174). Which names may stand is the
+    // resolver's to say.
+    const classStatement = (): Stmt => {
+        const head = next();
+        if (depth > 0) refuse('a class stands at the top level of the file: not in a block, a loop or a sub', head.pos);
+        const named = next();
+        if (named.kind !== 'word') return refuse(`after class comes its name, found ${show(named)}`, named.pos);
+        const cls = named.text;
+        let isa: Attribute | undefined;
+        if (peek().kind === ';') refuse(`class ${cls}; with no block: a class that runs to the end of the file is not in the language yet (D174); class ${cls} { ... }`, peek().pos);
+        if (peek().kind === 'version' || peek().kind === 'num' || peek().kind === 'int') refuse(`class ${cls} and a version: not in the language yet (D174)`, peek().pos);
+        while (peek().kind === ':') {
+            const { name, arg } = attribute(['isa']);
+            if (isa !== undefined) refuse(':isa twice: a class has one parent', name.pos);
+            if (arg === undefined) refuse(':isa takes its parent in brackets, :isa(PARENT)', name.pos);
+            isa = arg;
+        }
+        if (peek().kind !== '{') unexpected(peek(), `'{' after class ${cls}`);
+        next();
+        depth += 1;
+        const body: (Field | Sub)[] = [];
+        const defaults: Stmt[] = [];
+        const method = (how: 'method' | 'lexical' | 'adjust', at: Token, word: Token): Sub => {
+            const outer = { inSub, blocks, inList };
+            inSub = true;
+            blocks = 0;
+            inList = false;
+            let params: Param[] = [];
+            if (how !== 'adjust') {
+                const open = peek();
+                if (open.kind === ';') refuse(`method ${word.text}; with no block: perl takes it, and dies when it is called (T419); a role's required method is step 17b's`, open.pos);
+                if (open.kind !== '{' && open.kind !== '(') refuse(`after method ${word.text} comes its signature or its block, found ${show(open)}: an attribute is not in the language`, open.pos);
+                params = signature();
+            }
+            if (peek().kind !== '{') unexpected(peek(), how === 'adjust' ? "'{' after ADJUST" : "'{' after the signature");
+            const block_ = block();
+            ({ inSub, blocks, inList } = outer);
+            return { kind: 'sub', name: how === 'adjust' ? 'ADJUST' : word.text, params, body: block_, pos: at.pos, named: word.pos, end: tokens[i - 1]!.pos, method: { cls, how } };
+        };
+        while (peek().kind !== '}' && peek().kind !== 'eof') {
+            const t = peek();
+            const kind = t.kind === 'word' ? NAMES.get(t.text)?.kind : undefined;
+            if (kind === 'field') {
+                const field = unit(t.pos, () => fieldDeclaration(cls));
+                body.push(field);
+                if (field.default !== undefined) defaults.push({ kind: 'do', expr: field.default, pos: field.pos });
+                const v = field.var;
+                const value: Expr = v.kind === 'my' ? { kind: 'var', name: v.name, pos: v.pos } : { kind: 'array', name: v.name, pos: v.pos, ...(v.hash ? { hash: true as const } : {}) };
+                if (field.reader !== undefined) {
+                    const r = field.reader;
+                    body.push({ kind: 'sub', name: r.name, params: [], body: [{ kind: 'do', expr: value, pos: r.pos }], pos: r.pos, named: r.pos, end: r.pos, method: { cls, how: 'reader', field } });
+                }
+                if (field.writer !== undefined) {
+                    const w = field.writer;
+                    const given: Expr = { kind: 'var', name: ' value', pos: w.pos };
+                    const store: Stmt = { kind: 'do', expr: { kind: 'assign', op: '=', target: { kind: 'var', name: v.name, pos: w.pos }, value: given, pos: w.pos }, pos: w.pos };
+                    body.push({ kind: 'sub', name: w.name, params: [{ my: { kind: 'my', name: ' value', pos: w.pos }, pos: w.pos }], body: [store, { kind: 'do', expr: { kind: 'var', name: 'self', pos: w.pos }, pos: w.pos }], pos: w.pos, named: w.pos, end: w.pos, method: { cls, how: 'writer', field } });
+                }
+            } else if (kind === 'method') {
+                next();
+                const word = next();
+                if (word.kind !== 'word') refuse(`after method comes its name, found ${show(word)}`, word.pos);
+                body.push(method('method', t, word));
+            } else if (kind === 'my' && tokens[i + 1]!.kind === 'word' && tokens[i + 1]!.text === 'method') {
+                next();
+                next();
+                const word = next();
+                if (word.kind !== 'word') refuse(`after my method comes its name, found ${show(word)}`, word.pos);
+                body.push(method('lexical', t, word));
+            } else if (kind === 'adjust') {
+                next();
+                if (peek().kind !== '{') refuse('ADJUST takes a block and nothing else: ADJUST { ... }', peek().pos);
+                body.push(method('adjust', t, t));
+            } else {
+                const what = kind === 'sub' ? `a sub in a class, which perl calls as a method with the class's name or an object first (D171, T411); a method says it`
+                    : kind === 'my' ? 'a my in a class\'s block, which perl runs where the block stands, so that it is undef until then (D171, T408); a field says it'
+                    : kind === 'use' || kind === 'no' ? 'a pragma in a class\'s block (D171): the pragmas go at the top of the file'
+                    : kind === 'class' ? 'a class in a class (D171)'
+                    : `${show(t)} in a class's block: it holds field, method, my method and ADJUST, and perl runs anything else where the block stands (D171, T408)`;
+                refuse(what, t.pos);
+            }
+        }
+        depth -= 1;
+        const close = next();
+        if (close.kind !== '}') unexpected(close, "'}'");
+        const init: Sub = { kind: 'sub', name: ' init', params: [], body: defaults, pos: head.pos, named: named.pos, end: close.pos, method: { cls, how: 'init' } };
+        const made: Class = isa === undefined ? { kind: 'class', name: cls, body, init, pos: head.pos, named: named.pos } : { kind: 'class', name: cls, isa, body, init, pos: head.pos, named: named.pos };
+        return made;
+    };
+
+    // `field VARIABLE ATTRIBUTES = DEFAULT;`, the word next (step 17a).
+    const fieldDeclaration = (cls: string): Field => {
+        const head = next();
+        const v = next();
+        if (v.kind !== 'var' && v.kind !== 'array' && v.kind !== 'hash') return refuse(`after field comes a variable, $x, @a or %h, found ${show(v)}`, v.pos);
+        if (v.name === '' ) return refuse('a field has a name', v.pos);
+        if (v.kind === 'var') own(v);
+        if (v.name === 'self') refuse(`field ${v.text}: perl hides the object behind it, in silence (D178, T430); choose another name`, v.pos);
+        const variable = v.kind === 'var' ? { kind: 'my' as const, name: v.name, pos: v.pos } : v.kind === 'hash' ? { kind: 'myarray' as const, name: v.name, hash: true as const, pos: v.pos } : { kind: 'myarray' as const, name: v.name, pos: v.pos };
+        let param: Attribute | undefined;
+        let reader: Attribute | undefined;
+        let writer: Attribute | undefined;
+        const bare = v.text.replace(/^[$@%]/, '');
+        while (peek().kind === ':') {
+            const { name, arg } = attribute(['param', 'reader', 'writer']);
+            const as = { name: arg?.name ?? (name.name === 'writer' ? `set_${bare}` : bare), pos: arg?.pos ?? name.pos };
+            if (name.name === 'param') {
+                if (param !== undefined) refuse(':param twice on one field (T434)', name.pos);
+                if (v.kind !== 'var') refuse(`:param on ${v.text}: perl takes it on a scalar field alone`, name.pos);
+                param = as;
+            } else if (name.name === 'reader') {
+                if (reader !== undefined) refuse(':reader twice on one field: perl makes two readers (T434)', name.pos);
+                reader = as;
+            } else {
+                if (writer !== undefined) refuse(':writer twice on one field (T434)', name.pos);
+                if (v.kind !== 'var') refuse(`:writer on ${v.text}: perl takes it on a scalar field alone`, name.pos);
+                writer = as;
+            }
+        }
+        const assign = peek();
+        let op: string | undefined;
+        let given: Expr | undefined;
+        if (assign.kind === 'op' && (assign.text === '=' || assign.text === '//=' || assign.text === '||=')) {
+            next();
+            op = assign.text;
+            if (op !== '=' && param === undefined) refuse(`'${op}' on a field with no :param: a default with ${op} is for a parameter that may be given undef or false`, assign.pos);
+            const outer = inList;
+            inList = false;
+            given = expression(infixOp('=')!.row + 1);
+            inList = outer;
+        } else if (assign.kind === 'op') {
+            refuse(`'${assign.text}' after a field: its default is given with =, //= or ||=`, assign.pos);
+        }
+        const after = peek();
+        if (after.kind === ',') refuse("a comma after a field's default: perl takes the field and its default for the first item of a list; put the list in brackets", after.pos);
+        if (after.kind === 'op' && infixOp(after.text)) refuse(`'${after.text}' after a field's default joins it to what follows, to perl: bracket the default`, after.pos);
+        if (after.kind === 'word' && isModifier(after)) refuse(`${after.text} after a field: a field is declared whatever happens; a modifier is not in the language there`, after.pos);
+        ending();
+        void cls;
+        const field: Field = { kind: 'field', var: variable, pos: head.pos, ...(param ? { param } : {}), ...(reader ? { reader } : {}), ...(writer ? { writer } : {}), ...(op ? { op } : {}), ...(given ? { default: given } : {}) };
+        return field;
     };
 
     // A statement that is not a block, a loop, an `if` or a `try`, and

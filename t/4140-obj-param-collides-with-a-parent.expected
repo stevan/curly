@@ -1,0 +1,2 @@
+t/4140-obj-param-collides-with-a-parent.pl:6:35: :param(x) where the name is a parameter of this class or a parent already: perl dies, "that name is already in use"
+exit: 1

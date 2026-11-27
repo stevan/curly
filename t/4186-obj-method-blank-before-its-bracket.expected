@@ -1,0 +1,2 @@
+t/4186-obj-method-blank-before-its-bracket.pl:6:19: a blank between the method's name m and its bracket: perl takes it, and reads on; write it hard against the name, ->m(...)
+exit: 1

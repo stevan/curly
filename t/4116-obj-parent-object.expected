@@ -1,0 +1,2 @@
+t/4116-obj-parent-object.pl:5:14: :isa(Object): Object, Role and Class are held back (D177)
+exit: 1

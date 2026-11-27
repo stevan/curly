@@ -1,0 +1,2 @@
+t/4175-obj-universal-can.pl:6:17: ->can: the methods UNIVERSAL gives every object are not in the language (T416)
+exit: 1

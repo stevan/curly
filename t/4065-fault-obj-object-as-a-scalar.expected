@@ -1,0 +1,3 @@
+1
+fault: not a reference to a scalar at t/4065-fault-obj-object-as-a-scalar.pl line 8.
+exit: 1

@@ -39,7 +39,27 @@ export type Binary = { kind: 'binary'; op: string; left: Expr; right: Expr; pos:
 // against a scalar on the left of `=`, later).
 export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Step | Unary | Binary | Ternary | Apply | Invoke
     | ArrayVar | MyArray | Elem | LastIndex | List | Slice | ArrayOp | ListAssign | ListOp | Binder | Sort | HashOp
-    | Chain | Anon | Ref | Deref | Sderef | AnonSub | CallRef | SubRef | CurSub;
+    | Chain | Anon | Ref | Deref | Sderef | AnonSub | CallRef | SubRef | CurSub
+    | MethCall | New | CurClass | Isa;
+
+// Step 17a (D170 to D178, D187). A method call, `EXPR->NAME(ARGS)` or
+// `EXPR->NAME`: the invocant is worked out first, then the arguments, and
+// the invocant is read when the call is made, as an argument that is a
+// variable is (T405, T429). With `super`, `$self->SUPER::NAME(...)`,
+// resolved as the program compiles (T431); with `lexical`,
+// `$self->&NAME(...)`, a call of the class's `my method` (T424). `pos` is
+// the name's.
+export type MethCall = { kind: 'methcall'; invocant: Expr; name: string; args: readonly Expr[]; super?: true; lexical?: true; pos: Pos; bracketed?: true };
+
+// `NAME->new(PAIRS)` (D173), and with no `cls`, `__CLASS__->new(PAIRS)`,
+// of the object's own class. `pos` is the class's name's.
+export type New = { kind: 'new'; cls?: string; args: readonly Expr[]; pos: Pos; bracketed?: true };
+
+// `__CLASS__` as a value: the name of the object's own class.
+export type CurClass = { kind: 'curclass'; pos: Pos; bracketed?: true };
+
+// `EXPR isa NAME`, NAME a class of the program's (T52). `pos` is `isa`'s.
+export type Isa = { kind: 'isa'; left: Expr; cls: string; pos: Pos; bracketed?: true };
 
 // A sub with no name, where a value may begin (step 14; D161): `sub
 // (PARAMETERS) { ... }` and `sub { ... }`. Its value is a reference to the
@@ -237,7 +257,28 @@ export type Param = { my?: My; op?: string; default?: Expr; slurpy?: true; hash?
 // name's, and `end` the closing brace's.
 // A sub with no name (step 14) has `anon`, and a name made for it that no
 // named sub can have, for the generated C.
-export type Sub = { kind: 'sub'; name: string; params: readonly Param[]; body: readonly Stmt[]; pos: Pos; named: Pos; end: Pos; anon?: true };
+export type Sub = { kind: 'sub'; name: string; params: readonly Param[]; body: readonly Stmt[]; pos: Pos; named: Pos; end: Pos; anon?: true; method?: Method };
+
+// Step 17a. What a sub of a class is: a `method`, a `my method`
+// (`lexical`), an `ADJUST` block, the reader or the writer of a field
+// (made by the parser from its attribute, a method of one statement), or
+// the fields of a class, `init`, which the constructor calls with the
+// places of the class's own parameters, and whose body the parser has
+// made of the fields' defaults, as statements, for the walks alone. `cls`
+// is the class's name.
+export type Method = { cls: string; how: 'method' | 'lexical' | 'adjust' | 'reader' | 'writer' | 'init'; field?: Field };
+
+// `field $x`, `field @a`, `field %h`, in a class's block (step 17a), with
+// its attributes and its default: `op` is `=`, `//=` or `||=`. `param` is
+// the name `new` takes it by.
+export type Attribute = { name: string; pos: Pos };
+export type Field = { kind: 'field'; var: My | MyArray; param?: Attribute; reader?: Attribute; writer?: Attribute; op?: string; default?: Expr; pos: Pos };
+
+// `class NAME { ... }` and `class NAME :isa(PARENT) { ... }` (step 17a):
+// its block holds declarations alone (D171), the fields and the subs in
+// the order written, the readers and writers each after its field; `init`
+// is the sub of its fields.
+export type Class = { kind: 'class'; name: string; isa?: Attribute; body: readonly (Field | Sub)[]; init: Sub; pos: Pos; named: Pos };
 
 // `return;` and `return value;`.
 export type Return = { kind: 'return'; value?: Expr; pos: Pos };
@@ -248,7 +289,7 @@ export type Return = { kind: 'return'; value?: Expr; pos: Pos };
 export type Try = { kind: 'try'; body: readonly Stmt[]; var: My; handler: readonly Stmt[]; pos: Pos };
 
 export type Loop = While | For | Foreach;
-export type Stmt = Use | Pragma | Call | Do | Block | If | While | For | Foreach | Jump | Sub | Return | Try;
+export type Stmt = Use | Pragma | Call | Do | Block | If | While | For | Foreach | Jump | Sub | Return | Try | Class;
 
 // `end` is where the file ends, for a diagnostic about what isn't there.
 export type Program = { kind: 'program'; body: readonly Stmt[]; end: Pos };

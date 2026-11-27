@@ -1,0 +1,2 @@
+t/4185-obj-lexical-outside-a-class.pl:7:17: ->&m: a my method is called on $self alone (D178, T424): perl calls it on any object, of any class, with no dispatch
+exit: 1

@@ -1,0 +1,2 @@
+t/4198-obj-isa-a-variable.pl:7:20: after isa comes a class's name, found '$c': a class named by what a value holds is not in the language
+exit: 1

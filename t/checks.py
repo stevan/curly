@@ -497,8 +497,9 @@ def counted(code, m):
     # does, and the seeds are left to see it.
     if re.search(r'\breturn\s+$', before):
         return True
-    # A parameter of a sub, one with no name too (step 14).
-    if m.group(0)[0] == '%' and re.search(r'\bsub\s*(?:\w+\s*)?\([^{;]*$', before):
+    # A parameter of a sub, one with no name too (step 14), and of a method
+    # (step 17a).
+    if m.group(0)[0] == '%' and re.search(r'\b(?:sub|method)\s*(?:\w+\s*)?\([^{;]*$', before):
         return True
     return False
 
@@ -522,6 +523,9 @@ def hash_order_shown(path):
         if what[0] not in '%-' and (re.match(r'\s*=>', code[m.end():]) or (re.match(r'[ \t]*\}', code[m.end():]) and re.search(r'\{[ \t]*$', code[:start]))):
             continue
         if counted(code, m):
+            continue
+        # A method called `keys` (step 17a), declared or called, is a name.
+        if what[0] not in '%-' and re.search(r'(?:->|\bmethod\s+)$', code[:start]):
             continue
         # A variable called `$keys` or `@values` is a name.
         if what[0] != '%' and start > 0 and code[start - 1] in '$@':
@@ -548,6 +552,14 @@ def hash_order_shown(path):
         if word == '' and found and found[-1].startswith(f'line {line}: a ') and 'block that does more' in found[-1]:
             continue
         if whole and word in OWNERS:
+            continue
+        # A hash field (step 17a): declared, and filled from its default,
+        # whatever the order; but its reader gives its pairs in perl's
+        # order, which the check can't follow through the call (step 17's
+        # review, finding 17): a test with one is a `new` test.
+        if whole and word == 'field':
+            if re.match(r'%\w+\s*(?::\w+(?:\(\w+\))?\s*)*?:reader\b', code[start:]):
+                found.append(f'line {line}: a reader of a hash field gives its pairs in perl\'s order, which the check can\'t follow: without sort')
             continue
         if what[0] == '%' and re.match(r'%[\w$]+\s*=(?![=~>])', code[start:]):
             continue

@@ -1,0 +1,2 @@
+t/4168-obj-bare-call-in-an-adjust.pl:8:20: helper(...) in a class: perl looks it up in the class's package, P::helper, and dies there (D178, T422); write main::helper(...)
+exit: 1

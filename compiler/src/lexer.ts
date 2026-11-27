@@ -605,7 +605,20 @@ export const lex = (src: string): Token[] => {
             || last?.kind === ']' || last?.kind === 'array' || last?.kind === 'lastindex' || last?.kind === 'hash'
             || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true || last.sub === true))
             || (last?.kind === 'op' && WHOLE.has(last.text))
-            || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub'));
+            || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub' || NAMES.get(last.text)?.kind === 'curclass'))
+            // A method's name after its arrow (step 17a): an operator comes
+            // next, as perl has it, `$p->m - 1`.
+            || (last?.kind === 'word' && isArrow(tokens.at(-2)));
+    };
+    const isArrow = (t: Token | undefined): boolean => t?.kind === 'op' && (t.text === '->' || t.text === '->&');
+    // Whether the word that begins here is a name and nothing else (step
+    // 17a): a method's, after its arrow or after `method`, or an
+    // attribute's argument, `:reader(x)`; there no word is an operator, a
+    // quote or a version.
+    const nameNext = (): boolean => {
+        const [a, b, c] = [tokens.at(-1), tokens.at(-2), tokens.at(-3)];
+        return isArrow(a) || (a?.kind === 'word' && a.text === 'method')
+            || (a?.kind === '(' && b?.kind === 'word' && ['param', 'reader', 'writer', 'isa'].includes(b.text) && c?.kind === ':');
     };
 
     // Whether a brace that is no hash's key opens a new hash: where a value
@@ -877,7 +890,7 @@ export const lex = (src: string): Token[] => {
             push(string(start));
         } else if (isDigit(c) || (c === '.' && isDigit(src[i + 1] ?? '') && !afterValue())) {
             push(number(start));
-        } else if (isWordStart(c) && !afterValue() && src.startsWith('=>', past(wordEnd(i), true))) {
+        } else if (isWordStart(c) && !afterValue() && !nameNext() && src.startsWith('=>', past(wordEnd(i), true))) {
             // A word before `=>` is a string, whatever the word (T214):
             // on one line. Across the end of a line perl makes a string
             // of every word but a `v` and digits, which is a version
@@ -911,7 +924,7 @@ export const lex = (src: string): Token[] => {
             if (at() === '{') refuse(`%${name}{...} is a slice of keys and values, and not in the language`, start);
             if (at() === '[') refuse(`%${name}[...] is a slice of indexes and values, and not in the language`, start);
             push({ kind: 'hash', text: '%' + name, name, pos: start });
-        } else if (isWordStart(c) && !afterValue() && ['q', 'qq', 'qw'].includes(src.slice(i, wordEnd(i)))
+        } else if (isWordStart(c) && !afterValue() && !nameNext() && ['q', 'qq', 'qw'].includes(src.slice(i, wordEnd(i)))
             && !(tokens.at(-1)?.kind === 'word' && NAMES.get(tokens.at(-1)!.text)?.kind === 'sub')) {
             // (`sub q(...)` names a sub, which the parser refuses: T28.)
             quoteLike(start);
@@ -919,7 +932,20 @@ export const lex = (src: string): Token[] => {
             hereDoc(start);
         } else if (isWordStart(c)) {
             const operator = afterValue();
+            const name = nameNext();
             let text = run(isWord);
+            // `A::B`, a class's name, `main::f`, a sub of the program's
+            // called by its whole name, and `SUPER::m` (step 17a): one word.
+            while (src.startsWith('::', i) && isWordStart(src[i + 2] ?? '')) {
+                take();
+                take();
+                text += '::' + run(isWord);
+            }
+            if (text.includes('::') || name) {
+                if (text.length > NAME_MAX_LENGTH) refuse(`a name of more than ${NAME_MAX_LENGTH} characters: perl refuses it as too long`, start);
+                push({ kind: 'word', text, pos: start });
+                continue;
+            }
             // After a value, `x` is the repetition operator. perl takes
             // it hard against a number too, `"ab" x3`, and stops at `$s
             // x3`, where `x3` is a word to it (T57): here it is a word of
@@ -1062,7 +1088,8 @@ export const lex = (src: string): Token[] => {
             // And `sub (` of a sub with no name (step 14).
             const anon = c === '(' && signature === 0 && name?.kind === 'word' && NAMES.get(name.text)?.kind === 'sub';
             if (anon) anonSignature = true;
-            if (c === '(' && (signature > 0 || anon || (word?.kind === 'word' && NAMES.get(word.text)?.kind === 'sub' && name?.kind === 'word'))) signature += 1;
+            // (And `method NAME (`, step 17a.)
+            if (c === '(' && (signature > 0 || anon || (word?.kind === 'word' && (NAMES.get(word.text)?.kind === 'sub' || NAMES.get(word.text)?.kind === 'method') && name?.kind === 'word'))) signature += 1;
             if (c === ')' && signature > 0) {
                 signature -= 1;
                 if (signature === 0 && anonSignature) anonClosed = tokens.length;
@@ -1189,9 +1216,20 @@ export const lex = (src: string): Token[] => {
                     continue;
                 }
                 if (src.startsWith('&*', i)) refuse("->&*: a call by '&' is cut (D21, D165): call through the reference with its brackets, $f->(...)", start);
-                if (next === '&') refuse("'->&' and a name: a lexical method call, and classes are not in the language yet (step 17)", start);
-                if (isWordStart(next) || next === '$') refuse("'->' and a name: a method call, and classes are not in the language yet (step 17)", start);
-                if (next !== '[' && next !== '{') refuse("after '->' comes '[' or '{', hard against it: $r->[0], $r->{k}", start);
+                // A method call (step 17a): the name is the parser's. And
+                // `->&NAME`, a call of a `my method` (T424).
+                if (next === '&' && isWordStart(src[i + 1] ?? '')) {
+                    take();
+                    push({ kind: 'op', text: '->&', pos: start });
+                    continue;
+                }
+                if (next === '&') refuse("'->&' and no name hard after it: a call of a my method is $self->&name(...)", start);
+                if (next === '$') refuse("'->' and a variable: a method chosen by what a variable holds is not in the language yet", start);
+                if (isWordStart(next)) {
+                    push({ kind: 'op', text: op, pos: start });
+                    continue;
+                }
+                if (next !== '[' && next !== '{') refuse("after '->' comes '[', '{', '(' or a method's name, hard against it: $r->[0], $r->{k}, $f->(...), $o->m", start);
                 push({ kind: 'op', text: op, pos: start });
                 continue;
             }

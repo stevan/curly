@@ -1,0 +1,2 @@
+t/4147-obj-method-destroy.pl:5:18: method DESTROY: perl gives the name a meaning of its own, and the method is not what a call of it reaches (D178, T409, T416, T423)
+exit: 1

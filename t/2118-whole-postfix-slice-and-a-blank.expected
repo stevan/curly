@@ -1,2 +1,2 @@
-t/2118-whole-postfix-slice-and-a-blank.pl:5:11: after '->' comes '[' or '{', hard against it: $r->[0], $r->{k}
+t/2118-whole-postfix-slice-and-a-blank.pl:5:11: after '->' comes '[', '{', '(' or a method's name, hard against it: $r->[0], $r->{k}, $f->(...), $o->m
 exit: 1

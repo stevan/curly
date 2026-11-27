@@ -1,0 +1,2 @@
+t/4177-obj-next-method.pl:6:37: ->next::method: perl's next::method is not in the language (T417); $self->SUPER::m(...) says it
+exit: 1

@@ -1,0 +1,2 @@
+t/4195-obj-curclass-method.pl:5:48: __CLASS__->m: a method called on a class's name, which perl calls with the name for its object and which dies "Cannot invoke method on a non-instance" for a method of a class (T411); __CLASS__->new(...) makes an object
+exit: 1

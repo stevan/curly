@@ -1,0 +1,2 @@
+t/4121-obj-pragma-in-the-block.pl:5:11: a pragma in a class's block (D171): the pragmas go at the top of the file
+exit: 1

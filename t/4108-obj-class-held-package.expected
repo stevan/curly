@@ -1,0 +1,2 @@
+t/4108-obj-class-held-package.pl:5:7: class Carp: perl holds the package Carp by the end of the preamble, and a class of it is that package or one inside it (D178, T426)
+exit: 1

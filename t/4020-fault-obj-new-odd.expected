@@ -1,0 +1,3 @@
+1
+fault: an odd number of arguments for P->new: they are names and values by turns at t/4020-fault-obj-new-odd.pl line 7.
+exit: 1

@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/4046-fault-obj-object-joined.pl line 8.
+exit: 1

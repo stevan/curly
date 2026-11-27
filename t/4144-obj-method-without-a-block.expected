@@ -1,0 +1,2 @@
+t/4144-obj-method-without-a-block.pl:5:19: method m; with no block: perl takes it, and dies when it is called (T419); a role's required method is step 17b's
+exit: 1

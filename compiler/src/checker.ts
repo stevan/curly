@@ -3,9 +3,10 @@
 // nothing; a tree that comes through is a program.
 import { refuse } from './errors.ts';
 import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, prefixOp } from './names.ts';
-import type { CallRef, Chain, Deref, Expr, Invoke, My, Pragma, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
+import type { Chain, Class, Deref, Expr, My, Pragma, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
 import type { Resolution } from './resolver.ts';
-import { handsOn } from './shapes.ts';
+import { handsOn, isCall } from './shapes.ts';
+import type { Call } from './shapes.ts';
 import { checkFormat } from './format.ts';
 import type { Gives } from './shapes.ts';
 
@@ -79,6 +80,11 @@ const parts = (e: Expr): readonly Expr[] =>
     // before the arrow (step 14; T370, D166). A sub with no name is a
     // value, made where it stands: its body is its own function's.
     : e.kind === 'callref' ? [...e.args, e.head]
+    // A method call works out its invocant, then its arguments (T405,
+    // T429); `new` its arguments; `isa` its left side (step 17a).
+    : e.kind === 'methcall' ? [e.invocant, ...e.args]
+    : e.kind === 'new' ? e.args
+    : e.kind === 'isa' ? [e.left]
     : e.kind === 'assign' ? [e.value, e.target]
     : e.kind === 'step' ? [e.target]
     : e.kind === 'elem' ? [e.index]
@@ -142,6 +148,8 @@ const folds = (e: Expr): boolean =>
     // (A sub's reference, and a call through one: perl does not warn of
     // `if (my $f = sub { 1 })`, step 14.)
     : e.kind === 'anonsub' || e.kind === 'subref' || e.kind === 'cursub' || e.kind === 'callref' ? false
+    // (An object, and what is asked of one, step 17a.)
+    : e.kind === 'methcall' || e.kind === 'new' || e.kind === 'curclass' || e.kind === 'isa' ? false
     // (A new container, and a reference, are made as the program runs:
     // perl does not warn of `if (my $r = [1])`.)
     : e.kind === 'chain' || e.kind === 'anon' || e.kind === 'ref' || e.kind === 'deref' || e.kind === 'sderef' ? false
@@ -200,16 +208,26 @@ const listy = (in_: Expr): boolean => {
 
 // Whether a call is of a sub that gives a list back (D18); one through a
 // reference is of any sub a reference can be to (D163).
-const gives = (w: World): Gives => call => (call.kind === 'invoke' ? w.names.lists[w.names.calls.get(call)!] === true : w.names.targets.some(t => w.names.lists[t] === true));
+// A method call is of any method of its name (D172); `new` gives one value.
+const gives = (w: World): Gives => call => (call.kind === 'invoke' ? w.names.lists[w.names.calls.get(call)!] === true
+    : call.kind === 'callref' ? w.names.targets.some(t => w.names.lists[t] === true)
+    : call.kind === 'new' ? false
+    : calleeTargets(w, call).some(t => w.names.lists[t] === true));
+
+// Every function a call may run (D163, D172, D178).
+const calleeTargets = (w: World, e: Call): readonly number[] =>
+    e.kind === 'invoke' ? [w.names.calls.get(e)!] : e.kind === 'callref' ? w.names.targets : w.names.targetsOf.get(e)!;
 
 // What a call can change (D69), and what its defaults can (T144): of the
 // sub it calls, or for a call through a reference of any sub a reference
 // can be to (step 14; D163).
-const calleeChanges = (w: World, e: Invoke | CallRef): ReadonlySet<number> =>
-    e.kind === 'invoke' ? w.changed[w.names.calls.get(e)!]! : new Set(w.names.targets.flatMap(t => [...w.changed[t]!]));
-const calleeDefaults = (w: World, e: Invoke | CallRef): ReadonlySet<number> =>
-    e.kind === 'invoke' ? w.defaults[w.names.calls.get(e)!]! : new Set(w.names.targets.flatMap(t => [...w.defaults[t]!]));
-const callName = (e: Invoke | CallRef): string => (e.kind === 'invoke' ? e.name : 'a sub through a reference');
+// (`new`'s defaults are its fields' defaults, the functions of the
+// classes' fields, which copy each argument at its field's turn: D178.)
+const calleeChanges = (w: World, e: Call): ReadonlySet<number> => new Set(calleeTargets(w, e).flatMap(t => [...w.changed[t]!]));
+const calleeDefaults = (w: World, e: Call): ReadonlySet<number> =>
+    e.kind === 'new' ? new Set(calleeTargets(w, e).filter(t => w.names.subs[t - 1]!.method?.how === 'init').flatMap(t => [...w.changed[t]!]))
+    : new Set(calleeTargets(w, e).flatMap(t => [...w.defaults[t]!]));
+const callName = (e: Call): string => (e.kind === 'invoke' ? e.name : e.kind === 'callref' ? 'a sub through a reference' : e.kind === 'new' ? `${e.cls ?? '__CLASS__'}->new` : `the method ${e.name}`);
 
 // A declaration that is named or changed, and what references reach with
 // it when its reference is taken anywhere (D109).
@@ -273,7 +291,7 @@ const changesItself = (w: World, e: Expr, direct = false): number[] => {
 // and the subs it calls (D69).
 const changeSet = (w: World, e: Expr, into = new Set<number>()): Set<number> => {
     changesItself(w, e).forEach(id => addId(w, into, id));
-    if (e.kind === 'invoke' || e.kind === 'callref') calleeChanges(w, e).forEach(id => into.add(id));
+    if (isCall(e)) calleeChanges(w, e).forEach(id => into.add(id));
     parts(e).forEach(p => changeSet(w, p, into));
     return into;
 };
@@ -416,6 +434,10 @@ const children = (e: Expr, ctx: Ctx): [Expr, Ctx][] => {
     case 'invoke': return all(e.args, 'list');
     // Step 14 (a sub with no name is checked as a sub, by `checkExpr`).
     case 'callref': return [...all(e.args, 'list'), [e.head, 'scalar']];
+    // Step 17a.
+    case 'methcall': return [[e.invocant, 'scalar'], ...all(e.args, 'list')];
+    case 'new': return all(e.args, 'list');
+    case 'isa': return [[e.left, 'scalar']];
     case 'assign': return [[e.value, e.target.kind === 'array' || e.target.kind === 'myarray' || e.target.kind === 'deref' ? 'list' : 'scalar'], [e.target, 'list']];
     case 'step': return [[e.target, 'scalar']];
     case 'elem': return [[e.index, 'scalar']];
@@ -443,8 +465,8 @@ const children = (e: Expr, ctx: Ctx): [Expr, Ctx][] => {
 };
 
 // The calls of the program's subs in an expression, and its variables.
-const invokes = (e: Expr, into: (Invoke | CallRef)[] = []): (Invoke | CallRef)[] => {
-    if (e.kind === 'invoke' || e.kind === 'callref') into.push(e);
+const invokes = (e: Expr, into: Call[] = []): Call[] => {
+    if (isCall(e)) into.push(e);
     parts(e).forEach(p => invokes(p, into));
     return into;
 };
@@ -677,6 +699,15 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
     if (e.kind === 'callref') {
         checkOrder(w, 'a call through a reference', [...e.args, e.head], e.args.some(a => listy(a) || handsOn(a, gives(w))), { changes: calleeDefaults(w, e), at: e });
     }
+    // Step 17a: the invocant is the first part (T429), and the methods'
+    // defaults run after them all; `new`'s arguments are places, read at
+    // their fields' turns, after the defaults above them (T427, D178).
+    if (e.kind === 'methcall') {
+        checkOrder(w, `the call of the method ${e.name}`, [e.invocant, ...e.args], e.args.some(a => listy(a) || handsOn(a, gives(w))), { changes: calleeDefaults(w, e), at: e });
+    }
+    if (e.kind === 'new') {
+        checkOrder(w, `the arguments of ${e.cls ?? '__CLASS__'}->new`, e.args, e.args.some(a => listy(a) || handsOn(a, gives(w))), { changes: calleeDefaults(w, e), at: e });
+    }
     if (e.kind === 'anonsub') checkSub(w, e.sub);
     // The scalar through a reference (step 13c) is stored to as an element
     // through one is, its head's parts for the index.
@@ -826,7 +857,7 @@ const checkPragma = (p: Pragma): void => {
 // what could be a statement, and a `my` in the first part only (D60).
 const checkPart = (w: World, e: Expr, first: boolean): void => {
     // A call is something done, as it is where it is a statement (D72).
-    if (e.kind !== 'assign' && e.kind !== 'step' && e.kind !== 'my' && e.kind !== 'invoke' && e.kind !== 'callref' && !(e.kind === 'arrayop' && e.op !== 'scalar' && e.op !== 'splice') && !(e.kind === 'hashop' && e.op === 'delete')) {
+    if (e.kind !== 'assign' && e.kind !== 'step' && e.kind !== 'my' && !isCall(e) && !(e.kind === 'arrayop' && e.op !== 'scalar' && e.op !== 'splice') && !(e.kind === 'hashop' && e.op === 'delete')) {
         refuse('this part of the for only has a value, and nothing is done with it: perl warns that it is useless', e.pos);
     }
     const my = e.kind === 'my' ? e : e.kind === 'assign' && e.target.kind === 'my' ? e.target : undefined;
@@ -864,7 +895,7 @@ const bound = (w: World, what: string, binder: string, items: readonly Expr[], b
             if (scalars.has(id)) refused(id, e);
             if (scalars.has(CELLS) && w.names.taken.has(id) && !w.names.isArray[id]) refused(CELLS, e);
         }
-        if (e.kind === 'invoke' || e.kind === 'callref') for (const id of calleeChanges(w, e)) if (scalars.has(id)) refused(id, e);
+        if (isCall(e)) for (const id of calleeChanges(w, e)) if (scalars.has(id)) refused(id, e);
         parts(e).forEach(guard);
     };
     if (scalars.size > 0) body.forEach(b => expressions(b, guard));
@@ -887,7 +918,7 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         // A call is a statement. And a value alone is one where it is
         // the last of a sub, with no modifier: it is the sub's value
         // (D72, T140), a list to perl (T143).
-        const does = s.expr.kind === 'assign' || s.expr.kind === 'step' || s.expr.kind === 'my' || s.expr.kind === 'invoke' || s.expr.kind === 'callref'
+        const does = s.expr.kind === 'assign' || s.expr.kind === 'step' || s.expr.kind === 'my' || isCall(s.expr)
             || s.expr.kind === 'myarray' || s.expr.kind === 'listassign' || (s.expr.kind === 'list' && s.expr.my === true)
             || (s.expr.kind === 'arrayop' && s.expr.op !== 'scalar')
             || (s.expr.kind === 'hashop' && s.expr.op === 'delete')
@@ -970,8 +1001,9 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
     // A list, to a call that wants one (D18): the fault for a call that
     // wants one value is the runtime's.
     case 'return': return s.value === undefined ? undefined : checkExpr(w, s.value, false, 'list');
-    // The parser lets a sub stand at the top level only.
+    // The parser lets a sub stand at the top level only, and a class.
     case 'sub': throw new Error('a sub below the top level');
+    case 'class': throw new Error('a class below the top level');
     }
 };
 
@@ -1008,6 +1040,15 @@ const expressions = (s: Stmt, f: (e: Expr) => void): void => {
     case 'try':
         s.body.forEach(b => expressions(b, f));
         return s.handler.forEach(b => expressions(b, f));
+    // Step 17a: the fields' defaults, and every sub of the class, its
+    // parameters' defaults too.
+    case 'class':
+        s.init.body.forEach(b => expressions(b, f));
+        return s.body.forEach(b => {
+            if (b.kind !== 'sub') return;
+            b.params.forEach(p => p.default && f(p.default));
+            b.body.forEach(t => expressions(t, f));
+        });
     default: return;
     }
 };
@@ -1019,6 +1060,7 @@ const checkReadOnly = (program: Program, names: Resolution): void => {
     const w: World = { names, changed: [], defaults: [] };
     const guard = (e: Expr): void => {
         for (const id of changesItself(w, e, true)) {
+            if (variables.has(id) && names.selfOf.includes(id)) refuse('$self is read-only (D175, T413): perl lets a method assign it, and the object is lost to the rest of the method', e.pos);
             if (variables.has(id)) refuse(['_', 'a', 'b'].includes(names.names[id]!) ? `$${names.names[id]} is read-only: in perl, changing it changes the list's own element; take the value into a my`
                 : `$${names.names[id]} is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my`, e.pos);
         }
@@ -1045,6 +1087,21 @@ const checkSub = (w: World, s: Sub): void => {
     s.body.forEach((b, n) => checkStmt(w, b, false, n === s.body.length - 1));
 };
 
+// A class (step 17a): each field's default, one value for a scalar's and
+// a list for an array's or a hash's; and every sub of it, as a sub.
+const checkClass = (w: World, c: Class): void => {
+    for (const b of c.body) {
+        if (b.kind === 'sub') {
+            checkSub(w, b);
+            continue;
+        }
+        if (b.default === undefined) continue;
+        const scalar = b.var.kind === 'my';
+        checkConcat(w, { kind: 'assign', op: '=', target: b.var, value: b.default, pos: b.pos });
+        checkExpr(w, b.default, false, scalar ? 'scalar' : 'list');
+    }
+};
+
 // The file variables each sub can change: its own assignments and steps,
 // in its body and its defaults, and those of the subs it calls, and so on
 // until nothing is added.
@@ -1067,6 +1124,9 @@ const changedBy = (names: Resolution): ReadonlySet<number>[] => {
         }
         if (e.kind === 'invoke') callees[fn]!.add(names.calls.get(e)!);
         if (e.kind === 'callref') names.targets.forEach(t => callees[fn]!.add(t));
+        // A method call, of every method of its name; `new`, of its fields'
+        // defaults and `ADJUST` blocks (D172, D178).
+        if (e.kind === 'methcall' || e.kind === 'new') names.targetsOf.get(e)!.forEach(t => callees[fn]!.add(t));
         parts(e).forEach(p => expr(p, fn));
     };
     const stmt = (s: Stmt, fn: number): void => {
@@ -1148,6 +1208,12 @@ export const check = (program: Program, names: Resolution): void => {
         } else if (stmt.kind === 'sub') {
             pragmas = false;
             checkSub(w, stmt);
+        } else if (stmt.kind === 'class') {
+            pragmas = false;
+            // perl 5.42 compiles `class` under `use experimental 'class'`
+            // alone (step 17a).
+            if (!seen.has('experimental')) refuse(`class needs use experimental 'class'; at the top, with the pragmas: perl 5.42 does not compile it without`, stmt.pos);
+            checkClass(w, stmt);
         } else {
             pragmas = false;
             checkStmt(w, stmt);

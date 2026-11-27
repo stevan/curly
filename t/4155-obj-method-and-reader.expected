@@ -1,0 +1,2 @@
+t/4155-obj-method-and-reader.pl:5:40: method x again in class P: perl warns that it is redefined, and takes the last (T409)
+exit: 1

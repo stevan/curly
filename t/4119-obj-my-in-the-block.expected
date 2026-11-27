@@ -1,0 +1,2 @@
+t/4119-obj-my-in-the-block.pl:5:11: a my in a class's block, which perl runs where the block stands, so that it is undef until then (D171, T408); a field says it
+exit: 1

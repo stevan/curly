@@ -147,8 +147,18 @@ REASONS = [
     (r"\(D114; perl reads on after braces", 'design', 'D114'),
     (r"^'\{' hard after .* in a string: perl reads on, and does not compile it", 'design', 'D92'),
     (r"^'->.' hard after .* in a string: a dereference of what that gives, to perl, which is no reference", 'design', 'D92'),
+    # ---- step 17a's (D171, D173, D174, D177, D178, D187); its own rows,
+    # `(step 17)` and `class`, `method` and `field` not in the language,
+    # went with it
+    (r"\(D171", 'design', 'D171'),
+    (r"\(D173\)", 'design', 'D173'),
+    (r"\(D174\)", 'later', '18'),
+    (r"\(D177", 'design', 'D177'),
+    (r"\(D178", 'design', 'D178'),
+    (r"\(T411\)|\(T416\)|\(T417\)|\(T419\)", 'design', 'D19'),
+    (r"^class needs use experimental 'class'", 'design', 'D16'),
+    (r"^an attribute is written hard against its colon|\(T434\)", 'design', 'D178'),
     # ---- later, by the step (step 13c's and 13d's rows went with them)
-    (r"\(step 17\)", 'later', '17'),
     # Step 14's (D21, D55, D162, D165, D166); its own rows, `(step 14)`,
     # a sub with no name as a value and `&`, went with it, and `&` after a
     # value is the bitwise operator, step 22's.
@@ -173,8 +183,9 @@ REASONS = [
     (r"^'(printf|chomp|qw|q|qq)' is not in the language$", 'later', '16'),
     # A heredoc is in from step 16a; `<<` after a value is the left shift.
     (r"^'<<' is not in the language yet", 'later', '22'),
-    (r"^'(class|method|field|bless)' is not in the language$", 'later', '17'),
-    (r"^expected a value, found 'bless'$", 'later', '17'),
+    # (`bless` is cut by D19: `class` and `new` say it.)
+    (r"^'bless' is not in the language$", 'design', 'D19'),
+    (r"^expected a value, found 'bless'$", 'design', 'D19'),
     (r"^'use \w+' is not in the language$", 'later', '18'),
     (r"^'=~' is not in the language yet", 'later', '19'),
     (r"^'(s|m|tr|y|split)' is not in the language$", 'later', '19'),

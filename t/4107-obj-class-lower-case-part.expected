@@ -1,0 +1,2 @@
+t/4107-obj-class-lower-case-part.pl:5:7: class Foo::bar: every part of a class's name begins with a capital letter (D178): perl takes other names for its own words, its packages or a version (T426)
+exit: 1

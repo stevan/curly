@@ -1,0 +1,2 @@
+t/4180-obj-super-with-no-parent.pl:5:29: ->SUPER::m: class P has no parent, and perl dies when the call is made
+exit: 1
