@@ -30,6 +30,7 @@ oracle runs it: plain, one hash seed, empty stdin.
 """
 
 import os
+import shutil
 import re
 import subprocess
 import sys
@@ -980,6 +981,8 @@ CLAIMS = [
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from claims16 import STEP16  # noqa: E402
 CLAIMS += STEP16
+from claims17 import STEP17  # noqa: E402
+CLAIMS += STEP17
 # And step 13d's, docs/briefs/claims13d.py.
 from claims13d import STEP13D  # noqa: E402
 CLAIMS += STEP13D
@@ -1064,13 +1067,22 @@ def main(argv):
             only.append(argv[i]); i += 1
     version = subprocess.run([perl, '-e', 'print $^V'], capture_output=True, text=True).stdout
     print(f'perl {version} ({perl}), each program after: {prelude.strip()}')
+    # A row marked roles is a statement about the roles perl (D161, D166),
+    # which has no other way to be asked; without that perl the row fails.
+    roles = os.environ.get('CURLY_PERL_ROLES', '/opt/perl-5.42-roles/bin/perl')
+    print(f'roles perl ({roles}) for the rows marked roles')
     differ = 0
     for id, where, code, said in CLAIMS:
         if only and id not in only:
             continue
         compiles = said.get('compiles', True)
         flags = ['-c'] if not compiles else ['-CSDA'] if said.get('csda') else []
-        status, out, err = run(perl, '' if said.get('raw') else prelude, code, flags)
+        which = roles if said.get('roles') else perl
+        if said.get('roles') and not shutil.which(roles):
+            differ += 1
+            print(f'DIFFERS {id} ({where})\n    not run: no roles perl at {roles} (tools/perl-roles/build.sh)')
+            continue
+        status, out, err = run(which, '' if said.get('raw') else prelude, code, flags)
         wrong, out, err = judge(said, status, out, err)
         if wrong or only:
             differ += bool(wrong)

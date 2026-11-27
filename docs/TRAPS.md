@@ -769,6 +769,38 @@ A reader who did not write the proposal, given it and perl
 | T283 | `sprintf("%*s|%.*f", -4, "a", -2, 1.25)`; `sprintf("%*d", 4294967297, 1)`; `sprintf("%*d", 2**62, 1)` | `a   |1.250000`; a string of 4294967297; `Integer overflow in format string` | 16 | Agree within 2^31 - 1, fault outside (D131) |
 | T284 | `my @a = (<<A,⏎"x");⏎body⏎A` | Does not compile: `"x");` is in the body | 16 | The same: the body is the lines after the heredoc's own line, and the rest is refused |
 
+## Found proposing step 17
+
+Run 2026-11-27 under perl 5.42.0 with `use experimental 'class'`, and
+T420 and T421 under the roles perl (D161, D166): about 150 programs.
+Each row is in `briefs/claims17.py`. Numbered from T400, so that step
+14, proposed beside this one, keeps the numbers after T354.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T400 | `class A { field $a = do { say "A.field" }; ADJUST { say "A.adjust" } } class B :isa(A) { ...the same for B... } B->new;` | `A.field B.field A.adjust B.adjust`: every field of every class, the parent's first, and only then every `ADJUST`, the parent's first | 17a | Agree: construction is two passes, not one class after another |
+| T401 | A field's default that names `$self`, or an `ADJUST` before the field it reads | Compile errors: `Global symbol "$self"`, `Global symbol "$y"`; a default may read the fields above it | 17a | Refuse, as perl does |
+| T402 | `P->new("x")`; `P->new({ x => 2 })` | `Odd number of arguments passed to "P" constructor`, a warning, and the object is made with `x` undef; the hash reference dies with its address in the message | 17a | Fault: an odd count of arguments to `new` (D15) |
+| T403 | `P->new(x => 1, x => 2)->x` | `2`, in silence | 17a | Agree: the last one given |
+| T404 | `P->new(x => 1, y => 2)`; `P->new` with a required `:param` missing | `Unrecognised parameters for "P" constructor: y`, `Required parameter 'x' is missing for "P" constructor`: dies, which a `try` catches, and the unknown ones are listed in hash order | 17a | Fault (D19): neither is caught, and the message is the language's |
+| T405 | `my $o = P->new(n => 1); say $o->m(($o = P->new(n => 2)) ? "x" : "y");` | `2:x`: a variable invocant is read when the call is made, after the arguments; `inv()->m(arg())` runs `inv` first | 17a | Agree (D14): the invocant is an operand like any other |
+| T406 | `class A { method v { return (1, 2, 3) } } class B { method v { return 7 } }`, `my $s = $o->v` for each | `3`, `7`: which method runs is known as the program runs, and so is whether it gives a list | 17a | D18 by the method's name, over every class (Q3) |
+| T407 | `sub P() { "sub" } class P { method m { 3 } } say P->new->m;` | `Can't locate object method "new" via package "sub"`: the sub is called, and its value is the class | 17a | Refuse a sub and a class of one name |
+| T408 | `say Q->new->inc; class Q { my $c = 10; method inc { ++$c } }` | `1`, where `11` after the class: a class's block runs where it stands, and a `my` in it is undef until then; an `ADJUST` or a field's default that reads one sees undef | 17a | Refuse anything but a declaration in a class's block (Q2) |
+| T409 | `method m` twice; `method x` beside `field $x :reader`; `method new`; `class P` twice; `package P` after `class P` | The first three warn `Method m redefined` (and `new` is gone); the fourth dies; the fifth adds to the class in silence | 17a | Refuse each |
+| T410 | `class B :isa(A) { } class A { }` | `Can't locate A.pm`: a parent not declared above is a module to load | 17a | Refuse (D20) |
+| T411 | `P->m` for a `method m`; `sub make($class, $v) { $class->new(...) }` in a class, called as `P->make(3)` and on an object; `P::m($obj)`; a field in a `sub` | `Cannot invoke method "m" on a non-instance`; the `sub` runs with the class name or the object, and `new` takes either; the method runs as a function, and dies for another class's object; `Field $x is not accessible outside a method` | 17a | A `sub` in a class is refused at 17a, and a method called by its full name (Q2) |
+| T412 | `for my $v (@a) { push @a, 9 if $v == 1; ... }` in a method, `@a` a field | `1 2 3 9`: the loop sees what was pushed | 17a | Fault (D17): a field is a container, frozen while a loop is over it |
+| T413 | `method m { $self = 1; ... }` | Runs: `$self` is a variable | 17a | Refuse: `$self` is read-only, as a loop's variable is |
+| T414 | `"$p"`, `$p + 0`, `%h = ($p => 1)`; `die E->new` uncaught | `P=OBJECT(0x...)`, the address as a number, the address as a key; the address on stderr | 17a | Fault (D112), as for every reference; caught, the object is itself (D142) |
+| T415 | `P->new isa Object`; `class Object { }`, `class Class { }`, `class Role { }` | `0`; all three declared: they are names like any other to perl | 17a | Refuse the three names in a program (D162 holds them) |
+| T416 | `$p->isa("P")`, `$p->can("isa")`, `$p->DOES("P")`; `method isa` of a class's own; `method DESTROY` | `1`, a code reference, `1`: every object has `UNIVERSAL`'s methods; the class's own `isa` wins; `DESTROY` runs as the object goes | 17a | Refuse a call of `isa`, `can`, `DOES` or `VERSION` as a method, and a method of those names or `DESTROY`, `AUTOLOAD`, `import`, `unimport`, `new` (D19) |
+| T417 | `$self->next::method()` | `Can't locate object method "method" via package "next"` | 17a | Refuse; `SUPER::` says it |
+| T418 | `field @a :reader`, then `my $n = $p->a;` | `3`: a reader of an array or a hash is its count where one value is wanted | 17a | D18: a reader of an array or a hash is list-shaped, and faults there |
+| T419 | `method m;` in a class of perl 5.42's, then `$p->m` | Accepted in silence; the call dies `Undefined subroutine &P::m` | 17a, 17b | Refuse at 17a; in a role at 17b it is a required method |
+| T420 | `role R { field ...; ADJUST { say "R.adjust" } } class C :does(R) { field ...; ADJUST { say "C.adjust" } }` (the roles perl) | `R.field C.field C.adjust R.adjust`: a role's fields before the class's, and its `ADJUST` after | 17b | Agree, by the roles perl |
+| T421 | `role R { sub helper { "h" } method m { helper() } }` (the roles perl) | `m` works, and `C->can("helper")` is false: a `sub` of a role's is not composed | 17b | Refuse a `sub` in a role, as in a class (Q2) |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

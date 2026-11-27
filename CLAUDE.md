@@ -512,7 +512,16 @@ argument count counts `$self`, `17-method-count`, which Curly's
 uncatchable fault for a wrong count hides). Two tests of the branch's
 own fail there too, and are mended in the patch. **Not built by the
 environment's setup script yet** (three minutes), and nothing runs it
-(`CURLY_PERL_ROLES` when 17b does).
+(`CURLY_PERL_ROLES` when 17b does). **Step 17's proposal is begun**
+(`PLAN.md`, step 17, "The proposal"): 17a in full, 17b and 17c in
+outline; **T400 to T421** found writing it (`briefs/claims17.py`,
+about 150 programs; a row marked `roles` runs under the roles perl,
+and fails without it); the questions Q1 to Q8, each with a
+recommendation, wait for Stevan, whose answers become D170 on, and
+then an adversarial review before anything is built. What it turns
+on: **a method call reaches every method of its name** (the program
+is one file, Q3); **construction is perl's two passes** (T400);
+**a class's block holds declarations only** (T408, T411).
 Not agreed: what the decisions leave to steps, listed at the end of
 [`docs/DESIGN.md`](docs/DESIGN.md).
 

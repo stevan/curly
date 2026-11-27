@@ -6441,6 +6441,259 @@ script grow by it.
 Step 27 keeps whatever of roles 17b does not take, and step 28 the
 API (D163).
 
+#### The proposal (begun 2026-11-27)
+
+**Begun while step 14 is built in another session, so nothing here
+leans on closures**: a method is a named sub, and `sub { }` in a
+method waits for 14. Its traps are T400 to T421 (`TRAPS.md`, "Found
+proposing step 17"), each a row of `briefs/claims17.py`, about 150
+programs run under perl 5.42.0 and the roles perl. **Size**: large, as
+the line above says, and 17a alone is about 13a's: a new kind of value
+in the runtime, a new kind of call, and every walk over names learning
+what a method call may reach. The questions are Q1 to Q8 below, each
+with a recommendation; Stevan's answers become decisions from D170,
+and then **the proposal is reviewed adversarially before anything is
+built** (a large step's rule). 17b and 17c are outlined here and
+proposed in full when 17a is built.
+
+**The census**: 124 probes wait for step 17. 104 stop at a method
+call and 20 at `bless`, but **only 16 use `class`**: the rest call
+methods of packages made with `bless`, `@ISA` or `our`, or run in
+`eval`, all cut by D19 and D20, and will move to `by-design/`. Of the
+16, perhaps 14 come through `SAME`; two (`class-feature-09`,
+`pp-x249`) take a method's array for its count, which D18 faults, as
+it does for a sub. As at step 15, the language gains far more than
+the census shows.
+
+##### The picture
+
+**An object is a value that says which instance it is; an instance is
+a block of the collector's that holds its class and one slot a
+field.** A class is itself an instance of `Class` (D162), made as the
+program starts from what the compiler wrote down: its name, its
+parent, its fields, the code of each method, the code that builds an
+instance. `Object`, `Role` and `Class` are the first three, built by
+hand in the runtime; nothing in the language names them until the
+metaobject protocol (step 28), so to a program they do not exist
+(T415).
+
+**The program is one file until step 18, so every class, every method
+and every call is known as it compiles.** That is what lets the
+compiler's walks (D18's shapes, D69, D76, D77, D109, D57, T230's
+rule) see through a method call: a call `$x->m(...)` may reach any
+method named `m`, and the walks take all of them (Q3). The runtime
+dispatches by a number the compiler gives each method name: a class's
+table, built as the program starts, holds the code for each number it
+answers, its parent's where it has none of its own.
+
+**Construction is generated code, as a sort's comparisons are**
+(D83): `Name->new(LIST)` calls a C function written for the class,
+which checks the pairs, makes the instance, runs every field's
+initializer from the root class down, then every `ADJUST` from the
+root down (T400), and gives the object back. The runtime still calls
+no generated code: it makes the instance and fills the tables.
+
+##### The language at 17a
+
+- **`class NAME { DECLARATIONS }`**, at the top level, NAME a word or
+  words joined by `::`, declared once (T409), not `Object`, `Role` or
+  `Class` (T415), not the name of a sub (T407). A class may be used
+  above its declaration (`17-used-before`): it exists before the
+  program's first statement runs.
+- **What the block holds is declarations, and nothing else** (Q2,
+  T408): `field`, `method`, `my method`, `ADJUST`. No statement, no
+  `my`, no `sub` (T411), no `use`, no class inside it.
+- **`field $x`, `field @a`, `field %h`**, with a default (`= EXPR`)
+  worked out at each construction, in order, seeing the fields above
+  it and never `$self` (T401); a list for an array or a hash, an odd
+  list for a hash a fault (`17-field-hash-odd`). A field is seen in
+  the methods and `ADJUST` blocks of its own class, and not in a
+  subclass (T56: a subclass may declare one of the same name,
+  `17-shadow-field`).
+- **`:param`** on a scalar field (`17-param-array`), `:param(NAME)`,
+  with `=`, `//=` or `||=` for its default (`17-param-defined-or`),
+  the default not worked out when the argument is given
+  (`17-param-default-skipped`). A name used twice along the chain is
+  refused, as perl refuses it (`17-param-collide`).
+- **`:reader`**, `:reader(NAME)`: a method giving the field's value, a
+  copy (`17-reader-copy`). **A reader of an array or a hash is
+  list-shaped** (D18, T418): where one value is wanted it faults, where
+  perl gives the count. **`:writer`** on a scalar field (Q5): `set_x`,
+  one argument, giving the object back (`17-writer`).
+- **`method NAME SIGNATURE BLOCK`** and `method NAME BLOCK` (D105: any
+  number of arguments, worked out, none seen). `$self` is the object,
+  **read-only** (T413). A method is a sub to every rule of step 8 and
+  10a: copies, perl's order, a wrong count a fault (the language's
+  message: perl's leaves `$self` out of its count, `17-method-count`),
+  `return` and a last statement, list-shaped or not. Names may be
+  perl's own words (`17-builtin-names`); not `new`, `isa`, `can`,
+  `DOES`, `VERSION`, `DESTROY`, `AUTOLOAD`, `import` or `unimport`
+  (T409, T416), not one already given by a `:reader` or `:writer`
+  (T409). `method NAME;` with no block is refused (T419).
+- **`my method NAME ...`** and **`$self->&NAME(ARGS)`**, a method seen
+  only in its class's block (`17-lexical-method`).
+- **`ADJUST BLOCK`**, any number, run in order after every field
+  (T400); it sees `$self` and the class's fields; `return` leaves it.
+- **`:isa(PARENT)`**, one parent, a class declared above (T410). A
+  parent's methods are the child's unless it has its own, and its
+  `:param`s are the child's arguments too (`17-param-parent`).
+- **`NAME->new(PAIRS)`**, on a class's name and nothing else (Q4:
+  perl takes an object too, `T411-new-on-object`). Each pair names a
+  `:param` of the class or a parent; the last of a name given twice
+  wins (T403); an odd count (T402), an unknown name or a missing
+  required one (T404) is a fault. Inside a method,
+  **`__CLASS__->new(...)`** makes one of the object's own class
+  (`17-field-class`).
+- **`EXPR->NAME(ARGS)`** and `EXPR->NAME`, a method call: the
+  invocant first, then the arguments, a variable invocant read when
+  the call is made (D14, T405). **`$self->SUPER::NAME(...)`** in a
+  method. A call whose invocant is undef, not an object, or an object
+  with no such method is a fault (`17-undef`, `17-unblessed`,
+  `17-missing`); **a name no class has is refused**, and so is
+  `NAME->m` for a NAME no class has, and a method of a class called on
+  its name (T411).
+- **An object** is true, `==` and `!=` to another by identity, `ref`
+  gives its class's name, `builtin::blessed` the same,
+  `builtin::reftype` `OBJECT` (`17-object`); **anywhere a number or a
+  string is wanted it is D112's fault** (T414), printing and hash keys
+  among them. `die` throws one as itself and a `catch` gets it
+  (`T414-caught`). **`EXPR isa NAME`**, NAME a class the program
+  declares (T52 for its precedence; perl gives false for any other
+  name, `17-isa`).
+- **A field is a container** (T412): a loop over a field's array or
+  hash freezes it (D17), as over any array; `\@a` of a field in a
+  method is in (D110, `17-field-ref`), and what references reach knows
+  it (D109).
+- **Refused at 17a**: everything above marked so, and `class NAME;`
+  without a block (Q5), `class NAME VERSION` and `:isa(NAME VERSION)`,
+  a method chosen by a string, a class named by a string (`$c->new`,
+  `ref($self)->new`), `next::method` (T417), `NAME::m($obj)` (T411),
+  calls of `UNIVERSAL`'s methods (T416), `new NAME` (perl refuses it,
+  `17-indirect`).
+
+##### What perl does that the obvious build gets wrong
+
+The rows of T400 to T421; the ones that would print what perl doesn't:
+
+- **Construction is two passes** (T400): fields of every class, root
+  first, then every `ADJUST`, root first. One class finished before
+  the next prints in another order.
+- **A variable invocant is read late** (T405): the obvious build reads
+  `$o` before working out the arguments.
+- **Which method runs, and whether it gives a list, is known only as
+  the program runs** (T406): a shape decided by the method the
+  compiler happens to see first is WRONG for the other.
+- **A sub of the class's name is called instead of the class** (T407).
+- **A class's block runs where it stands** (T408): a `my` in it is
+  undef until then, for every method and default that reads it.
+- **A loop over a field's array sees what the loop pushes** (T412).
+- **An object made a string is its address** (T414), which differs
+  from run to run.
+
+##### The questions, each with a recommendation
+
+- **Q1. Three sub-steps, and the core from the first** (D165): 17a
+  classes as perl 5.42 has them, on the core of D162 built from the
+  start, its three names held back from programs; 17b roles, by the
+  roles perl; 17c representations and the construction protocol.
+  **Recommended.** Rejected: plain records for classes at 17a and the
+  core at 17b (every class would be made twice over, and D162 says a
+  class *is* an instance of `Class`).
+- **Q2. A class's block holds declarations only** (T408, T411):
+  `field`, `method`, `my method`, `ADJUST`. **Recommended.** Rejected:
+  `my` in the block with perl's meaning (a variable that is undef
+  until the block's place in the file is reached, T408: a file
+  variable says the same, and every reader of it would need T147's
+  rule again); `sub` in a class (perl calls it as a method with the
+  class's name or an object first, T411: a second kind of method, and
+  the first thing a class method wants is a class named by a string).
+- **Q3. A method call reaches every method of its name**, the program
+  being one file: its shape is a list if any of them gives one, and
+  the fault of D18 is raised at run time by the method reached, as a
+  `return` raises it now; every walk over names takes all of them.
+  **Recommended.** Rejected: refusing a call whose methods disagree in
+  shape (stricter, and refuses `v` in two unrelated classes); types
+  to narrow it (step 25). What it costs: a method that changes a field
+  makes every call of its name a change of that field's name, wherever
+  the call is, which is blunt and safe; whether it bites is for the
+  review and the census to say.
+- **Q4. `new` on a class's name alone, `__CLASS__->new` in a method.**
+  **Recommended.** Rejected: `$obj->new` as perl has it (T411), a
+  class named by what a value holds.
+- **Q5. The surface of 17a**: `:writer` in (it is small, and perl 5.42
+  has it); `class NAME;` without a block, `class NAME VERSION` and
+  `:isa(NAME VERSION)` out until a step wants them (the first is a
+  class that runs to the end of the file or the next `package`, which
+  is step 18's question). **Recommended.**
+- **Q6. `$self` is read-only, and a field is a container** (T412,
+  T413): frozen by a loop over it, reached by `\`, known to D109.
+  **Recommended.**
+- **Q7. An object is a reference by D112**: true, `==` by identity,
+  `ref` and `blessed` its class, `reftype` `OBJECT`, a fault as a
+  number or a string. **Recommended.** Rejected: a string for an
+  object (perl's is an address).
+- **Q8. `Object`, `Role` and `Class` are held back**: refused as a
+  class's name and after `isa`, until step 28 shows them (T415).
+  **Recommended.** Rejected: letting a program see them now (`$o isa
+  Object` would be true here and false under perl).
+
+##### 17b and 17c, in outline
+
+**17b, roles**, refereed by the roles perl (D161, D166): `role NAME {
+}` with what a class's block holds and `method NAME;` for a required
+method; `:does(ROLE, ...)` on a class or a role; composition by the
+algebra as the roles perl does it, its errors refusals here (missing,
+conflicting: `17b-required-missing`, `17b-conflict`, a field's too,
+`17b-field-conflict`); a class's own method over a role's
+(`17b-class-wins`); a role's fields private to it
+(`17b-field-private`); its `ADJUST` after the class's (T420); no `sub`
+in a role (T421); `EXPR does ROLE` (`17b-does`). A role is an instance
+of `Role` (D162). Its questions: whether a role's method that names a
+role's field is compiled once or once per class that does it; the
+test kind for a program the roles perl referees; whether `isa` of a
+role is refused (perl gives false).
+
+**17c, representations and the construction protocol** (D160): no
+perl has them, so the sub-step's first question is its referee. The
+options to weigh then: the instance made by `:repr(...)` or by a
+method of `p5-UNIVERSAL-Object`'s (`REPR`, `CREATE`), with `Cor`'s
+planned `:REPR` for its spelling; a patch to the roles perl, as roles
+had, so that perl referees it; or a model of its own (D5). Nothing of
+17c is proposed yet.
+
+##### In the runtime and the compiler, 17a
+
+- **The runtime** gains an object's tag and an instance's block (its
+  class, then one slot a field, the collector walking them as it walks
+  an array), a class's block (an instance of `Class`, its slots the
+  name, the parent, the fields' count, the method table), the three of
+  the core made by hand, and dispatch: `rt_method(ctx, obj, id)` gives
+  the code or faults. A frozen field is a frozen container as now.
+- **The compiler**: `class`, `field`, `method`, `ADJUST` in the
+  parser and the table of names; the resolver gives each field its
+  slot and each method name its number; the checker's walks learn
+  method calls (Q3); the code generator writes a C function a method,
+  `$self` its first parameter, and one a class's construction (T400),
+  and the tables the runtime fills at the start.
+- **Tests**: a model, `t/models/obj.py` (Python's classes with perl's
+  two passes, readers, `SUPER`), writing `same` tests and the edges'
+  faults; fault tests by hand at each edge; refusals from a table
+  (`briefs/step17a-refusals.py`); C tests of dispatch and the
+  collector's walk of an instance.
+
+##### How it moves the other files
+
+- **SURFACE.md**: the rows of "Classes" by the answers: `:writer` In
+  (Q5), `sub` inside a class and `my` in a class's block Cut (Q2),
+  `class Name;` Later (Q5), `$obj->new` Cut (Q4), `UNIVERSAL`'s
+  methods Cut (T416).
+- **DIFFERENCES.md**: rows for what a Perl programmer will meet and
+  miss: `sub` in a class and class methods (`P->make(...)`), `my` in a
+  class's block, `$obj->new` and `ref($self)->new`, `->isa` and
+  `->can`, a reader of an array where one value is wanted. Each to be
+  rated with the answers.
+- **The census**: as above, about 16 in and 108 by design.
+
 ### 18. Modules
 
 Referee: perl. Size: large.
