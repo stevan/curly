@@ -852,6 +852,29 @@ Every program is kept there and is a row of `briefs/claims17.py`
 | T436 | `field $y :param` on one line, `= die "no y";` on the next (15) | `no y at ... line 4.`, the field's first line | 17a | A field's declaration is a statement to D150 (D178) |
 | T437 | `grep { $self->drop } @a`, `drop` shifting the field `@a` (17) | perl dies of a segmentation fault | 17a | No test asks perl for it (T194's kin) |
 
+## Found proposing step 16d, and what the census's reading asked for
+
+Found writing `PLAN.md`, step 16, "What the census's reading asked for"
+and "16d" (2026-11-27, in the worktree `step-16d`). Each row is in
+`briefs/claims16d.py`, which `briefs/claims.py` reads, but T663's hang,
+which no claim can run.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T660 | `my @a = (1, 2, 3); $#a = -2; say scalar @a;` | `0`, in silence: anything below -1 empties the array | 16 census | A fault below -1 (D251) |
+| T661 | `my @a = (1, 2, 3); undef @a[0, 1]; say "@a";` | `1  3`, and a warning: only the slice's last element is made undef | 16 census | `undef` of a slice refused (D252) |
+| T662 | `L: do { last L } while ($i < 5);` | Compiles, and dies as it runs: `Label not found for "last L"` | 16 census | No label on `do { } while` (D253, D61) |
+| T663 | `do { $i++ } while (die "x\n");` | Runs for ever, and never the block; `until (die ...)` dies once | 16 census | A `die` in the test of `do { } while` refused (D253) |
+| T664 | `uc "\x{345}\x{345}"`; `uc "\x{345}x\x{345}"` | One U+0399 for the two together; two apart | 16d | A fault for two together; the rest by the table (D257) |
+| T665 | `say "a",\n __LINE__;` | `a2`: the token's own line, where a `die` names the statement's | 16d | `__LINE__` is its token's line (D255) |
+| T666 | `say 1;\n=cut\nsay 2;\n=cut\nsay 3;` | `1`, `3`: `=cut` alone begins POD | 16d | As perl (D255) |
+| T667 | `=pod`, `# line 200 "x"`, `=cut`, then `die "here";` | `here at x line 202.`: a line directive in POD counts | 16d | Refused in POD as outside it (D255, D147) |
+| T668 | `for my $i (0 .. $#a) { push @a, 9; shift @a; @a = (); }` and kin | The loop runs as often as the array was long as it began: a range's ends are worked out once | 16 census | A loop over one range freezes nothing its ends name (D259) |
+| T669 | `my $n = 3; for my $i (1 .. $n) { push @s, sub { $i } } $n = 9;` | `1,2,3`: each sub its own number, never `$n` | 16 census | D166's refusal does not hold for a lone range (D259) |
+| T670 | `my ($p) = (0) or die "e\n"; say "here";` | `here`: the list assignment's count is tested | 16 census | `or die` after a list assignment refused (D260) |
+| T671 | `sort(l("cab"))`, `sort(l ("cab"))` | `abc`, then `cab`: with a blank, `l` is a sub to compare by | 16 census | A word first in `sort(...)` refused as after a bare `sort` (D262) |
+| T672 | `for ("abc") { my @e; say scalar reverse(@e) }` | `cba`: `scalar reverse` of an empty list reverses `$_` | 16d | A fault for an empty list (D258) |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

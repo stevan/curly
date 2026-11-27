@@ -2597,3 +2597,128 @@ now, a walk that refuses whatever would let a program see the order
 of construction, which would refuse most `ADJUST`s that print and
 every default that reads a variable a default above it changes, and
 is better decided beside the protocol that may change the order.
+
+## Step 16d, and what the census's reading asked for
+
+*D250 to D262 are the builder's recommendations (Fable 5.2, 2026-11-27,
+in the worktree `step-16d`), taken under Stevan's standing instruction
+of that day ("I pre-approve all your recommendations"), each his to
+overturn; `PLAN.md`, step 16, "What the census's reading asked for" and
+"16d". No second agent could be spawned in that session, so each part's
+adversarial review was a separate pass of the builder's, with
+generators held to perl (`docs/briefs/step16d-review/`). D259 overturns
+a note of D81's and is marked for Stevan to veto.*
+
+**D250. `scalar` without brackets takes an array or a hash, and nothing
+binds to it after.** `scalar @a`, `scalar %h`, `scalar keys %h`,
+`scalar values %h`, `scalar $r->@*`, `scalar @{ $r }` are what they are
+with brackets. perl's `scalar` is a named unary operator over any
+expression, reading on through what binds tighter (`scalar @a + 1` is
+`scalar(@a + 1)`): every such reading gives the same number, but an
+operator that binds tighter after the array is refused all the same, as
+after `keys` (T220). Rejected: taking perl's grouping (the same answers,
+one more thing to read); `scalar` of a scalar (no meaning but itself).
+
+**D251. `$#a = N;` is a statement that makes the array N + 1 long**,
+through a reference too (`$#{ $r } = N;`, `$r->$#* = N;`, making an
+undef as `push` does), with `=` alone; N a whole number by an index's
+rule, a fault below -1 (T660: perl empties the array in silence); to
+every walk a builtin that changes the array, as `splice` is.
+Rejected: its value and `+=`/`++` (perl has both; nothing needs them);
+perl's silence below -1.
+
+**D252. `undef EXPR;` is a statement, read as the assignment it is**:
+`$x = undef;`, or `@a = ();` and `%h = ();` for a whole container,
+through references too, so that every rule of an assignment holds.
+Refused: a slice (T661: perl makes only its last element undef), and
+`undef` with a target where a value is wanted. Rejected: a value (perl
+gives undef; one more meaning for one word).
+
+**D253. `do BLOCK while TEST;` and `until` are in: the block, then the
+test; no loop to perl, so no `last` or `next` with no label in it, and
+no label on it.** Amends D58, which left it out for want of `do BLOCK`:
+the form has no value, so D18 has nothing to say of it. A `my` in its
+test, and a `die` there (T663: perl 5.42 runs `do { } while (die ...)`
+for ever), are refused. Rejected: D58's "for now"; a loop form whose
+`last` leaves it (perl's leaves the loop round it, T64).
+
+**D254. `substr` of four arguments is a statement on a scalar variable;
+lvalue `substr` is cut.** The piece is three arguments' piece exactly,
+outside the string a fault; the variable is assigned the new string.
+Refused: its value (perl's is the piece taken out), any first argument
+but a scalar variable. Cut: `substr(...) = ...` and `\substr(...)`
+(D17: places do not flow), which the four-argument form says.
+
+**D255. POD, `__END__`, `__DATA__`, `__FILE__` and `__LINE__` are in.**
+POD where a statement may begin, from a line `=` and a letter to a line
+`=cut` and no more of a word (T666: `=cut` alone begins it), refused
+elsewhere, and a `# line N` in it refused as D147 refuses one outside
+(T667: perl honours it there). `__END__` and `__DATA__` end the program
+where a statement may begin (`<DATA>` stays out, D20). `__LINE__` is
+the token's own line (T665), `__FILE__` the path compiled, refused if it
+is not printable ASCII. Rejected: POD anywhere a line begins (perl
+refuses it mid-statement).
+
+**D256. The case escapes `\U \L \Q \E \u \l` are in, a plain subset of
+perl's rules, and `quotemeta` with them.** `\U`, `\L`, `\Q` begin a run
+to `\E` or the string's end, none inside another; `\u` and `\l` cover
+the rest of the string, as perl's do, and may stand first in a run.
+Refused: a run in a run (perl's replace one another or nest), `\u` or
+`\l` after a run's start, `\E` with nothing open (perl warns), `\F`.
+Rejected: perl's whole rules (a stack with replacement and swaps, met
+by nobody); `\F` as `lc` (wrong for `ß`).
+
+**D257. `uc`, `lc`, `ucfirst`, `lcfirst` and `quotemeta` past ASCII are
+perl's own tables**, generated from perl 5.42 by
+`briefs/step16d-cases.py` into `runtime/cases16d.c`, a string mapped a
+character at a time, which perl was asked too; but `uc` of two U+0345
+together is a fault (T664: perl makes one U+0399). Rejected: Unicode's
+tables from another source (another version, another answer somewhere);
+keeping the fault (the commonest thing a program in another language
+asks of a string).
+
+**D258. `scalar reverse LIST` is in; `reverse` where one value is
+wanted by context alone stays refused.** The list joined, its
+characters reversed; a list with nothing in it a fault (T672: perl
+reverses `$_`). Rejected: reverse by context (T23: the same word, two
+functions, chosen by where it stands).
+
+**D259. A loop over one range freezes nothing its ends name, D77 does
+not guard it, and a sub with no name may take its variable** (T668,
+T669, T172). *Overturns D81's note that `for my $i (0 .. $#a)` freezes
+`@a`, and its "rejected for now: an exception for a range's ends",
+and widens D166; Stevan's to veto.* perl works a range's ends out once,
+before the loop, and the generated code counts between two C integers
+it worked out then: no store in the block can be seen by the loop. The
+freeze stays for every other list: a range with other items, under
+`reverse`, the lists of `map`, `grep` and `sort`, and an array walked
+itself. The loop's variable stays read-only. Rejected: leaving the
+commonest loop in Perl a fault (85 of the census's 178 LOUD probes, and
+an insertion sort of the examples); the exception for `map`, `grep` and
+`sort` (their lists are built and frozen whole; nothing asked for it).
+
+**D260. `EXPR or die LIST;` and `EXPR or return ...;`, `or last`, `or
+next`, and `and` likewise, are statements: `STATEMENT unless EXPR;` (or
+`if`), written the other way round.** Amends D56 and D146. Only those
+four after the word, nothing after them; a `my` on the left is declared
+for what follows, unseen by the statement after the word, as in perl;
+`Found = in conditional` is D53's refusal already. Refused: a list
+assignment on the left (T670: perl tests its count), a modifier after.
+Rejected: any statement after the word (`$x = 1 and $y = 2;` is two
+statements, D56); D146's "step 21 may want it" (the idiom is in every
+program, files or not).
+
+**D261. A message "written to end in a newline" (D150) is also a
+concatenation whose last piece is one, and a `sprintf` whose literal
+format ends in a newline.** perl adds no line to either. Not a `join`
+(its last item decides, unseen), not a format whose newline is not its
+last character, not `x`. Amends D150.
+
+**D262. `sort(LIST)` and `sort({ ... } LIST)` with the bracket hard
+against the word are in; every refusal of a bare `sort` holds inside
+the brackets.** Amends D89. perl is silent for it, and reads the
+brackets as the bare form's list (T671: a word first is still a sub to
+compare by). Refused: a blank before the bracket (perl warns, T190), a
+subscript after it. `map(...)` and `grep(...)` stay refused (D85).
+Rejected: brackets for `map` and `grep` too (their expression form is
+the one D85 cut).

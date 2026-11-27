@@ -6579,6 +6579,311 @@ value`). A chain in `qq` or a heredoc is refused for step 13d, as in
 double quotes, by the same function; `sprintf`'s and `printf`'s lists
 are walked for D109 as `join`'s. Tests 3820 to 3837.
 
+#### What the census's reading asked for
+
+**Proposed 2026-11-27, by Fable 5.2, in a worktree of its own
+(`step-16d`, from the branch `census-read`) while step 17a is built in
+the main tree; each question answered by its recommendation under
+Stevan's standing instruction of 2026-11-27 ("I pre-approve all your
+recommendations"), recorded as D250 to D253, each his to overturn.**
+Its input is `docs/briefs/census-open/README.md`, list (c): the cheap
+refusals, ranked by the probes they free. Its fifth item, `do { }` as a
+value, is machinery and is not taken; nor `exists` and `delete` of an
+array's element (its (d), Stevan's), nor a bare `shift`. Everything
+said here of perl was run under 5.42.0 and is a row of
+`briefs/claims16d.py`. Traps T660 to T663, found writing it. The size:
+small, four parser changes and one runtime function; my model agrees.
+
+**1. `scalar` without brackets (D250).** `scalar @a`, `scalar %h`,
+`scalar keys %h`, `scalar values %h`, `scalar $r->@*`, `scalar @{ $r
+}`, `scalar %{ $r }`: the same node as with brackets. perl's `scalar`
+is a named unary operator over any expression, and reads on through
+whatever binds tighter than one: `scalar @a + 1` is `scalar(@a + 1)`,
+4, and `scalar @a[1]` a slice (a warning). Every such reading gives
+what the other grouping gives (the operand of `+ - . x **` is a count
+either way: `16d-scalar-reads-on`), but the language does not lean on
+that: **an operator that binds tighter than a named unary after the
+array or hash is refused**, `write scalar(...)`, as `keys %h` without
+brackets already is (T220). `scalar $x` stays refused, brackets or not
+(perl's takes any expression). `scalar reverse` is 16d's.
+
+**2. `$#a = N;` (D251).** A statement that makes the array N + 1 long,
+cutting it or growing it with undefs, as perl does (`16d-lastindex`;
+an element grown so is undef, and not `exists`, which the language
+does not have of an array's element). Also `$#{ EXPR } = N;` and `EXPR->$#*
+= N;` (13b refused the second: "as `$#a = N`"), which make the array
+through an undef as `push` does (D107, T344: perl makes it). N is a
+whole number by the rule of an index (cut toward zero: perl's `$#a =
+1.7` leaves two elements, `-0.5` one, `16d-lastindex-cut`); **below
+-1 a fault**, `an array's last index set below -1` (T660: perl empties
+the array in silence for -2 or -5, a spelling no program means);
+undef and a string that is no number are D48's and D40's faults
+(perl warns). The right side first, then the array (perl's order for
+an assignment). **A statement alone, with `=`**: perl's has a value
+(`($#a = 0)` is 0) and takes `+=` and `++` (`16d-lastindex-value`),
+all refused; in a block of its own, so that a sub that ends in one has
+no value (perl's would be N), as `chomp` is (D130). To every walk it
+is a builtin that changes the array, as `splice` is: D76's order, D77,
+the freeze (`16d-lastindex-foreach`: perl cuts the array under its
+own `foreach` and stops the loop; here the freeze's fault), and D109
+(through a reference it changes what references reach, and may make
+its head). The runtime gains `rt_last_index_store`, in a file of the
+step's own, `runtime/more16d.c`. `SURFACE.md`'s two rows (Cut beside
+`$r->$#*`, Later two rows on) become one, In.
+
+**3. `undef EXPR;` (D252).** `undef $x;`, `undef $a[I];`, `undef
+$h{K};`, `undef @a;`, `undef %h;`, and through a reference, `undef
+$r->[0];`, `undef $r->{k};`, `undef $r->@*;`, `undef @{ $r };`, `undef
+%{ $r };`, `undef $r->$*;`, `undef ${ $r };`, with brackets or
+without, a modifier after it or not: **read as the assignment it is**,
+`$x = undef;`, or `@a = ();` and `%h = ();` for a whole container, so
+that every rule an assignment has holds with nothing new (a loop's
+variable is read-only, D17: perl's `undef $x` in a `foreach` changes
+the list's element, `16d-undef-foreach`; the freeze; D76; D109, a
+store through a reference making its hops, as perl's `undef
+$u->[1]` and `undef @{ $u }` make `$u`, `16d-undef-ref`). perl's
+`undef $a[3]` makes the array four long, as the assignment does.
+**A statement alone**, in a block of its own, as `chomp` is: perl's
+gives undef (`my $y = undef $x`), and `undef $x, print ...` is a
+list. **Refused**: a slice (T661: perl's `undef @a[0, 1]` makes only
+the last element undef), anything else after `undef` that is no
+target, and `undef` with a target where a value is wanted (as now:
+`undef before '$x'`). The lexer read `%` after `undef` as the modulus;
+it is a hash there now, as perl has it.
+
+**4. `do { ... } while TEST;` and `until` (D253, amending D58).** The
+block runs, then the test, again while it holds. **It is no loop to
+perl** (T64, `T64-last`): a `last` or `next` with no label in its
+block leaves the loop round it, in silence, or dies with none; **so it
+is refused, as D59 refuses one in a bare block**; with a label it
+leaves the labelled loop round it, as perl does (`16d-do-while-label`).
+**It takes no label** (T662: perl's `L: do { last L } while ...`
+compiles and dies `Label not found` when it runs): refused by D61 as a
+label on what is no loop. A `my` in the block is new each time round
+and not seen by the test (perl does not compile `do { my $j } while
+($j)`, `16d-do-while-my`: the resolver refuses it as undeclared). A
+`my` in the test is refused (perl declares it for after the
+statement). **A `die` in the test is refused** (T663: perl 5.42 runs
+`do { ... } while (die "x\n")` for ever, the block never once; a test
+that asks it cannot end), and a `warn` not ending in a newline is
+refused there as in a `while`'s test (D150, T316: perl names its own
+line). **Refused**: `do { }` followed by anything but `while` or `until`
+(`do { } for`, `do { } if`, `do { };` and `do { }` as a value), and a
+second modifier (perl does not compile it). A fault in the test names
+the line of the `do`. In the tree a `while` with `post` and one block
+for its body; in the C a `for (;;)` with the block and then the test.
+D58 rejected exactly this ("a loop form of its own, with `last` and
+`next` refused inside its block") for want of `do BLOCK`; the census
+asks for it (11 probes, 8 freed), and the form never has a value, so
+D18 has nothing to say of it.
+
+**Tests** (6000 to 6099): `same` tests by hand with perl's answers for
+each of the four (golden `.expected` from `make oracle`); a fault test
+at each new fault's edge (-1 and -2 for `$#a`, undef, a string, the
+freeze, through undef by a builtin that reads); refusals from a table
+by hand, `briefs/step16d-refusals.py`. 768 and 2146, refusals today,
+become `same` tests. **The census**: the 10, 8, 11 and 8 probes of
+the four causes are expected to free 10, 8, 8 and 5 (the reading's
+estimates). **DIFFERENCES.md**: the rows for `$#a = N`, `undef $x`
+and `do { } while` lose what is now in, and gain what is refused of
+them (a value, `+=`, a label, a slice).
+
+**Three more, asked for by the examples track** (the coordinator,
+2026-11-27, from `examples/BENDS.md` on the branch `examples`: 54
+programs written as a Perl programmer writes them; its claims are
+`claims24.py` there, and those this part leans on are rerun as rows of
+`claims16d.py`).
+
+**5. `EXPR or die LIST;`, `EXPR or return ...;`, `or last`, `or next`,
+and `and` likewise (D260, amending D56 and D146).** perl's meaning is
+plain (`16d-or-die`, `16d-or-return`, `16d-or-next`): the expression,
+then the statement after the word if the expression's value is false
+(`or`) or true (`and`); it is `STATEMENT unless EXPR;`, written the other
+way round, and the language reads it so (an `if` modifier, `joined`).
+D56's reasons, each answered: **two statements joined** (`$x = 1 and $y
+= 2;`) stay refused, for what may follow the word is exactly `die
+LIST`, `return`, `return EXPR`, `last` and `next` with or without a
+label, and nothing after them; **`Found = in conditional`** (perl warns
+where the right of `=` is a constant, `16d-or-die-constant`) is D53's
+refusal already, the left being tested; **the `my`**: `my $f = E or die
+...` declares `$f` for what follows the statement, as perl has it, and
+the statement after the word does not see it (perl does not compile
+`my $f = $y or die "f is $f"`, `16d-or-die-own-variable`: the resolver
+reads the left after the right, as for any modifier, and refuses it as
+undeclared). **Refused**: an assignment of a list on the left (T670:
+perl tests the count of the right side, `my ($p) = (0) or die` does
+not die; D78 refuses it as a value already), a modifier after (perl's
+is over the whole statement), anything but those four after the word.
+D150 holds: a `die` with no newline in a statement over two lines is
+refused, as anywhere.
+
+**6. `sort(LIST)` and `sort({ ... } LIST)`, the bracket hard against
+the word (D262, amending D89).** perl is silent for it and reads in the
+brackets what it reads after a bare `sort` (`16d-sort-brackets`), so
+every refusal of a bare `sort` holds inside them: a word first is a sub
+to compare by (T671: `sort(l("cab"))` calls `l`, and `sort(l ("cab"))`
+sorts by it, with a warning; refused, as T189 has it), a scalar first
+likewise (`sort($by @x)`). **Refused**: a blank before the bracket (perl
+warns, T190), a subscript after the brackets (perl does not compile
+it). `map(...)` and `grep(...)` stay refused (D85: their block form is
+the one in; `map(EXPR, LIST)` is the other).
+
+**7. A `die` or `warn` over several lines whose message ends in a
+newline through a concatenation or a `sprintf` (D261, amending D150).**
+"Written to end in a newline" grows two cases, each one perl adds no
+line to (`16d-die-concat`, `16d-die-sprintf`): the last argument a
+concatenation whose last piece is written to end in one (a literal, an
+interpolated string's last text, or a concatenation again), or a
+`sprintf` whose format, a literal (D124), has a newline for its last
+character (no conversion can follow it). **Not taken**: a `join`, whose
+last item decides (`16d-die-join-last`: perl adds no line when it ends
+in one, but the compiler cannot see it); a format whose newline is not
+last (`16d-die-sprintf-inner-newline`); `x`, which may repeat it no
+times.
+
+**Tests** for 5 to 7: 6004 to 6006 `same`, 6033 and 6034 faults, 6082
+to 6098 refusals, from the same table.
+
+##### The freeze's exception for a lone range (D259: overturns a note of D81, and Stevan's to veto)
+
+**This overturns D81's "the freeze is by name, and not by reach:
+`for my $i (0 .. $#a)` freezes `@a`" and its "an exception for a
+range's ends, which is sound and can be added", and widens D166.
+Stevan's to veto; built on the standing instruction because the review
+could not break it.** The census found 85 of its 178 LOUD probes are
+the freeze, most of them the commonest loop in Perl, `for my $i (0 ..
+$#a) { $a[$i] = ... }`, and the examples track met it in an insertion
+sort.
+
+**What perl does** (T668, run): a loop over one range works its two
+ends out once, before the first time round. Nothing the block does to
+what they name changes the loop: elements stored, `push`, `shift`, `@a =
+()`, `$#a = 0`, `$h{$k} = 1` under `1 .. keys %h`, `push $r->@*` under
+`0 .. $#{$r}`, a store to `$a[1]` under `$a[0] .. $a[1]`, and a sub
+called in an end runs once (`16d-range-sub`). The loop's variable is a
+new number each time round, never a scalar of the list's (T669: a sub
+with no name over it, with a scalar end changed after, sees 1, 2, 3).
+
+**The rule**: a `foreach` (and `for (...)`, and the `for` modifier)
+whose list is **one range and nothing else** (the shape step 9b counts
+in C and builds nothing for; behind a unary plus too) **freezes nothing
+its ends name**, arrays, hashes and what references reach alike; **D77
+has nothing to guard there** (T172: a scalar end changed in the block,
+perl's ends being fixed); **and D166's refusal of a sub with no name
+over the loop's variable does not apply**. Everything else stays: a
+range among other items, under `reverse`, `map`, `grep` or `sort`, and
+the lists of `map`, `grep` and `sort` themselves (built, and frozen, as
+now), and a loop over an array itself (T13: perl walks the array). The
+loop's variable stays read-only (perl lets the block change its own
+copy: `16d-range-variable`; D17's rule is one for every loop).
+
+**Why it cannot be wrong**: the generated code works the ends out into
+two C integers before the loop and counts between them (9b); nothing
+reads the ends again, so no store the block makes can be seen by the
+loop, which is exactly perl's behaviour. The freeze's only job was to
+stop a change the loop would see, and here there is none.
+
+**Tests** (6200 to 6299): 6200 to 6202 `same`, 6220 to 6224 faults
+(what stays frozen), 6250 to 6252 refusals.
+
+#### 16d
+
+**Proposed 2026-11-27, by Fable 5.2, in the worktree `step-16d`, after
+the census's part above; each question answered by its recommendation
+under Stevan's standing instruction, recorded as D254 to D258, his to
+overturn.** D120 left these; `printf` to a handle is step 21's and
+stays out. Everything said of perl is a row of `briefs/claims16d.py`;
+traps T664 to T667 and T672, found writing it. The size: medium, as the
+outline said of 16d (the case tables are a generated file; the rest is
+the lexer and small runtime functions); my model agrees.
+
+**`substr` of four arguments (D254).** `substr($s, OFFSET, LENGTH,
+REPLACEMENT);` puts the replacement where three arguments' piece is:
+perl's rule for the piece is three arguments' exactly (held over every
+offset and length from -7 to 7 on a string of four: `16d-substr4`), and
+where three give undef with a warning four die (`16d-substr4-outside`):
+here both are the fault `substr outside of string`. **A statement of
+its own, on a scalar variable**, read as `$s = <the new string>`, in a
+block of its own, so every rule of an assignment holds (a loop's
+variable is read-only: perl changes the list's element,
+`16d-substr4-loop`) and it is no sub's value. perl gives the piece taken
+out as its value (`my $old = substr($s, 0, 1, "X")`): refused, with an
+element, a chain or anything but a scalar variable as the first
+argument (the index would be worked out twice). An undef `$s` or
+replacement is D48's fault (perl warns). **`substr(...) = ...` and
+`\substr(...)`, perl's lvalue `substr`** (`16d-substr-lvalue`): cut, as
+SURFACE.md had it, D17's places that do not flow: the four-argument
+form says it.
+
+**POD, `__END__` and `__DATA__`; `__FILE__` and `__LINE__` (D255).**
+A line that begins `=` and a letter, where a statement may begin, starts
+POD, to a line that begins `=cut` and no more of a word, or the end of
+the file: a comment. **`=cut` alone begins POD too** (T666: perl ends
+it only at a later `=cut`), `=cutting` does not end it, `=cut back`
+does (`16d-pod`). Anywhere else such a line is refused (perl: a syntax
+error, `16d-pod-mid-statement`; a line that begins with a blank is no
+POD, and is read as code). **A `# line N` comment inside POD moves
+perl's lines all the same** (T667), so it is refused there as D147
+refuses it outside. **`__END__` and `__DATA__`** where a statement may
+begin end the program; nothing after is read (`16d-end`); in the
+middle of a statement refused (perl: a syntax error). `<DATA>` stays
+out (D20). **`__LINE__` is the line of the token itself** (T665:
+`say "a",\n __LINE__` is the second line, unlike a `die`'s), an Int;
+**`__FILE__` the path perl is given**, which is the path the program
+was compiled from (D10), a string; refused when the path is not
+printable ASCII (perl's is bytes). `__LINE__()` is refused (no
+brackets, as `true`'s), `__LINE__ => 1` is the string, as perl has it.
+
+**The case escapes, `\U \L \Q \E \u \l` (D256).** perl's rules nest and
+replace one another (`16d-case-replaced`: `"\Uab\Lcd\Eef"` is
+`ABcdef`, the `\L` ending the `\U`); the language takes a plain subset,
+in double quotes, `qq` and a heredoc that interpolates. **`\U`, `\L`
+and `\Q` each begin a run** to `\E` or the end of the string, its text
+and variables made `uc`, `lc` or `quotemeta`; **another of them inside
+a run is refused**. **`\u` and `\l` cover all that follows them to the
+end of the string** (perl's do: `"\u${x}d"` with `$x` empty is `D`,
+`16d-case-escapes`), each `ucfirst` or `lcfirst` of the rest, nesting
+(`"\u\lABC"` is `ABC`); first in a run they apply over it (`\L\u` is
+`\u\L` to perl), and anywhere else in a run they are refused. **`\E`
+with nothing to end is refused** (perl warns, `16d-case-useless-E`),
+**`\F` is refused** (fold case: `lc` for most strings, but perl folds
+`ß` to `ss`). An undef or a reference in a run is D48's or D112's
+fault, through the builtin. `quotemeta` itself is in, as the named
+unary operator it is: what `\Q` is.
+
+**`uc`, `lc`, `ucfirst`, `lcfirst` and `quotemeta` past ASCII, by perl's
+own tables (D257).** perl's are full case mappings (`uc("ß")` is `SS`,
+`lc("İ")` two characters, `ucfirst` a titlecase, `ǆ` to `ǅ`; no final
+sigma, `16d-no-final-sigma`; no locale). **The table is perl's answer,
+not Unicode's from memory**: `briefs/step16d-cases.py` asks perl 5.42
+what each function makes of every character from U+0080 to U+10FFFF
+but the surrogates, and writes `runtime/cases16d.c` (1,526 `uc`
+mappings, 1,434 `lc`, 1,453 `ucfirst`, 1,434 `lcfirst`, and the 6,953
+characters `quotemeta` quotes, in 35 ranges); `--check` says whether the
+file is what perl gives. It asks perl too that a string is mapped a
+character at a time, over 20,000 random strings, and that is true **but
+for one thing (T664): perl's `uc` of two U+0345 together makes one
+U+0399**. That is a fault, `uc of two U+0345 together`; one U+0345 alone,
+or apart, maps as the table says. A character past ASCII printed still
+needs `use open` (D39).
+
+**`scalar reverse LIST` (D258).** The list joined with nothing, its
+characters in the other order (`16d-scalar-reverse`), in brackets or
+not. `reverse` where one value is wanted by context alone (`my $x =
+reverse "ab"`, T23) stays refused: perl decides by context, and with
+`scalar` the program says which it means. **A list with nothing in it
+is a fault** (T672: perl's `scalar reverse(@e)` of an empty array
+reverses `$_`, `cba` in a loop over `"abc"`): `scalar reverse of an
+empty list`. `scalar reverse` with no list is refused (perl's `$_`).
+
+**Tests** (6100 to 6199): 6100 to 6106 `same` from perl, 6130 to 6143
+faults and 6160 to 6188 refusals by hand, from `briefs/step16d-tests.py`;
+209 and 2636, refusals of `\U` before, are `same` tests now; 110, 158
+and 159 move with the `str` model, which knows two characters past
+ASCII now and asks nothing else (158 and 159 fault where the character
+is printed, without `use open`).
+
+
 ### 17. Classes
 
 Referee: perl, and for roles a perl with Stevan's roles (D181).
