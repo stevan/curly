@@ -2462,3 +2462,42 @@ declaration a statement to D150 (T436); the core gives a program's
 classes no method to dispatch to (finding 16). Rejected: keeping
 "a method is a sub to every rule of step 8" as the whole account of a
 call in a class, which the review showed is WRONG eight ways.
+
+**D179. What of perl's `class` we do not want.** *(User, 2026-11-27:
+"The class system as it is in perl is kind of broken. So I'd like to
+be stricter than it and not repeat bad or poorly designed features",
+and of the list below, worked out from T400 to T437: "record that
+too".)* Each is something perl 5.42 does that Curly will not repeat:
+it refuses or faults instead, which D2 always allows. Where the
+answers so far already do, the entry says so; **where they agree with
+perl, the item is open for the rethink, and those answers no longer
+stand**.
+- **A lax constructor.** An odd count of arguments only warned (T402):
+  a fault, already. A parameter given twice, the last silently winning
+  (T403): **not wanted, and open** (the proposal agreed). Unknown
+  parameters reported only after every `ADJUST`, in hash order
+  (T404, T435): a fault before anything runs, already (D178). `new`
+  on an object as well as a class (T411): refused, already (D173).
+- **A construction order that surprises.** Every field of every class
+  before any `ADJUST` (T400), and each argument copied only at its
+  field's turn, after the defaults above it have run (T427): **not
+  wanted, and open** (the proposal agreed with both). Being stricter
+  here means refusing whatever would let a program see the order.
+- **The package showing through.** A bare `helper()` in a method being
+  `P::helper` (T422), a method named `floor` or `END` silently being
+  none (T423), a method of a class's name hiding the class (T425), a
+  class named `v65` or `UNIVERSAL` (T426): refused, already (D178).
+- **Two kinds of callable.** A `sub` in a class, callable as a method
+  with the class's name or an object first (T411): refused, already
+  (D171).
+- **Mistakes that are only warnings, or allowed.** A method redefined
+  (T409), `$self` assigned or declared again (T413, T430), a field
+  hidden by a `my` or a parameter (T430), `method m;` in a class
+  (T419): refused, already (D175, D178).
+- **A class's block that is ordinary code** (T408), running where it
+  stands so that a `my` in it is undef until then: declarations only,
+  already (D171).
+- **`UNIVERSAL`'s methods on every object** (T416), and a class's own
+  `isa` or `can` over them: refused, already.
+Rejected: perl's `class` as the whole of the design, with Curly
+refusing only where it must.

@@ -452,7 +452,10 @@ full when its step is, and its rows join the sections above then.
   review (D178): the program's subs are called from a class as
   `main::helper(...)`, as perl wants there; a method may not be named
   `floor`, `trim` or another of `use v5.42`'s imports; a class's name
-  begins with a capital letter in every part.
+  begins with a capital letter in every part. And by D179, Curly is
+  stricter than perl's `class` on purpose wherever perl's is lax: a
+  constructor that warns or guesses, a package that shows through, a
+  mistake that is only a warning.
 - **Regexes** (steps 19, 20). Perl's syntax and matching order, a
   subset, compiled. No `s///e`, no `(?{ })`, no string interpolated
   as a pattern. **How `s///` and a match read with `$_` read-only

@@ -6695,6 +6695,19 @@ had, so that perl referees it; or a model of its own (D5). Nothing of
   rated with the answers.
 - **The census**: as above, about 16 in and 108 by design.
 
+##### What of perl's class we do not want (D179)
+
+Stevan, 2026-11-27, after the review: perl's `class` is in places
+badly designed, and Curly is to be stricter than it, not repeat it.
+**D179** lists what is not wanted, from T400 to T437, and where each
+stands: most are refused already, by D171, D173, D175 and D178. **Two
+are open, and their answers below no longer stand**: a parameter
+given twice, the last winning (T403, which "The language at 17a"
+agrees with), and **the construction order** (T400, T427, which this
+proposal and its review agreed with), where being stricter means
+refusing what would let a program see the order. The rethink, after
+step 14 lands, decides both and may move D170 to D178.
+
 ##### What the review found
 
 A reader who did not write the proposal, given it, the decisions and

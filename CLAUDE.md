@@ -528,8 +528,12 @@ must see, `SUPER::` is the written class's parent. **D178**, the
 builder's defaults on it, is Stevan's to confirm. **Paused there
 (Stevan, 2026-11-27)**: perl's class system is in places badly
 designed, and he wants Curly stricter than it rather than repeating
-it, so D170 to D178 may change; **17a waits for step 14 to land and be
-tested, and for his rethink. Build nothing of 17 before that.** What it turns
+it, so D170 to D178 may change. **D179 records what of perl's class
+is not wanted** (from T400 to T437): most is refused already; open are
+a `:param` given twice (the proposal let the last win) and the
+construction order (the proposal agreed with perl's). **17a waits for
+step 14 to land and be tested, and for his rethink. Build nothing of
+17 before that.** What it turns
 on: **a method call reaches every method of its name** (the program
 is one file, Q3); **construction is perl's two passes** (T400);
 **a class's block holds declarations only** (T408, T411).
