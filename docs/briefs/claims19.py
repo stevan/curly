@@ -45,4 +45,10 @@ STEP19 = [
     c('19-quantified-group', 'PLAN 19', r"""my @l = ("aab" =~ /(a|b)*/); say "@l"; @l = ("aab" =~ /(a)*b/); say "@l"; @l = ("ac" =~ /(a|b)*c/); say "@l";""", out='b\na\na\n'),
     c('19-m-brackets', 'PLAN 19', r"""say "x" =~ m{x}, "x" =~ m(x), "x" =~ m[x], "x" =~ m<x>, "x" =~ m!x!, "aa" =~ m{a{2}};""", out='111111\n'),
     c('19-dot', 'PLAN 19', "use utf8;\nsay \"a\\x{301}\" =~ /^.$/ ? 1 : 0, \"\\n\" =~ /./ ? 1 : 0, \"\\n\" =~ /./s ? 1 : 0;", out='001\n'),
+    # ---- found by the review's generator (briefs/step19-review/patterns.py)
+    c('T556', 'TRAPS; PLAN 19', r"""say "aa" =~ /a{2}?/ ? 1 : 0;""", out='1\n', err="Useless use of greediness modifier '\\?'"),
+    c('T557', 'TRAPS; PLAN 19', r"""say "-" =~ /^[--0]$/ ? 1 : 0, "." =~ /^[--0]$/ ? 1 : 0;""", out='11\n'),
+    c('T557-dies', 'TRAPS; PLAN 19', r"""say "-" =~ /[--\n]/ ? 1 : 0;""", exit=255, err=r'Invalid \[\] range'),
+    c('T558', 'TRAPS; PLAN 19', "my $x = \"Q\"; say \"a\" =~ /a$ x?/x ? 1 : 0, \"aQ\" =~ /a$ x/x ? 1 : 0, \"a\" =~ /a$ #c\n/x ? 1 : 0;", out='101\n'),
+    c('T559', 'TRAPS; PLAN 19', r"""say "a)" =~ m(a\)) ? 1 : 0, "a]" =~ m[a\]] ? 1 : 0, "a>" =~ m<a\>> ? 1 : 0, "aa" =~ m{a\{2\}} ? 1 : 0;""", out='1110\n'),
 ]

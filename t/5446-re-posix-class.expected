@@ -1,0 +1,2 @@
+t/5446-re-posix-class.pl:5:13: '[' in a class: perl may take it for a POSIX class, [:alpha:]; write \[
+exit: 1

@@ -1,0 +1,2 @@
+t/5407-re-variable-on-the-right.pl:6:11: the right side of '=~' is a pattern, /.../ or m{...}: anything else is matched as a pattern made as the program runs, which is cut (D229)
+exit: 1

@@ -1,0 +1,2 @@
+t/5432-re-backreference-inside.pl:5:14: \1 inside the group it names: write it after the group closes
+exit: 1

@@ -44,6 +44,10 @@ export type Token =
     // one, `${ EXPR }` (step 13c).
     | { kind: 'cast'; text: '@' | '%' | '$#' | '$'; pos: Pos }
     | { kind: 'op'; text: string; pos: Pos }
+    // A pattern (step 19): `/.../FLAGS`, or `m` and a bracket. `body` is
+    // what stands between its delimiters as written, `bodyPos` where it
+    // begins; compiler/src/regex.ts reads it.
+    | { kind: 'match'; text: string; body: string; bodyPos: Pos; flags: string; flagsPos: Pos; pos: Pos }
     | { kind: 'eof'; text: string; pos: Pos };
 
 // An index in a string (D91): a whole number, with a minus or without, or
@@ -601,7 +605,7 @@ export const lex = (src: string): Token[] => {
             return target?.kind === 'var' || target?.kind === ']' || (target?.kind === '}' && (target.subscript === true || target.deref === true))
                 || (target?.kind === 'op' && target.text === '->$*');
         }
-        return last?.kind === 'int' || last?.kind === 'num' || last?.kind === 'str' || last?.kind === 'qw' || last?.kind === ')' || last?.kind === 'var'
+        return last?.kind === 'int' || last?.kind === 'num' || last?.kind === 'str' || last?.kind === 'qw' || last?.kind === 'match' || last?.kind === ')' || last?.kind === 'var'
             || last?.kind === ']' || last?.kind === 'array' || last?.kind === 'lastindex' || last?.kind === 'hash'
             || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true || last.sub === true))
             || (last?.kind === 'op' && WHOLE.has(last.text))
@@ -778,6 +782,38 @@ export const lex = (src: string): Token[] => {
             : { kind: 'str', text: src.slice(from, i), value: '', pos: start, pieces: read.pieces });
     };
 
+    // ---- step 19: a pattern (D227)
+
+    // `/.../` where a value may begin, or `m` and one of the four brackets
+    // hard against it; `withM`: the `m` is next. perl finds the end first,
+    // a backslash taking the character after it with it, and reads what is
+    // between after; so does this, and regex.ts reads it. The flags are
+    // the letters hard after it.
+    const pattern = (start: Pos, withM: boolean): void => {
+        const from = i;
+        if (withM) take();
+        const open = take();
+        const close = open === '/' ? '/' : BRACKETS[open]!;
+        let end = -1;
+        if (open === '/') {
+            for (let k = i; k < src.length; k++) {
+                if (src[k] === '\\') k += 1;
+                else if (src[k] === '/') { end = k; break; }
+            }
+            if (end < 0) refuse('a pattern that never ends: it begins here', start);
+        } else {
+            end = closing(i, open, close, start, `m${open}...${close}`);
+        }
+        const bodyPos = pos();
+        const bodyFrom = i;
+        while (i < end) take(true);
+        const body = src.slice(bodyFrom, end);
+        take();
+        const flagsPos = pos();
+        const flags = run(isWord);
+        push({ kind: 'match', text: src.slice(from, i), body, bodyPos, flags, flagsPos, pos: start });
+    };
+
     // A heredoc waiting for the end of its line, and where the lexer goes
     // on from when it gets there: past the body and its terminator.
     let heredoc: { line: number; resume: number; resumeLine: number; at: Pos } | undefined;
@@ -875,6 +911,15 @@ export const lex = (src: string): Token[] => {
             run(ch => ch !== '\n', true);
         } else if (c === '"' || c === "'") {
             push(string(start));
+        } else if (c === '/' && !afterValue()) {
+            // Where a value may begin, a slash begins a pattern (T90).
+            pattern(start, false);
+        } else if (c === 'm' && !afterValue() && wordEnd(i) === i + 1 && !(tokens.at(-1)?.kind === 'word' && NAMES.get(tokens.at(-1)!.text)?.kind === 'sub')
+            && (src[i + 1] === '/' || BRACKETS[src[i + 1] ?? ''] !== undefined || '!#%&*+,-.:;=?^|~"\''.includes(src[i + 1] ?? 'a'))) {
+            if (src[i + 1] !== '/' && BRACKETS[src[i + 1]!] === undefined) {
+                refuse(`m${src[i + 1]}...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}`, start);
+            }
+            pattern(start, true);
         } else if (isDigit(c) || (c === '.' && isDigit(src[i + 1] ?? '') && !afterValue())) {
             push(number(start));
         } else if (isWordStart(c) && !afterValue() && src.startsWith('=>', past(wordEnd(i), true))) {
@@ -996,6 +1041,10 @@ export const lex = (src: string): Token[] => {
             if (at() === '{') {
                 cast('$', start);
                 continue;
+            }
+            // A match's captures by perl's variables (step 19): not in.
+            if (isDigit(at()) || at() === '&' || at() === '`' || at() === "'") {
+                refuse(`$${at()}, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)`, start);
             }
             if (!isWordStart(at())) refuse("after '$' comes a name: a letter or '_', then letters, digits and '_'", start);
             const name = run(isWord);

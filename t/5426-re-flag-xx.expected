@@ -1,0 +1,2 @@
+t/5426-re-flag-xx.pl:5:14: /xx in a pattern is not in the language
+exit: 1

@@ -1,0 +1,2 @@
+t/5449-re-paren-never-opens.pl:5:14: a ')' with no '(' before it in the pattern: perl does not compile it
+exit: 1

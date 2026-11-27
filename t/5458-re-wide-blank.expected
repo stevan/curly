@@ -1,0 +1,2 @@
+t/5458-re-wide-blank.pl:6:13: U+2028 in a pattern: perl's /x takes it for a blank (D237); write it as \x{2028}
+exit: 1

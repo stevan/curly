@@ -876,6 +876,19 @@ Numbered from T540.
 | T554 | `if ("a" =~ /(a)/) { } "b" =~ /(x)/; say $1;` | `a`: `$1` outlives its block and a failed match | 19 | `$1` is not in (D228) |
 | T555 | `("a" x 60) . "b" =~ /^(?:a\|aa)*$/` | `0`, at once | 19 | Fault past the step limit (D232) |
 
+## Found by the review of step 19
+
+The builder's own pass, a generator of random patterns held to perl
+(`briefs/step19-review/patterns.py`; no fresh agent could be spawned
+for this step), and the build. Each row is in `briefs/claims19.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T556 | `"aa" =~ /a{2}?/` | `1`, and a warning: a useless greediness modifier | 19 | Refuse `{n}?` (D238) |
+| T557 | `"-" =~ /^[--0]$/`; `/[--\n]/` | `1`: `--` first in a class is a range from `-`; the second dies, a range backwards | 19 | Refuse `--` first in a class (D238) |
+| T558 | `"a" =~ /a$ x?/x`, `"a" =~ /a$ #c\n/x` | `1`, `1`: under `/x` a `$` before a blank or a comment is an anchor | 19 | Agree (D238) |
+| T559 | `"a)" =~ m(a\))`, `"aa" =~ m{a\{2\}}` | `1`, `0`: a backslash before a bracket of the delimiter's kind is kept, the character itself | 19 | Agree (D238); the proposal had refused it |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

@@ -1,0 +1,2 @@
+t/5443-re-range-of-a-class.pl:5:13: a range with one of perl's classes at an end: perl warns, False [] range; write the - as \-
+exit: 1

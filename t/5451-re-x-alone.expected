@@ -1,0 +1,2 @@
+t/5451-re-x-alone.pl:5:12: \x with no hex digit after it: perl reads it as a NUL; write \x00 or \x{...}
+exit: 1

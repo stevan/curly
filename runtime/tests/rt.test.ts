@@ -513,3 +513,9 @@ test('a die puts back the frames, the freezes and the sorts a try had open', () 
         + 'msg at unwind.pl line 9.\n' });
 });
 
+
+test('the matcher: ten million steps match, one more is the fault (D232); a long match grows its stack', () => {
+    assert.deepEqual(run('regex', 'under'), { status: 0, output: '1\n' });
+    assert.deepEqual(run('regex', 'over'), { status: 1, output: 'fault: pattern match too long at regex.pl line 3.\n' });
+    assert.deepEqual(run('regex', 'long'), { status: 0, output: '1\n\n' });
+});

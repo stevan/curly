@@ -33,7 +33,7 @@
 // (D28: nothing is global). After every call the caller's line is stored
 // again (D34).
 import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
-import type { ArrayOp, Binder, CallRef, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
+import type { ArrayOp, Binder, CallRef, Chain, Deref, Expr, If, Invoke, Match, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn, shaped } from './shapes.ts';
@@ -141,6 +141,16 @@ const isFile = (b: Code, e: Expr): boolean => {
     return id !== undefined && b.names.owner[id] === 0 && b.names.slots[id]! < b.names.file;
 };
 
+// A pattern's program (step 19), a constant at the top of the C file, as a
+// string literal is.
+const regexOf = (e: Match, b: Code): string => {
+    const n = b.strings.length + 1;
+    const r = e.regex;
+    const classes = r.classes.length ? r.classes : [0];
+    b.strings.push(`static const int32_t re${n}c[] = { ${r.code.join(', ')} }; static const int32_t re${n}k[] = { ${classes.join(', ')} }; static const rt_regex re${n} = { re${n}c, re${n}k, ${r.groups}, ${r.icase ? 1 : 0}, ${r.global ? 1 : 0} };`);
+    return `re${n}`;
+};
+
 // ---- lists (D76, D80)
 
 // An expression behind any unary plus, which hands on where it stands.
@@ -156,6 +166,7 @@ const listy = (in_: Expr): boolean => {
         || (e.kind === 'listop' && e.op === 'reverse')
         || (e.kind === 'hashop' && (e.op === 'keys' || e.op === 'values' || e.keys !== undefined))
         || e.kind === 'binder' || e.kind === 'sort'
+        || (e.kind === 'match' && e.negate !== true)
         || (e.kind === 'ternary' && (listy(e.then) || listy(e.else)))
         || (e.kind === 'binary' && infixOp(e.op)?.when !== undefined && listy(e.right));
 };
@@ -240,6 +251,10 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
         b.lines.push(`rt_list_add_repeat(cx, ${list}, ${values.c}, ${count.c});`);
     } else if (e.kind === 'arrayop' && e.op === 'splice') {
         genSplice(e, b, list);
+    } else if (e.kind === 'match' && e.negate !== true) {
+        // What it captured (step 19; D235).
+        const subject = genExpr(e.subject, b);
+        b.lines.push(`rt_match_list(cx, ${list}, &${regexOf(e, b)}, ${subject.c});`);
     } else if (e.kind === 'binder') {
         genBinder(e, b, list);
     } else if (e.kind === 'sort') {
@@ -849,6 +864,11 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         b.lines.push(`${p} = ${pointTo(b, genExpr(e.then, b, want))};`, '} else {');
         b.lines.push(`${p} = ${pointTo(b, genExpr(e.else, b, want))};`, '}');
         return { c: `(*${p})`, place: true };
+    }
+    // A match where one value is wanted: a boolean (step 19; D235).
+    case 'match': {
+        const subject = genExpr(e.subject, b);
+        return temp(b, `${e.negate ? 'rt_match_not' : 'rt_match'}(cx, &${regexOf(e, b)}, ${subject.c})`);
     }
     case 'apply': {
         // Arguments left before right, each in a temporary, a variable or

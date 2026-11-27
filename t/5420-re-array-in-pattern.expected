@@ -1,0 +1,2 @@
+t/5420-re-array-in-pattern.pl:6:12: '@' in a pattern: perl may take it for an array (D229); write \@
+exit: 1

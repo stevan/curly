@@ -1,3 +1,5 @@
+import type { Regex } from './regex.ts';
+
 // The syntax tree: the one data structure the passes share (D29). Plain
 // objects with a `kind`, a position on every node, and nothing changed
 // after the parser has made it. The vocabulary starts from Crayon's
@@ -39,7 +41,15 @@ export type Binary = { kind: 'binary'; op: string; left: Expr; right: Expr; pos:
 // against a scalar on the left of `=`, later).
 export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Step | Unary | Binary | Ternary | Apply | Invoke
     | ArrayVar | MyArray | Elem | LastIndex | List | Slice | ArrayOp | ListAssign | ListOp | Binder | Sort | HashOp
-    | Chain | Anon | Ref | Deref | Sderef | AnonSub | CallRef | SubRef | CurSub;
+    | Chain | Anon | Ref | Deref | Sderef | AnonSub | CallRef | SubRef | CurSub | Match;
+
+// A pattern match (step 19; D225 to D237): `subject =~ /pattern/` and,
+// with `negate`, `subject !~ /pattern/`. `regex` is the pattern compiled
+// (compiler/src/regex.ts). Where one value is wanted it is a boolean;
+// where a list is, what it captured (D235). It works its subject out once
+// and makes copies: it names nothing for the walks. `pos` is the
+// operator's.
+export type Match = { kind: 'match'; subject: Expr; negate?: true; regex: Regex; pos: Pos; bracketed?: true };
 
 // A sub with no name, where a value may begin (step 14; D161): `sub
 // (PARAMETERS) { ... }` and `sub { ... }`. Its value is a reference to the

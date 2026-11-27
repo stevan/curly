@@ -1,0 +1,3 @@
+b
+fault: a match without regard to case of a string with a character past ASCII at t/5301-re-fault-icase-past-ascii-list.pl line 7.
+exit: 1

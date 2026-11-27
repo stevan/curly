@@ -1,0 +1,2 @@
+t/5441-re-lazy-exact-count.pl:5:16: a ? after {2}: perl warns that it is a useless greediness modifier
+exit: 1

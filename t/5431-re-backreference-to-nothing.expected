@@ -1,0 +1,2 @@
+t/5431-re-backreference-to-nothing.pl:5:15: \2 names a group the pattern does not have, or not yet: perl does not compile it (T551)
+exit: 1

@@ -1,0 +1,2 @@
+t/5457-re-icase-past-ascii.pl:6:12: a character past ASCII in a pattern under /i: perl folds it by Unicode's tables, one character to two (D230, T546)
+exit: 1

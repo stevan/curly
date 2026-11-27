@@ -1701,3 +1701,4 @@ void rt_internal(rt_ctx *cx, const char *what) {
 #include "unwind.c"
 #include "format.c"
 #include "strfn.c"
+#include "regex.c"

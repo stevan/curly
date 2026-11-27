@@ -1,0 +1,2 @@
+t/5465-re-keep.pl:5:13: \K in a pattern is not in the language yet (D226)
+exit: 1

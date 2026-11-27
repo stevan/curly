@@ -2694,3 +2694,16 @@ dropped between the pieces of a pattern, outside a class; `\ ` and
 is allowed, as perl has it. The characters past ASCII that perl's `/x`
 also drops (U+0085, U+200E, U+200F, U+2028, U+2029) are refused in
 any pattern. *(Builder's recommendation, 2026-11-27.)*
+
+**D238. What the review of step 19 and its build changed.**
+*(Builder's recommendation, 2026-11-27, under the same standing
+instruction.)* The review was the builder's own pass, no fresh agent
+being available to spawn: a generator of random patterns and subjects
+held to perl (`briefs/step19-review/patterns.py`). It found two shapes
+where perl warns or dies and the compiler took the pattern: `{n}?`
+(T556) and `--` first in a class (T557), each refused now. The build
+found two places where the proposal refused what perl reads plainly:
+a `$` before a blank or a `#` under `/x` is an anchor (T558), and a
+backslash before a bracket of the delimiter's kind is the character
+itself (T559), so D227's refusal of it is dropped. Rejected: perl's
+range from `-` (one more rule to say for one shape nobody writes).

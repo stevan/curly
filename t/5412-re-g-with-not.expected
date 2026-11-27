@@ -1,0 +1,2 @@
+t/5412-re-g-with-not.pl:5:14: /g with '!~': perl ignores it there, or goes on from where the last match left off (D233)
+exit: 1

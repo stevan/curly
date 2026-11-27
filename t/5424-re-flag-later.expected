@@ -1,0 +1,2 @@
+t/5424-re-flag-later.pl:5:14: the flag /a is not in the language (D226)
+exit: 1

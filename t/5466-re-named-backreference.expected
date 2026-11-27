@@ -1,0 +1,2 @@
+t/5466-re-named-backreference.pl:5:15: \g, a backreference by a number in braces or by a name, is not in the language yet: write \1 to \9 (D226)
+exit: 1

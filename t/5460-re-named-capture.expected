@@ -1,0 +1,2 @@
+t/5460-re-named-capture.pl:5:17: a named capture is not in the language yet (D226)
+exit: 1

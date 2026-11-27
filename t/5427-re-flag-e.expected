@@ -1,0 +1,2 @@
+t/5427-re-flag-e.pl:5:14: the flag /e, which is s///e is not in the language (D226)
+exit: 1

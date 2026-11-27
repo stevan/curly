@@ -175,7 +175,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `& \| ^ ~ << >>` | In | 22 | Numeric, as under `use v5.42`; a non-number faults |
 | `&. \|. ^. ~.`, the string bit operators | Cut | | |
 | `isa` | In | 17 | |
-| `=~`, `!~` | In | 19 | |
+| `=~`, `!~` | In | 19 | D234, D235 |
 | `[ LIST ]`, `{ LIST }`, `\@a`, `\%h` | In | 13a | D110, D113: `{` where a value may begin is a hash; an odd list for `{ }` faults (T244) |
 | `\$x` (a `my` scalar, a parameter or a catch's variable) | In | 13c | D110: the variable lives in a cell, a new one each time its `my` is reached (T240), a file's from the start (T255); not a loop's variable, `$_`, `$a` or `$b` (D17, T12) |
 | `\` on a loop's variable, `$_`, `$a`, `$b`, on `->$*` or `${ }` | Cut | | D110 |
@@ -319,20 +319,26 @@ that names it.
 
 | Construct | Here | Step |
 |---|---|---|
-| Literals, classes, `.`, anchors (`^ $ \A \z \Z \b`), `\d \w \s`, `* + ? {n,m}` greedy and lazy, groups, `(?:...)`, alternation, captures, backreferences | In | 19 |
-| `\d` and `\w` match Unicode digits and letters; `$` matches before a final newline | In | 19 |
-| `m{...}`, `s{...}{...}` and other delimiters | In | 19, 20 |
-| The empty pattern, `$s =~ //` | Cut | |
-| Lookaround, possessive quantifiers, POSIX classes, `(?i)`, the flags `/a /u /n /p` | Later | 19 |
-| `/i /m /s /x /g` | In | 19, 20 |
-| A match in list context returning its captures | In | 19 |
+| Literals, classes, `.`, anchors (`^ $ \A \z \Z \b \B`), `\d \w \s`, `* + ? {n,m}` greedy and lazy, groups, `(?:...)`, alternation, captures, backreferences `\1` to `\9` | In | 19 (D226) |
+| `\d`, `\w` and `\s` match perl's characters, Unicode's for every string; `$` matches before a final newline | In | 19 (D226) |
+| `/.../`, and `m` with a bracket hard against it | In | 19 (D227) |
+| Other delimiters, `m!...!`, `m\|...\|` | Cut | D227 |
+| The empty pattern, `$s =~ //` | Cut | D227 |
+| A pattern alone matching `$_` | Cut: `$_ =~ /.../` | D234 |
+| A quantifier on what can match the empty string; a capturing group inside a repeated group, but the repeated group itself | Cut | D231 |
+| Lookaround, possessive quantifiers, POSIX classes, `(?i)` and `(?...)` but `(?:...)`, `\h \v \R \N \X \K \G`, the flags `/a /u /l /n /p /xx` | Later | 19 |
+| `/m /s /x` | In | 19 |
+| `/i` | In, ASCII's: a pattern under it holds no character past ASCII, and matching a string that holds one is a fault | 19 (D230) |
+| `/g` where a list is wanted | In | 19 (D233) |
+| A match where one value is wanted, a boolean; where a list is, its captures | In | 19 (D235) |
+| More than ten million steps of the matcher in one match | Fault | D232 |
 | Named captures, `%+` | Later | 20 |
-| `$1`, `$2`, `$&` | Later | 19; their dynamic scope is the cost |
+| `$1`, `$2`, `$&`, `@-`, `@+` | Cut: a match where a list is wanted gives its captures | D228 |
 | `s///`, `s///g`, `s///r`, `tr///`, `split` | In | 20 |
 | `qr//` and interpolating one into a pattern | Later | 20 |
-| A string interpolated as a pattern | Cut | |
-| `while ($s =~ /x/g)`, a `/g` match in scalar position | Later | 20 |
-| `s///e`, `(?{ })`, `pos`, `\G`, recursion, backtracking verbs | Cut | |
+| A variable in a pattern; a string interpolated as a pattern | Cut | D229 |
+| `while ($s =~ /x/g)`, a `/g` match where one value is wanted, `pos`, `\G` | Cut | D233 |
+| `s///e`, `(?{ })`, recursion, backtracking verbs | Cut | |
 | Unicode properties, `\p{...}` | Later | when proposed |
 
 ## Classes

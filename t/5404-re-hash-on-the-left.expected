@@ -1,0 +1,2 @@
+t/5404-re-hash-on-the-left.pl:5:8: a hash on the left of '=~': perl matches one value, a count or the last (T547)
+exit: 1

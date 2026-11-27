@@ -1,0 +1,2 @@
+t/5409-re-empty-pattern.pl:5:12: the empty pattern: perl matches the last pattern that matched (T66)
+exit: 1

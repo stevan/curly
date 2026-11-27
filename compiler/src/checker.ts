@@ -75,6 +75,8 @@ const parts = (e: Expr): readonly Expr[] =>
     : e.kind === 'binary' ? [e.left, e.right]
     : e.kind === 'ternary' ? [e.test, e.then, e.else]
     : e.kind === 'apply' || e.kind === 'invoke' || e.kind === 'arrayop' || e.kind === 'listop' ? e.args
+    // A match works its subject out once, and makes copies (step 19).
+    : e.kind === 'match' ? [e.subject]
     // A call through a reference works out its arguments, then what stands
     // before the arrow (step 14; T370, D166). A sub with no name is a
     // value, made where it stands: its body is its own function's.
@@ -148,6 +150,8 @@ const folds = (e: Expr): boolean =>
     // (An array, an element, and what works on one are no constants.)
     : e.kind === 'array' || e.kind === 'myarray' || e.kind === 'elem' || e.kind === 'lastindex' || e.kind === 'arrayop' || e.kind === 'hashop' || e.kind === 'listassign' ? false
     : e.kind === 'slice' && e.name !== undefined ? false
+    // (A match is worked out as the program runs: step 19.)
+    : e.kind === 'match' ? false
     : e.kind === 'ternary' ? folds(e.test)
     : e.kind === 'binary' && infixOp(e.op)?.when ? folds(e.left)
     : parts(e).every(folds);
@@ -400,6 +404,8 @@ const checkOneValue = (w: World, e: Expr): void => {
     if (isRange(e)) refuse("a range where one value is wanted: '..' is another operator to perl there", e.pos);
     if (e.kind === 'binary' && isRepeat(e) && e.left.kind === 'list') refuse(`a list on the left of '${e.op}' where one value is wanted: perl repeats its last value`, e.left.pos);
     if (e.kind === 'arrayop' && e.op === 'splice') refuse('splice where one value is wanted: perl gives the last element it removed; assign it to an array', e.pos);
+    // `pos` is cut (D233, T543).
+    if (e.kind === 'match' && e.regex.global) refuse('a match under /g where one value is wanted: perl goes on from where the last one left off (pos), which is cut (D233, T543); take the matches as a list', e.pos);
 };
 
 // What an expression's parts are, each with where it stands.
@@ -413,6 +419,7 @@ const children = (e: Expr, ctx: Ctx): [Expr, Ctx][] => {
         return [[e.left, 'scalar'], [e.right, 'scalar']];
     case 'ternary': return [[e.test, 'scalar'], [e.then, ctx], [e.else, ctx]];
     case 'apply': return all(e.args, 'scalar');
+    case 'match': return [[e.subject, 'scalar']];
     case 'invoke': return all(e.args, 'list');
     // Step 14 (a sub with no name is checked as a sub, by `checkExpr`).
     case 'callref': return [...all(e.args, 'list'), [e.head, 'scalar']];

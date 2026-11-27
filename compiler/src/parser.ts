@@ -5,6 +5,7 @@
 import { refuse } from './errors.ts';
 import { AND_ROW, COMMA_ROW, NAMED_UNARY_ROW, NAMES, NAME_MAX_LENGTH, OPERATORS, PERL_KEYWORDS, PERL_WORDS, PRAGMAS, PRECEDENCE, TERNARY_ROW, infixOp, isLabel, isVersionString, prefixOp, stepOp } from './names.ts';
 import type { Index, Key, Piece, Token } from './lexer.ts';
+import { compileRegex } from './regex.ts';
 import type { Arm, CallRef, Chain, Deref, Elem, Expr, HashOp, Label, Param, Pos, Program, Stmt } from './ast.ts';
 
 // A token as a diagnostic names it. A string is shown if it is short.
@@ -766,6 +767,8 @@ export const parse = (tokens: readonly Token[]): Program => {
     // a prefix operator and its operand.
     const primary = (): Expr => {
         const t = next();
+        // A pattern alone matches `$_` (D234, D85).
+        if (t.kind === 'match') return refuse('a pattern alone matches $_: write $_ =~ /.../, or the variable it is for (D234, D85)', t.pos);
         // JavaScript reads `0x1F`, `0b101` and `0o17` as perl does, and a
         // decimal to the nearest double, as perl does too.
         const digits = t.text.replaceAll('_', '');
@@ -1008,6 +1011,27 @@ export const parse = (tokens: readonly Token[]): Program => {
         return unexpected(t, 'a value');
     };
 
+    // `left =~ PATTERN` and `left !~ PATTERN` (step 19; D229 to D235), the
+    // operator just taken.
+    const matchOf = (left: Expr, t: Token): Expr => {
+        let first = left;
+        while (first.kind === 'unary' && !first.bracketed && prefixOp(first.op)?.rt === undefined) first = first.operand;
+        if (first.kind === 'unary' && !first.bracketed && prefixOp(first.op)?.bang) {
+            refuse(`'${first.op}' before the left side of '${t.text}': perl warns of a precedence problem, and applies it first (T547); write ${first.op}(... ${t.text} ...), or (${first.op}...) ${t.text} ...`, first.pos);
+        }
+        const many = left.kind === 'array' || left.kind === 'myarray' || (left.kind === 'deref' && !left.last) || left.kind === 'list' || left.kind === 'slice'
+            || left.kind === 'binder' || left.kind === 'sort' || (left.kind === 'hashop' && (left.op === 'keys' || left.op === 'values'));
+        if (many) refuse(`${left.kind === 'list' ? 'a list' : (left as { hash?: true }).hash ? 'a hash' : 'more than one value'} on the left of '${t.text}': perl matches one value, a count or the last (T547)`, t.pos);
+        const right = next();
+        if (right.kind !== 'match') {
+            if (right.kind === 'word' && ['s', 'tr', 'y'].includes(right.text)) refuse(`${right.text}/// is not in the language yet (step 20)`, right.pos);
+            return refuse(`the right side of '${t.text}' is a pattern, /.../ or m{...}: anything else is matched as a pattern made as the program runs, which is cut (D229)`, right.pos);
+        }
+        const regex = compileRegex(right.body, right.bodyPos, right.flags, right.flagsPos);
+        if (t.text === '!~' && regex.global) refuse("/g with '!~': perl ignores it there, or goes on from where the last match left off (D233)", right.flagsPos);
+        return t.text === '!~' ? { kind: 'match', subject: left, negate: true, regex, pos: t.pos } : { kind: 'match', subject: left, regex, pos: t.pos };
+    };
+
     // Everything that binds tighter than row `limit` of the table. A row
     // that groups from the left gives its right operand only the rows
     // above it; one that groups from the right gives it its own row too.
@@ -1067,6 +1091,12 @@ export const parse = (tokens: readonly Token[]): Program => {
                     return refuse(`the left side of '${t.text}' is a variable, an element, an array, a hash, or a list of them in brackets`, t.pos);
                 }
                 left = { kind: 'assign', op: t.text, target: left, value: expression(infix.row + 1), pos: t.pos };
+                continue;
+            }
+            // A pattern match (step 19): its left side one value (D234),
+            // and its right a pattern and nothing else.
+            if (t.text === '=~' || t.text === '!~') {
+                left = matchOf(left, t);
                 continue;
             }
             // `!$x == $y` is `(!$x) == $y`, and perl 5.42 warns of a

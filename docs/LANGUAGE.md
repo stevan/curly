@@ -2766,6 +2766,128 @@ and `print` print to stdout. `STDERR` is the one file handle, and its
 list is not in brackets of its own. What goes to stderr follows
 `say`'s rules for characters past ASCII: it needs `use open`.
 
+## Patterns
+
+A pattern matches a string: `$s =~ /PATTERN/` asks whether it does,
+and `$s !~ /PATTERN/` whether it does not. The pattern is written in
+the program, and known when it compiles: it is compiled into a program
+for the runtime's matcher, which tries the ways of matching in perl's
+order, so that the match found, and what each group captures, is
+perl's.
+
+    say "found" if $line =~ /^\s*#/;
+    my ($key, $value) = $line =~ /^(\w+)\s*=\s*(.*)$/;
+    my @numbers = $text =~ /(\d+)/g;
+
+The left side is one value, made a string as `.` makes one: undef, a
+reference and a whole float from 10^15 are faults there, as they are
+for `.`. An array, a hash or a list on the left is refused (perl would
+match a count, or the last), and so is `!` before it without brackets
+(perl applies the `!` first). The right side is a pattern and nothing
+else.
+
+### Writing a pattern
+
+A pattern is written `/.../`, or `m` with one of the four brackets hard
+against it: `m{...}`, `m(...)`, `m[...]`, `m<...>`. Brackets of its
+kind nest inside it, and a backslash before one is the character. In
+`/.../` a slash in the pattern is `\/`. The flags are the letters hard
+after it.
+
+In a pattern:
+
+- a character is itself: a character past ASCII too, under `use utf8`;
+- `\n \t \r \f \e \a`, `\xHH`, `\x{...}`, `\o{...}` and `\N{U+...}`
+  are the characters they are in a double-quoted string, and a
+  backslash before any punctuation is that character: `\.`, `\/`,
+  `\$`, `\{`;
+- `.` is any character but a newline, and with `/s` any character;
+- `[...]` is one of the characters in it, `[^...]` one not in it: a
+  character, a range `a-z` by code point, or `\d \w \s \D \W \S`; a
+  `-` first or last is itself;
+- `\d` is a digit, `\w` a word character and `\s` a blank, each as
+  perl has it: Unicode's, for every string (`"٣" =~ /\d/`, `"é" =~
+  /\w/`, the no-break space is a blank); `\D \W \S` are the rest;
+- `^` is the start, `$` the end or before a newline that ends the
+  string; with `/m`, `^` is also after any newline but one that ends
+  the string, and `$` also before any newline. `\A` is the start,
+  `\z` the end, `\Z` the end or before a last newline, whatever the
+  flags; `\b` is between a word character and something else, `\B`
+  anywhere else;
+- `*`, `+`, `?`, `{n}`, `{n,}` and `{n,m}` repeat what comes before
+  them, as many times as will do, and with a `?` after them as few;
+- `(...)` is a group that captures, `(?:...)` one that does not, and
+  `|` is one side or the other, the left tried first;
+- `\1` to `\9` are what that group captured, and match nothing if it
+  took no part.
+
+The flags are `i` (letters either case: ASCII's, below), `m`, `s`, `x`
+(blanks, and `#` to the end of a line, are dropped between the pieces
+of the pattern; `\ ` and `\#` are themselves) and `g` (below).
+
+### What a match gives
+
+**Where one value is wanted** a match is `true` or `false`: in a test,
+in an operator, assigned to a scalar. `!~` is always that, the other
+way round.
+
+**Where a list is wanted** a match gives what it captured: each group's
+string, in order, undef for a group that took no part, or nothing at
+all if it does not match. With no group it gives `(1)`, or nothing.
+So a list assignment takes the pieces of a match:
+
+    my ($y, $m, $d) = $date =~ /^(\d+)-(\d+)-(\d+)$/;
+    say "no date" unless defined $y;
+
+**With `/g`**, where a list is wanted, it gives every match from the
+start of the string, left to right: each one's captures, or with no
+group what it matched. After a match of no length, the next is not one
+of no length in the same place.
+
+    for my $word ($line =~ /(\w+)/g) {
+        say $word;
+    }
+
+A sub that gives back a match gives what it gives where its caller
+wants it: `return $s =~ /(\d+)/;` is the digits to a list and `true`
+to a test. A match with two groups or more, or with `/g`, is a list
+by how it is written, and a sub that gives one back to a caller that
+wants one value is a fault, as for every list-shaped `return`.
+
+### What a pattern may not do
+
+- **`/i` is ASCII's.** A character past ASCII in a pattern under `/i`
+  is refused, and a match under `/i` of a string that holds one is the
+  fault `a match without regard to case of a string with a character
+  past ASCII`: perl folds those by Unicode's tables, one character to
+  two.
+- **A match takes at most ten million steps of the matcher**; one that
+  takes more is the fault `pattern match too long`. A pattern that
+  backtracks without end on a string that does not match is the way to
+  meet it: `/^(?:a|aa)*$/` on sixty `a` and a `b`.
+- **No variable in a pattern**: a `$` stands last, or before `)` or
+  `|`, and `@` is written `\@`. **No `$1`**, `$&` and their kin: take
+  the captures from the list the match gives.
+- **No `/g` where one value is wanted**, and so no `while ($s =~
+  /x/g)`: perl goes on from where the last match left off, and `pos`
+  is not in the language. Take the matches as a list.
+- **A pattern alone** does not match `$_`: write `$_ =~ /.../`.
+- Refused because perl would warn of them, read them otherwise, or
+  decide by rules of its own: the empty pattern; a quantifier on what
+  can match the empty string; a group that captures inside a repeated
+  group, unless it is the repeated group itself with no group in it
+  (`(a|b)*` is in, `(?:(a)|b)*` is not); `{,n}`, blanks in a
+  quantifier's braces, a `{` or `}` that is no quantifier's, `{n}?`;
+  an escape perl does not know, `\0` and octal; a backreference to a
+  group not closed before it; `]` or `--` first in a class, `[` in
+  one, a range backwards or with a class at one end; other delimiters
+  than `/` and the brackets.
+- Not in the language yet: lookaround, possessive quantifiers,
+  `(?i)` and the other `(?...)` forms but `(?:...)`, named captures,
+  POSIX classes, `\p{...}`, `\h \v \R \N \X \K \G`, `\g` and `\k`, and
+  the flags `a u l n p o xx`; and step 20's `s///`, `split`, `tr` and
+  `qr`.
+
 ## Memory
 
 A program doesn't manage memory. A string the program can no longer

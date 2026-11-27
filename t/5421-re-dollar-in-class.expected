@@ -1,0 +1,2 @@
+t/5421-re-dollar-in-class.pl:5:13: '$' in a class: perl may take it for a variable (D229); write \$
+exit: 1

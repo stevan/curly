@@ -1,0 +1,2 @@
+t/5410-re-g-where-one-value.pl:5:9: a match under /g where one value is wanted: perl goes on from where the last one left off (pos), which is cut (D233, T543); take the matches as a list
+exit: 1

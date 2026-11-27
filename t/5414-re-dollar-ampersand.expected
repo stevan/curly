@@ -1,0 +1,2 @@
+t/5414-re-dollar-ampersand.pl:6:9: $&, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+exit: 1

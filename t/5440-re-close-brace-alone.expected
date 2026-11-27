@@ -1,0 +1,2 @@
+t/5440-re-close-brace-alone.pl:5:13: a '}' in a pattern: write \}
+exit: 1

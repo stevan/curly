@@ -1,0 +1,2 @@
+t/5464-re-property.pl:5:12: \p{...}, a Unicode property, is not in the language yet (D226)
+exit: 1

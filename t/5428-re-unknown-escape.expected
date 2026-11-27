@@ -1,0 +1,2 @@
+t/5428-re-unknown-escape.pl:5:13: \y in a pattern is no escape of perl's: perl warns that it passes it through, or does not compile it
+exit: 1

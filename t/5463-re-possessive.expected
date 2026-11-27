@@ -1,0 +1,2 @@
+t/5463-re-possessive.pl:5:14: a possessive quantifier is not in the language yet (D226)
+exit: 1

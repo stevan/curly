@@ -546,4 +546,19 @@ void rt_fault(rt_ctx *cx, const char *what) __attribute__((noreturn));
 // `internal: WHAT at FILE line N.` on stderr, after what the program
 // printed, and exit status 2. Never the program's doing.
 void rt_internal(rt_ctx *cx, const char *what) __attribute__((noreturn));
+// ---- step 19: a pattern match (runtime/regex.c; D226 to D237). A
+// pattern is a program the compiler wrote, a constant of the generated C:
+// its instructions, its classes, how many groups capture, and whether it
+// is under /i and under /g.
+typedef struct rt_regex {
+    const int32_t *code;
+    const int32_t *classes;
+    int32_t groups;
+    int32_t icase;
+    int32_t global;
+} rt_regex;
+rt_value rt_match(rt_ctx *cx, const rt_regex *re, rt_value subject);
+rt_value rt_match_not(rt_ctx *cx, const rt_regex *re, rt_value subject);
+void rt_match_list(rt_ctx *cx, rt_value list, const rt_regex *re, rt_value subject);
+
 #endif

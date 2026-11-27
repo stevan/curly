@@ -1,0 +1,2 @@
+t/5415-re-bang-delimiter.pl:5:11: m!...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}
+exit: 1

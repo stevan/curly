@@ -1,0 +1,2 @@
+t/5417-re-pattern-never-ends.pl:5:11: a pattern that never ends: it begins here
+exit: 1

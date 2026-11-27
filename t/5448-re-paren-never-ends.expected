@@ -1,0 +1,2 @@
+t/5448-re-paren-never-ends.pl:5:12: a '(' with no ')' after it in the pattern: perl does not compile it
+exit: 1

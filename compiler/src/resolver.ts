@@ -426,6 +426,8 @@ export const resolve = (program: Program): Resolution => {
             walk(e.then, declared);
             return walk(e.else, declared);
         case 'apply': return e.args.forEach(a => walk(a, declared));
+        // (Step 19: a pattern has no variable in it, D229.)
+        case 'match': return walk(e.subject, declared);
         case 'invoke': {
             e.args.forEach(a => walk(a, declared));
             const found = called.get(e.name);

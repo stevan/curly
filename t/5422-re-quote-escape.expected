@@ -1,0 +1,2 @@
+t/5422-re-quote-escape.pl:5:12: \Q in a pattern: the case escapes, and \Q...\E, are not in the language (D229)
+exit: 1

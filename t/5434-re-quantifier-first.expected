@@ -1,0 +1,2 @@
+t/5434-re-quantifier-first.pl:5:12: a quantifier with nothing before it: perl does not compile it
+exit: 1

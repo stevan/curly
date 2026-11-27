@@ -1,0 +1,2 @@
+t/5461-re-inline-flags.pl:5:12: (?...) is not in the language: of its forms, (?:...) is (D226)
+exit: 1

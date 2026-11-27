@@ -1,0 +1,2 @@
+t/5453-re-quantified-anchor.pl:5:18: a quantifier on what can match the empty string: perl warns, or stops by rules of its own (D231, T552)
+exit: 1

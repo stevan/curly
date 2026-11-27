@@ -1,0 +1,2 @@
+t/5462-re-comment-group.pl:5:13: (?#...) is not in the language: under /x a comment is # to the end of the line
+exit: 1

@@ -1,0 +1,2 @@
+t/5433-re-nested-quantifiers.pl:5:14: a quantifier after a quantifier: perl does not compile it (Nested quantifiers); bracket the first, (?:...)
+exit: 1

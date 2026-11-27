@@ -1,0 +1,2 @@
+t/5454-re-quantified-optional-group.pl:5:21: a quantifier on what can match the empty string: perl warns, or stops by rules of its own (D231, T552)
+exit: 1

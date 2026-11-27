@@ -1,0 +1,2 @@
+t/5455-re-capture-in-repeat.pl:5:17: a group that captures inside a repeated group: perl keeps or forgets its value by rules of its own (D231, T540); capture the whole repeat, ((?:...)*)
+exit: 1

@@ -281,7 +281,9 @@ export const PRECEDENCE: readonly Level[] = [
     { assoc: 'nonassoc', other: ['++', '--'] },
     { assoc: 'right', infix: [{ op: '**', in: true, rt: 'rt_pow' }] },
     { assoc: 'right', prefix: [{ op: '!', in: true, rt: 'rt_not', bang: true, tests: true }, ...ops('~', '~.', '\\'), { op: '+', in: true, sign: true }, { op: '-', in: true, rt: 'rt_neg', sign: true }] },
-    { assoc: 'left', infix: ops('=~', '!~') },
+    // A pattern match (step 19): the right side is a pattern and nothing
+    // else, which the parser reads.
+    { assoc: 'left', infix: [{ op: '=~', in: true }, { op: '!~', in: true }] },
     { assoc: 'left', infix: [{ op: '*', in: true, rt: 'rt_mul' }, { op: '/', in: true, rt: 'rt_div' }, { op: '%', in: true, rt: 'rt_mod' }, { op: 'x', in: true, rt: 'rt_repeat', list: true }] },
     { assoc: 'left', infix: [{ op: '+', in: true, rt: 'rt_add' }, { op: '-', in: true, rt: 'rt_sub' }, { op: '.', in: true, rt: 'rt_concat', concat: true }] },
     { assoc: 'left', infix: ops('<<', '>>') },

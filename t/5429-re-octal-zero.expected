@@ -1,0 +1,2 @@
+t/5429-re-octal-zero.pl:5:12: \0 in a pattern is octal to perl: write \x00
+exit: 1

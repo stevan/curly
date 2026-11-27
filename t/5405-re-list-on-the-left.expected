@@ -1,0 +1,2 @@
+t/5405-re-list-on-the-left.pl:4:20: a list on the left of '=~': perl matches one value, a count or the last (T547)
+exit: 1

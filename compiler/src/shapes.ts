@@ -42,6 +42,8 @@ export const shaped = (in_: Expr, gives: Gives): boolean => {
     case 'hashop': return e.op === 'keys' || e.op === 'values' || e.keys !== undefined;
     case 'binder': return true;
     case 'sort': return true;
+    // A match of two groups or more, or under /g (step 19; D235).
+    case 'match': return e.negate !== true && (e.regex.global || e.regex.groups >= 2);
     case 'ternary': return shaped(e.then, gives) || shaped(e.else, gives);
     case 'binary': return isRange(e) || isRepeat(e) || (infixOp(e.op)?.when !== undefined && shaped(e.right, gives));
     default: return false;
