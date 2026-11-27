@@ -442,8 +442,31 @@ full when its step is, and its rows join the sections above then.
   value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle
   (step 21). 16a to 16c (D121 to D131) are built, and their rows are in
   the sections above.
-- **Objects** (step 17; D19). `class` as 5.42 has it. Roles are
-  wanted, and perl has none: an exception to D2 (D5).
+- **Objects** (step 17; D19). `class` as 5.42 has it, on a core
+  the runtime holds, `Object`, `Role` and `Class`, of which every
+  class and role is an instance (D182). Roles are wanted, and perl
+  5.42 has none: an exception to D2 (D5), refereed by a perl with
+  Stevan's roles (D181). Instances that are a scalar or an array as
+  well as a hash, with a construction protocol a class can hook
+  (D180); no `DEMOLISH` for now (D184); split into sub-steps (D185).
+  A metaobject protocol (step 28) that looks at a class while the
+  program runs and never changes it (D183). What a Perl programmer of
+  `class` will meet at 17a: a class's block holds `field`, `method`,
+  `my method` and `ADJUST` alone, so no `my` shared by the methods and
+  no `sub` for a class method (D171); `new` on a class's name, and
+  `__CLASS__->new` for `ref($self)->new` (D173); `class Name;` and a
+  class's version wait (D174); `$self` is read-only (D175); an object
+  printed or made a key is a fault, as any reference is (D176);
+  `Object`, `Role` and `Class` are no class's names (D177); and a
+  call of a method whose name some class gives a list faults where
+  one value is wanted, whichever class it reaches (D172). From the
+  review (D178): the program's subs are called from a class as
+  `main::helper(...)`, as perl wants there; a method may not be named
+  `floor`, `trim` or another of `use v5.42`'s imports; a class's name
+  begins with a capital letter in every part. And by D179, Curly is
+  stricter than perl's `class` on purpose wherever perl's is lax: a
+  constructor that warns or guesses, a package that shows through, a
+  mistake that is only a warning.
 - **Regexes** (steps 19, 20). Perl's syntax and matching order, a
   subset, compiled. No `s///e`, no `(?{ })`, no string interpolated
   as a pattern. **How `s///` and a match read with `$_` read-only
@@ -461,7 +484,8 @@ project is run, how the compiler and the runtime are built, and
 decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
-D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164.
+D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164,
+D186, D170.
 
 ## What this leaves out
 

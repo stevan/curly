@@ -30,6 +30,7 @@ oracle runs it: plain, one hash seed, empty stdin.
 """
 
 import os
+import shutil
 import re
 import subprocess
 import sys
@@ -980,6 +981,8 @@ CLAIMS = [
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from claims16 import STEP16  # noqa: E402
 CLAIMS += STEP16
+from claims17 import STEP17  # noqa: E402
+CLAIMS += STEP17
 # And step 13d's, docs/briefs/claims13d.py.
 from claims13d import STEP13D  # noqa: E402
 CLAIMS += STEP13D
@@ -1067,13 +1070,22 @@ def main(argv):
             only.append(argv[i]); i += 1
     version = subprocess.run([perl, '-e', 'print $^V'], capture_output=True, text=True).stdout
     print(f'perl {version} ({perl}), each program after: {prelude.strip()}')
+    # A row marked roles is a statement about the roles perl (D181, D186),
+    # which has no other way to be asked; without that perl the row fails.
+    roles = os.environ.get('CURLY_PERL_ROLES', '/opt/perl-5.42-roles/bin/perl')
+    print(f'roles perl ({roles}) for the rows marked roles')
     differ = 0
     for id, where, code, said in CLAIMS:
         if only and id not in only:
             continue
         compiles = said.get('compiles', True)
         flags = ['-c'] if not compiles else ['-CSDA'] if said.get('csda') else []
-        status, out, err = run(perl, '' if said.get('raw') else prelude, code, flags)
+        which = roles if said.get('roles') else perl
+        if said.get('roles') and not shutil.which(roles):
+            differ += 1
+            print(f'DIFFERS {id} ({where})\n    not run: no roles perl at {roles} (tools/perl-roles/build.sh)')
+            continue
+        status, out, err = run(which, '' if said.get('raw') else prelude, code, flags)
         wrong, out, err = judge(said, status, out, err)
         if wrong or only:
             differ += bool(wrong)
@@ -1215,6 +1227,18 @@ CLAIMS += [
 CLAIMS += [
     c('T351', 'TRAPS', 'my $r = [1]; say(0 + $r > 1_000_000 ? "big" : "small"); my $x = "" x $r; say length $x; my @l = ($r .. 1); say scalar @l;', out='big\n0\n0\n'),
     c('T351-mac', 'TRAPS', 'my $x = "" x 5000000000; my @m = (5000000000 .. 1); say length($x), scalar(@m);', out='00\n'),
+]
+
+# ---- step 17, what perl 5.42's class has of roles, the bootstrap and
+# representations (PLAN 17, "Roles, from the start")
+CLAIMS += [
+    c('17-role', 'PLAN 17', CLASS + 'role Eq { }', compiles=False, err='syntax error'),
+    c('17-does', 'PLAN 17', CLASS + 'class P :does(Eq) { }', compiles=False, err='Unrecognized class attribute does'),
+    c('17-reftype', 'PLAN 17', CLASS + 'class P { field $x = 1; field @l; } say builtin::reftype(P->new);', out='OBJECT\n'),
+    c('17-not-hash', 'PLAN 17', CLASS + 'class P { field $x = 1; } my $o = P->new; my $v = $o->{x};', exit=255, err=r'^Not a HASH reference at '),
+    c('17-bless', 'PLAN 17', CLASS + 'class P { } my $o = P->new; bless $o, "Q";', exit=255, err=r"^Can't bless an object reference at "),
+    c('17-new', 'PLAN 17', CLASS + 'class P { sub new { return "mine" } } say P->new;', out='mine\n', err=r'Subroutine new redefined'),
+    c('17-method-count', 'PLAN 17', CLASS + 'class P { method m($x) { $x } } try { P->new->m() } catch ($e) { print $e } try { P->new->m(1, 2) } catch ($e) { print $e }', out="Too few arguments for subroutine 'P::m' (got 0; expected 1) at claim.pl line 3.\nToo many arguments for subroutine 'P::m' (got 2; expected 1) at claim.pl line 3.\n"),
 ]
 
 if __name__ == '__main__':

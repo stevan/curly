@@ -1,0 +1,1 @@
+died: Cannot invoke method "Q" on a non-instance at 04-method-hides-class-isa.pl line 3.

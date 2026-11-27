@@ -1,0 +1,5 @@
+start
+Can't locate object method "END" via package "P" at 02-method-end.pl line 3.
+Cannot invoke method "END" on a non-instance.
+END failed--call queue aborted.
+exit: 22

@@ -194,7 +194,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | Key-and-value slices `%h{...}`, `%a[...]`, `->%[...]`, `->%{...}` | Cut | | D108, D104 |
 | `\&name` | In | 14 | | One reference for the run (T368); refused before `->`, `(`, `[` or `{`, which perl calls (T373); `(\&name)->(...)` says it |
 | `defined &name` | Cut | | | D21: every sub is known as the program compiles |
-| `->&name(...)`, how a lexical method is called | Later | 17 | New in 5.42; not one of the `&` calls D21 cuts |
+| `->&name(...)`, how a lexical method is called | In | 17 | New in 5.42; not one of the `&` calls D21 cuts |
 | `&$f()`, `&{$f}()`, `->&*`, `&name` | Cut | | D21, D165 |
 | `$f(...)` | Cut | | Not perl's (a file handle to perl, which dies) |
 | A string as a name (symbolic reference) | Cut | | strict refs: perl dies too |
@@ -341,10 +341,12 @@ that names it.
 
 | Construct | Here | Step |
 |---|---|---|
-| `class Name { }`, `class Name;` | In | 17 |
+| `class Name { }` | In | 17 |
+| `class Name;`, with no block | Later | | D174 |
+| A `my`, a statement, a `sub` or a `use` in a class's block | Cut | | D171, T408, T411: a class's block holds `field`, `method`, `my method` and `ADJUST` |
 | `field $x`, `field @a`, `field %h`, defaults | In | 17 |
 | `:param`, `:reader` | In | 17 |
-| `:writer` | Later | 17 |
+| `:writer` | In | 17 | D174 |
 | `method name (signature) { }`, `$self`, lexical methods | In | 17 |
 | `ADJUST` | In | 17 |
 | `:isa(Parent)` | In | 17 |
@@ -353,13 +355,26 @@ that names it.
 | `$obj->m` and `Name->new` without brackets | In | 17 |
 | A method named for a builtin, `method keys` | In | 17 |
 | `$self->SUPER::m()` | In | 17 |
+| `$self->next::method()`, `Name::m($obj)`, `method m;` with no block | Cut | | T417, T411, T419 (17b takes `method m;` in a role) |
+| `$obj->new`, `ref($self)->new` | Cut | | D173: `Name->new`, and `__CLASS__->new` in a method |
+| `$obj->isa(...)`, `->can`, `->DOES`, `->VERSION`; a method of those names or `new`, `DESTROY`, `AUTOLOAD`, `import`, `unimport` | Cut | | D19, T409, T416: `isa`, the operator |
+| An assignment to `$self`; `$self` as a parameter, a `my` or a field; `\$self` | Cut | | D175, D178, T413, T430, T432 |
+| A bare call of the program's sub in a class, `helper(1)` | Cut | | D178, T422: perl looks it up in the class's package |
+| `main::NAME(ARGS)` in a class | In | 17 | D178, T422 |
+| A method, reader or writer named for an import of `use v5.42`, a special block, or a class | Cut | | D178, T423, T425 |
+| A class's name with a part that does not begin with a capital letter, or that perl already holds | Cut | | D178, T426 |
+| A class named `Object`, `Role` or `Class`, or one after `isa` | Cut | | D177, T415: held back until step 28 |
 | `method name { }` with no signature | In | 17 | D105 |
 | A parent's field read in a subclass; `:isa` of a class the program doesn't define | Cut | |
-| `class Name VERSION`, `:param(name)`, `:reader(name)`, `sub` inside a class, `my method` | Later | 17 |
+| `:param(name)`, `:reader(name)`, `my method` | In | 17 | |
+| `class Name VERSION`, `:isa(Name VERSION)` | Later | | D174 |
 | `__CLASS__`, `isa`, `ref($obj)` | In | 17 |
 | `DESTROY`, `AUTOLOAD`, `can` to fetch code, `bless`, `@ISA`, overloading | Cut | |
-| `role`, `:does` (perl 5.42 has neither; Stevan wants them in the object system from the start, so step 17's proposal takes them up: `PLAN.md`) | New | 17 or 27 |
-| A metaobject protocol | New | 28 |
+| `role`, `:does` (perl 5.42 has neither; refereed by a perl with Stevan's roles, D181) | New | 17 |
+| `class Object`, `role Role`, `class Class`: every class and role an instance of one, made by the runtime (D182) | New | 17 |
+| An instance that is a scalar, an array, a hash..., and a construction protocol a class can hook (D180) | New | 17 |
+| `DEMOLISH` (D184) | Later | |
+| A metaobject protocol: introspection while the program runs; no change to a class while it runs, and wrapping or replacing a method only as the program compiles (D183) | New | 28 |
 
 ## What the erasure removes
 

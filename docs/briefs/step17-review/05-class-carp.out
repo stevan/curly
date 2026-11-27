@@ -1,0 +1,2 @@
+Cannot create class Carp as it already has a non-empty @ISA at 05-class-carp.pl line 3.
+exit: 255

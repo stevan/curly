@@ -269,14 +269,25 @@ which is one more reason there is no `docs/plans/` here.
 
 ## To read when classes are proposed
 
-Two of Stevan's repositories, for roles, which he wants in the object
-system from the start (`PLAN.md`, step 17, has the note and what each
-holds): `stevan/p5-roles-algebra`, an algebra of role composition for
-`feature 'class'` with tests of it against Moose, Moo, Role::Tiny,
-Object::Pad and the mop; and `stevan/p5-core-role-tests`, programs
-written for roles in core. perl 5.42 compiles neither `role` nor
-`:does`. Not read closely yet: nothing here is borrowed from them so
-far.
+Five of Stevan's repositories (`PLAN.md`, step 17, has the note, what
+each holds and what Stevan wants of them). For roles, which are to be
+in the object system from the start: `stevan/p5-roles-algebra`, an
+algebra of role composition for `feature 'class'` with tests of it
+against Moose, Moo, Role::Tiny, Object::Pad and the mop; and
+`stevan/p5-core-role-tests`, programs written for roles in core. perl
+5.42 compiles neither `role` nor `:does`. For the structure of the
+object system: `stevan/p5-MOP`, a metaobject protocol in which a
+class does the role `Role` and both are subclasses of `Object`; and
+`stevan/p5-UNIVERSAL-Object`, a protocol for constructing an
+instance, with hooks at each part and instances that are a scalar, an
+array or a hash. Both are to be adapted, not copied. And
+`stevan/Cor`, a 2020 compiler from a class syntax (`class`, `role`,
+`has`, `method`) to Perl that targets those two: the lowering step 17
+needs, done once before, in the early days of the Corinna spec work
+(its twigils and `module` keyword were still being debated; its
+instances are hashes, and a `:REPR` attribute for the others was
+planned and not written). Not read closely yet: nothing here is
+borrowed from them so far.
 
 ## Parked, with the reason, so each stops coming up
 

@@ -1,0 +1,4 @@
+Prototype mismatch: sub trim ($) vs none at 05-class-builtin.pl line 3.
+Subroutine trim redefined at 05-class-builtin.pl line 3.
+Cannot invoke method "trim" on a non-instance at 05-class-builtin.pl line 3.
+exit: 255
