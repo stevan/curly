@@ -35,7 +35,7 @@ NUMS = ['1.5', '0.1', '2.5', '1e3', '.5', '3.0', '1e15', '1e16', '2.5e-3',
         '123.456', '1e-5', '4.5']
 NSTRS = ['"3.0"', '"12"', '"1e3"', '"0.5"', '"-7"', '"0"', '"0.0"', '"10"',
          '"9007199254740993"', '"9007199254740992"', '"1.5e1"', '" 4"', '"4 "',
-         '"+5"', '"-0"', '"1_000"', '"0x10"', '"007"', '"2.50"', '"1e20"', '"abc"',
+         '"+5"', '"-0"', '"007"', '"2.50"', '"1e20"', '"1_000"', '"0x10"', '"abc"',
          '"12abc"', '""', '"inf"', '"nan"', '".5"', '"5."']
 STRS = ['"abc"', '"a"', '""', '"0"', "'x y'", '"Hello"', '"b\\n"', '"tab\\there"',
         "'q'", '"zz"', '"A"', '"a\\tb"', '"\\x41"', '"\\x{263A}"', '"\\0"', '"ab\\n\\n"',
@@ -403,7 +403,7 @@ class Gen:
         if k < 0.65:
             e = self.elem(d)
             if e:
-                return f'({e} // {self.ch(["0", "1", "-1", "2.5"])})' if self.p(0.6) else e
+                return f'({e} // {self.ch(["0", "1", "-1", "2.5"])})' if self.p(0.75) else e
             return self.leaf('num')
         if k < 0.72:
             return self.call(d, 'num')
@@ -946,7 +946,7 @@ class Gen:
             name = self.fresh('$v')
             if want == 'nstr':
                 rhs = self.ch(NSTRS)
-                kind = 'nstr' if NSTRS.index(rhs) < 20 else 'str'
+                kind = 'nstr' if NSTRS.index(rhs) < 18 else 'str'
             elif want == 'ref':
                 rhs = self.ch([self.anon(d), self.anon(d), self.e_ref(d)])
                 kind = self.kind_of('ref', rhs)
