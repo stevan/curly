@@ -1,0 +1,5 @@
+a
+b
+4
+fault: f is called for nothing, and gives back a range, (LIST) x N or reverse, which perl works out for one value then at t/5701-fault-void-range.pl line 9.
+exit: 1

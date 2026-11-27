@@ -226,7 +226,9 @@ Four ideas do the cleaning, and `SURFACE.md` applies them:
   in a slot the collector sees. What it returns is a copy. The
   file's variables are the first slots of the file's frame, each its
   own, undef from the start, and a sub reaches them through the
-  context.
+  context. For a call that wants nothing, a sort it gives
+  back is the list it was given, and a range, `(LIST) x N` or
+  `reverse` a fault (D245).
 - **Recursion has a limit that is the implementation's** (D68): the
   frames that are open are counted, 16 bytes a slot and 1 KB a call,
   and past 4 MB the next call is the fault `recursion too deep`. The

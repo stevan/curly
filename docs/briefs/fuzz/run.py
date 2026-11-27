@@ -69,11 +69,23 @@ class Worker:
 
 
 def run(argv, env, limit):
-    try:
-        r = checks.run_capped(argv, env, b'', limit)
-    except checks.Runaway:
-        return 'runaway'
-    return None if r is None else (r.returncode, r.stdout, r.stderr)
+    """t/checks.py's run_capped, with a limit on memory too: perl asked
+    for an address's worth of a string (T351) is stopped, not let loose on
+    a machine others share. 1 MB of output is a runaway here."""
+    import resource, signal, tempfile
+    def cap():
+        resource.setrlimit(resource.RLIMIT_FSIZE, (1 << 20, 1 << 20))
+        resource.setrlimit(resource.RLIMIT_AS, (1 << 30, 1 << 30))
+    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        try:
+            r = subprocess.run(argv, env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=err, timeout=limit, preexec_fn=cap)
+        except subprocess.TimeoutExpired:
+            return None
+        if r.returncode == -signal.SIGXFSZ:
+            return 'runaway'
+        out.seek(0)
+        err.seek(0)
+        return (r.returncode, out.read(), err.read())
 
 
 def judge(perl, ours):

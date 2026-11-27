@@ -36,7 +36,7 @@ import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
 import type { ArrayOp, Binder, CallRef, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
-import { handsOn, shaped } from './shapes.ts';
+import { handsOn, shaped, unsorted, voidOneValue, voidSorts } from './shapes.ts';
 import type { Gives } from './shapes.ts';
 
 // The context an expression is worked out in (D18): one of perl's three,
@@ -1001,7 +1001,19 @@ const genGiven = (e: Expr, line: number, out: Out, after: readonly string[]): st
     const asList = (): string[] => genListWhole([e], line, out, c => [`r = ${c};`, ...after]).code;
     const asValue = (): string[] => genWhole(e, line, out, c => [`r = ${c};`, ...after], 'pass').code;
     if (shaped(e, gives(out.names))) {
-        return ['if (want == RT_SCALAR) {', `    cx->line = ${line};`, `    rt_fault_sub(cx, ${cString(label(out.sub!))}, RT_LISTED);`, '}', ...asList()];
+        const listed = ['if (want == RT_SCALAR) {', `    cx->line = ${line};`, `    rt_fault_sub(cx, ${cString(label(out.sub!))}, RT_LISTED);`, '}'];
+        // A call that wants nothing (D245): perl works a range, `(LIST) x
+        // N` and `reverse` out for one value then, a fault before any of
+        // it is; and skips a sort, so only its list is worked out.
+        if (voidOneValue(e)) {
+            const what = `${label(out.sub!)} is called for nothing, and gives back a range, (LIST) x N or reverse, which perl works out for one value then`;
+            return [...listed, 'if (want == RT_VOID) {', `    cx->line = ${line};`, `    rt_fault(cx, ${cString(what)});`, '}', ...asList()];
+        }
+        if (voidSorts(e)) {
+            const skipped = genListWhole([unsorted(e)], line, out, c => [`r = ${c};`, ...after]).code;
+            return [...listed, 'if (want == RT_VOID) {', ...indent(skipped), '} else {', ...indent(asList()), '}'];
+        }
+        return [...listed, ...asList()];
     }
     if (!listy(e)) return asValue();
     // A sub with nothing list-shaped in it is called as one that gives a

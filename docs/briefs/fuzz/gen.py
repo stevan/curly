@@ -785,7 +785,8 @@ class Gen:
         if k == 11 and arr:
             a = self.ch(arr)
             return self.ch([f'for my $q (0 .. 1) {{ say(${a[1:]}[$q] // "u"); }}', f'say(join("|", map {{ $_ // "u" }} {a}[0, 1, 2]), " ", scalar({a}));',
-                            f'say(join(",", map {{ ref($_) ? "r" : $_ // "u" }} reverse({a})));'])
+                            f'say(join(",", map {{ ref($_) ? "r" : $_ // "u" }} reverse({a})));',
+                            f'say(join(",", map {{ ref($_) eq "CODE" ? $_->() // "u" : "n" }} {a}));'])
         if k == 12 and x:
             return self.ch([f'say(({x} ||= {e()}) . ({x} //= 5) . ({x} &&= {e()}));', f'say({x} x 2, {x} x 0, "-" x 3);',
                             f'say(sprintf("%s|%d|%.3g|%5.1f", {x}, length({x}), 2.5, 7));'])

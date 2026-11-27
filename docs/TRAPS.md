@@ -852,6 +852,17 @@ Every program is kept there and is a row of `briefs/claims17.py`
 | T436 | `field $y :param` on one line, `= die "no y";` on the next (15) | `no y at ... line 4.`, the field's first line | 17a | A field's declaration is a statement to D150 (D178) |
 | T437 | `grep { $self->drop } @a`, `drop` shifting the field `@a` (17) | perl dies of a segmentation fault | 17a | No test asks perl for it (T194's kin) |
 
+## Found by the fuzzer
+
+A differential fuzzer across the features (`briefs/fuzz/`, README
+there): generated programs, each compiled, run and held to perl. Each
+row is a program in `briefs/claimsfuzz.py`; D245 answers both.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T600 | `sub a() { say "a"; 0 } sub b() { say "b"; 3 } sub f() { return (a() .. b()); } f(); say "end";`; `my $n = 2; sub f() { return (0 .. $n); } f();`; `return (LIST) x 2`, `return reverse(@a)` with an undef in `@a`, each in a call for nothing | `a` `end`: in a call for nothing the range is a flip-flop, which works out its left end and stops at a false one; `Use of uninitialized value $. in range (or flip)` for a constant end; `in repeat (x)` and an undef in `reverse`, which work on one value. The language printed `a` `b` `end`, and was silent | fuzz | A fault as the sub gives it back (D245; 5701 to 5703) |
+| T601 | `sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } f(); say "end";`, and the sort as a last statement, in a branch of `? :`, on the right of `\|\|`, as an item of a list, behind a unary plus, in a sub with no name | `end`: a sort in a call for nothing returns at once, its list worked out and its block never run. The language printed `cmp` `end` | fuzz | Agree: the list, not the sort (D245; 5700) |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

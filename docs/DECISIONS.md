@@ -2597,3 +2597,34 @@ now, a walk that refuses whatever would let a program see the order
 of construction, which would refuse most `ADJUST`s that print and
 every default that reads a variable a default above it changes, and
 is better decided beside the protocol that may change the order.
+
+**D245. A sub called for nothing: a `sort` it gives back is skipped,
+and a range, `(LIST) x N` or `reverse` it gives back is a fault.**
+*(The builder's recommendation, under Stevan's standing instruction of
+2026-11-27; his to overturn. Found by the differential fuzzer,
+`briefs/fuzz/`, T600 and T601.)* perl works a sub's value out in the
+context of its call, and for a call that wants nothing (`f();`) that is
+no context at all, which several operators read as one value: a range
+is the flip-flop (it works out its left end, compares a constant end
+with `$.` and warns, and may never work out its right end), `(LIST) x
+N` repeats one value, `reverse` joins and reverses a string (and warns
+of an undef), and `sort` returns at once, its list worked out and its
+block never run. The language worked each out as for a list: a block
+that prints, or a range whose left end is a call, printed what perl
+does not, and the others were silent where perl warns. **What is done**:
+where a call hands its context on in what a sub gives back (behind a
+unary plus, to each item of a list, to both branches of `? :`, to the
+right of `|| && //`), a sort, with or without a block, is replaced in
+a call for nothing by the list it was given, which is what perl does;
+and a range, a `(LIST) x N` or a `reverse` there is the fault `f is
+called for nothing, and gives back a range, (LIST) x N or reverse,
+which perl works out for one value then`, raised as the `return` or
+the last statement begins, before any of it is worked out, whichever
+branch would have been taken. Rejected: perl's flip-flop, string
+`reverse` and scalar repeat for a call for nothing (three operators'
+meanings for one rare shape; D2 lets the language fault instead);
+refusing the sub (whether a call wants nothing is known only as it
+runs: a call through a reference, a `return g()`); faulting every
+list-shaped value given to a call for nothing (`return @list;` called
+as a statement is common, and perl does nothing with it); faulting on
+the sort too (agreeing is the generated list without the sort).

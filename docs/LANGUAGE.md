@@ -1414,6 +1414,17 @@ A call hands on how it was called: `return g();`, a last statement
 `and` and `or`, brackets and a unary plus all pass to `g` whether a
 value, a list or nothing was wanted of the sub they are in.
 
+**A call that wants nothing**, `f();` as a statement, is one perl
+works the sub's value out for nothing, and that is not always what it
+does for a list. A `sort` given back then is skipped: its list is
+worked out and its block never runs, as in perl. A range, `(LIST) x
+N` or `reverse` that a call for nothing may give back, through any of
+the places above or as an item of a list, is a fault as the sub begins
+to give it back: `f is called for nothing, and gives back a range,
+(LIST) x N or reverse, which perl works out for one value then` (perl
+makes the range a flip-flop, which may work out only its left end, and
+repeats or reverses one string).
+
 ### Variables in a sub
 
 A `my` in a sub is the sub's own, and new at every call: a sub that
