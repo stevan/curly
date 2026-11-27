@@ -1,0 +1,2 @@
+Cannot invoke method "join" on a non-instance at 03-my-method-join.pl line 3.
+exit: 255

@@ -1,0 +1,4 @@
+Invalid separator character '(' in attribute list at 13-attr-blank.pl line 3, near "$x :param "
+syntax error at 13-attr-blank.pl line 3, near "$x :param "
+Execution of 13-attr-blank.pl aborted due to compilation errors.
+exit: 255

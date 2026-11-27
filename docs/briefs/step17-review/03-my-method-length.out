@@ -1,0 +1,2 @@
+Cannot invoke method "length" on a non-instance at 03-my-method-length.pl line 3.
+exit: 255

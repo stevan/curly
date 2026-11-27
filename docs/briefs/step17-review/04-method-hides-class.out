@@ -1,0 +1,2 @@
+Cannot invoke method "Q" on a non-instance at 04-method-hides-class.pl line 3.
+exit: 255

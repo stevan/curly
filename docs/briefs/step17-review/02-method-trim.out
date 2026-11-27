@@ -1,0 +1,4 @@
+Prototype mismatch: sub trim ($) vs none at 02-method-trim.pl line 3.
+Subroutine trim redefined at 02-method-trim.pl line 3.
+Can't locate object method "trim" via package "P" at 02-method-trim.pl line 3.
+exit: 255

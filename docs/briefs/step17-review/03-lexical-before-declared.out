@@ -1,0 +1,2 @@
+Undefined subroutine &P::b called at 03-lexical-before-declared.pl line 3.
+exit: 255

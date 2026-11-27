@@ -1,0 +1,2 @@
+Can't locate object method "new" via package "1" (perhaps you forgot to load "1"?) at 05-class-true.pl line 3.
+exit: 255
