@@ -224,20 +224,27 @@ def main(argv):
         finally:
             with lock:
                 free.append(w)
-            if tally['programs'] % 200 == 0:
+            if tally['programs'] % 100 == 0:
                 print(f'.. {tally["programs"]} programs, {dict(tally["verdicts"])}, {time.time() - start:.0f}s', flush=True)
+                with lock:
+                    save()
+
+    def save():
+        # the totals so far, so that a batch stopped part way still counts
+        tally['seconds'] = round(time.time() - start)
+        tally['first'] = first
+        tally['count'] = count
+        js = {k: (dict(v.most_common()) if isinstance(v, collections.Counter) else v) for k, v in tally.items()}
+        with open(os.path.join(out, f'totals-{first}.json'), 'w') as f:
+            json.dump(js, f, indent=1)
+        return js
 
     with ThreadPoolExecutor(jobs) as pool:
         list(pool.map(task, range(first, first + count * step, step)))
     os.remove(rt)
     for w in workers:
         w.node.stdin.close()
-    tally['seconds'] = round(time.time() - start)
-    tally['first'] = first
-    tally['count'] = count
-    js = {k: (dict(v.most_common()) if isinstance(v, collections.Counter) else v) for k, v in tally.items()}
-    with open(os.path.join(out, f'totals-{first}.json'), 'w') as f:
-        json.dump(js, f, indent=1)
+    js = save()
     print(json.dumps({k: v for k, v in js.items() if k not in ('refusals', 'faults')}))
     print('refusals:', json.dumps(dict(collections.Counter(js['refusals']).most_common(25)), indent=1))
     print('faults:', json.dumps(dict(collections.Counter(js['faults']).most_common(15)), indent=1))
