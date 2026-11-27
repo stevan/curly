@@ -357,8 +357,12 @@ test("the longest of perl's operators is the token, in the language or not (T27)
     refused('say 1 << 2;', "'<<' is not in the language yet", 1, 7);
     refused('say 1 ^^ 2;', "'^^' is not in the language yet", 1, 7);
     refused('say 1 ~~ 2;', "'~~' is not in the language yet", 1, 7);
-    refused('say 1 =~ 2;', "'=~' is not in the language yet", 1, 7);
-    refused('say 1 !~ 2;', "'!~' is not in the language yet", 1, 7);
+    // `=~` and `!~` are in since step 19, and a slash where a value may
+    // begin is a pattern, after a value a division.
+    assert.deepEqual(lex('$s =~ /a\\/b/i; 1 / 2; $s !~ m{x}').map(t => [t.kind, t.text]),
+        [['var', '$s'], ['op', '=~'], ['match', '/a\\/b/i'], [';', ';'], ['int', '1'], ['op', '/'], ['int', '2'], [';', ';'], ['var', '$s'], ['op', '!~'], ['match', 'm{x}'], ['eof', '']]);
+    refused('say 1 =~ m!x!;', "m!...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}", 1, 10);
+    refused('$s =~ s/a/b/;', 's/// is not in the language yet (step 20)', 1, 7);
     refused('say 1 -> 2;', "after '->' comes '[' or '{', hard against it: $r->[0], $r->{k}", 1, 7);
     refused('say 7 <<= 2;', "'<<=' is not in the language yet", 1, 7);
     refused('say 7 |= 2;', "'|=' is not in the language yet", 1, 7);
@@ -387,7 +391,7 @@ test('a variable is a dollar and a name, hard against it (D55)', () => {
     const message = "after '$' comes a name: a letter or '_', then letters, digits and '_'";
     refused('say $ x;', message, 1, 5);
     refused('say ${x};', 'a word alone in ${ ... } is the name of a variable, to perl (${x} is $x): D114 refuses it; name a variable, ${ $r }', 1, 6);
-    refused('say $1;', message, 1, 5);
+    refused('say $1;', '$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)', 1, 5);
     refused('say $$;', message, 1, 5);
     refused('say $', message, 1, 5);
     // perl's own. `$_` is a token since step 10b, and an element of
