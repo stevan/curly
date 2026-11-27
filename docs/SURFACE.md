@@ -45,6 +45,7 @@ comparison: *in*, *out*, or *n/a*.
 | `use open qw(:std :encoding(UTF-8))`, `':utf8'`, any other layers | Cut | | | D39: one spelling. `qw` itself is step 16 |
 | `use constant`, `List::Util`, `Scalar::Util`, `POSIX`, other core modules | Later | 18, 23 | | D16: refused until proposed |
 | `require`, `do FILE` at run time | Cut | | out | D20 |
+| A module with C in it: XS, `Inline::C`, `FFI::Platypus`, `DynaLoader`, any binding of a C library by a program | Cut | | | D152: a library is one the implementation ships, by proposal, or another process |
 | `package Name;` naming a file's subs | In | 18 | out | D19: a namespace and nothing more |
 | `Name::f($x)`, a sub of another package | In | 18 | in | |
 | `package Name { }`, `__PACKAGE__`, imports | Later | 18 | | |
@@ -299,7 +300,7 @@ Opal's notation, `docs/BUILTINS.md`.
 | `die`, `warn` | In | 15 | D142, D148: list operators; `warn` is `true`. One reference alone is thrown as itself; uncaught, among several values, or in a `warn`, D112's fault |
 | `open` with three arguments, `close`, `readline` and `<$fh>`, `eof`, `print {$fh}`, `binmode`, `opendir` and the directory calls, `unlink`, `rename`, `mkdir`, `stat` | Later | 21 |
 | `@ARGV`, `%ENV`, `$0`, `$!` in a message | Later | 21 |
-| `system`, backticks, `exec`, `fork`, `wait`, `kill` | Later | a library, when proposed |
+| `system`, backticks, `exec`, `fork`, `wait`, `kill` | Later | a library, when proposed. D152: with a pipe, the one way to a C library the implementation does not ship |
 | Sockets, `getpw*` and the system databases, `select` on handles, `ioctl`, `fcntl` | Later | a library, if ever |
 | `pack`, `unpack` | Later | with bytes |
 | `caller` | Cut | |

@@ -127,6 +127,58 @@ file that carries type annotations is called waits for step 25.
 Rejected: Opal (the 2025 attempt's name; this is a different design);
 no name yet.
 
+**D152. A program binds no C library: what the implementation ships
+is what there is, and anything else is another process.** *(User,
+2026-11-27, on the options laid out for binding a C library: "This
+raises an interesting question, especially in the era of open source
+supply chain attacks. Shipping with batteries included is probably a
+good idea. A plus G is enough I think.")* The language has no foreign
+function interface: no declaration of a C function, no glue a
+programmer writes in C, no C in a source file, nothing loaded as a
+program runs. A C library reaches a program in one of two ways.
+**As a builtin or a library the implementation ships** (A), written in
+the runtime, with perl's own name where perl has one, each brought by
+a step that proposes it, as D22 has files and processes. **Or as
+another process** (G): a program the Curly program starts and talks
+to through a pipe, with the process library once that is proposed
+(`SURFACE.md`: `system`, backticks). Why: a compiled program is then
+the compiler, the runtime and the program's own source, and nothing a
+third party wrote is linked into it (today the runtime links the C
+library and `-lm` and nothing else), which is the answer to a supply
+chain; the runtime's insides stay nobody's interface, so D25's value,
+the collector's rule and where frames live (D68, step 29) can still
+move, where XS made perl's insides its interface for good; and the
+runtime stays the only place a program can crash or be WRONG without
+a fault. What it costs, said plainly: a library nobody shipped is
+reached only across a pipe, which is slow for many small calls and
+no use for a library that wants to call back; and every battery is
+the implementation's to write, test and keep, each one C that the
+runtime then links, so a battery that wraps someone else's library
+is the same supply chain by another door and its proposal has to say
+so. **Left open**: which libraries ship (D22 said sockets and the
+system databases wait for someone to want them, and this leans the
+other way without naming one); the process library itself; and what
+a resource from outside is as a value, which step 21's file handle
+meets first. Rejected: a dynamic interface, `dlopen` and libffi, as
+FFI::Platypus and ctypes are (nothing holds a signature to the real
+function, so a wrong one is memory corrupted in silence, and it
+answers having no C compiler, which is not this compiler's trouble);
+declared externs for which the compiler emits the call, as Zig,
+Crystal and Nim have (the builder's recommendation had programmers
+been meant to write bindings: the C compiler checks the declaration
+against the real header, and what is left to trust is who frees, how
+long a pointer lives and whether it may be NULL; turned down because
+it is still a third party's code in the binary, and because perl has
+no spelling for it that survives D2: `sub puts($s);` is a syntax
+error under 5.42 and `sub puts :native ($s) { ... }` is `Invalid
+CODE attribute`, so it would have to hide behind a module's name);
+glue in C against a narrow interface of handles, as Lua's stack and
+N-API are (XS done properly, and still an interface to keep for
+ever); C written in the source file, as Inline::C is (it ties a
+program to the generated C, D3's other targets with it); bindings
+generated from headers (a tool over an interface the language does
+not have).
+
 ## Project
 
 **D7. Golden tests' expected output comes from an independent source,

@@ -296,5 +296,6 @@ far.
 - **`BEGIN` as partial evaluation.** D20.
 - **Grammars and rules; multiple dispatch; macros; lazy lists;
   junctions.** D5: not picked.
-- **CPAN, XS, embedding perl.** D1.
+- **CPAN, XS, embedding perl.** D1. And binding a C library from a
+  program by any other road (D152): decided against, not parked.
 - **Bignums and rationals.** D23.

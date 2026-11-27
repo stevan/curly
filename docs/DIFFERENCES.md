@@ -440,6 +440,13 @@ full when its step is, and its rows join the sections above then.
   and is not decided.
 - **The core is small** (D22): files, the environment and processes
   are libraries, each by proposal.
+- **No C library is bound by a program** (D152): no XS, no
+  `Inline::C`, no `FFI::Platypus`. What the implementation ships is
+  what there is, and anything else is another process at the end of a
+  pipe. With D1 (no CPAN) it is the largest thing a working Perl
+  programmer loses, and it has no row above only because modules
+  (step 18) and processes are not built: it gets one, rated, when
+  they are.
 - **What perl doesn't have** (D5): gradual types, erased before perl
   sees the file; a metaobject protocol; concurrency.
 

@@ -1050,6 +1050,12 @@ CLAIMS += [
     c('13b-copy-shallow', 'PLAN 13b', r"""my $grid = [[1], [2]]; my @rows = $grid->@*; push $rows[0]->@*, 9; say join(",", $grid->[0]->@*);""", out='1,9\n'),
 ]
 
+# ---- D152: perl has no spelling for a sub declared and written elsewhere
+CLAIMS += [
+    c('D152-no-body', 'DECISIONS D152', 'sub puts($s); say "ok";', compiles=False, err='syntax error'),
+    c('D152-attribute', 'DECISIONS D152', 'sub puts :native ($s) { ... } say "ok";', compiles=False, err='Invalid CODE attribute: native'),
+]
+
 def main(argv):
     perl = os.environ.get('CURLY_PERL', 'perl')
     prelude = NEW

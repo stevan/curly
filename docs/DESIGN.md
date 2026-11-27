@@ -42,6 +42,10 @@ settle is listed at the end.
   (D6).
 - Self-hosting (D6).
 - String `eval`, a REPL, loading code at run time (D20).
+- Binding a C library from a program (D152): no foreign function
+  interface, no glue in C, nothing linked in that the implementation
+  did not ship. A library is a builtin or a library of the
+  implementation's, by proposal, or it is another process.
 - Grammars and rules, multiple dispatch, macros, lazy lists (D5).
 
 ## The core rule
@@ -227,7 +231,9 @@ tables of its own for, the C library doesn't: Unicode case mapping is
 the first, and faults past ASCII until a step brings the tables
 (T45). As the language grows, builtins that can be written in
 the language are (step 23: the prelude), and the runtime keeps the
-primitives.
+primitives. **The runtime is the only C a program is linked with**
+(D152): `rt.h` is shared with the generated code and with nobody
+else, and is no interface to keep.
 
 Knobs, set by `t/run.sh` so no test depends on its machine: the
 collector's stress interval, poison and heap cap (step 7; D63 to D65:
@@ -342,3 +348,7 @@ step, roughly in the order it will matter:
     (step 29).
 14. **The extension of a file that carries type annotations** (step
     25). A program is a `.pl` file until then.
+15. **Which libraries the implementation ships**, now that a program
+    can bind none of its own (D152): each by proposal, none named
+    yet. And the process library, which is how a program reaches
+    anything that is not shipped.

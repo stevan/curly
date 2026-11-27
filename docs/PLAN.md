@@ -6277,7 +6277,10 @@ found; imports, if any (`Exporter` needs package variables, which are
 cut); `package Name { }` as a block; `__PACKAGE__`; core modules
 (`List::Util`, `Scalar::Util`, `POSIX`, `constant`). Crayon's four
 modules are the worked example of what a port has to bend: `use
-Exporter 'import'; our @EXPORT_OK`, and a trailing `1;`.
+Exporter 'import'; our @EXPORT_OK`, and a trailing `1;`. **D152**: a
+module is a file of the program's own or one the implementation
+ships, and none has C in it; the proposal says which of perl's core
+modules ship, since nothing else can supply them.
 
 ### 19, 20. Regexes
 
@@ -6298,7 +6301,12 @@ Referee: perl. Size: large.
 `@ARGV`, `%ENV`, `exit`, file tests. Decides: handles as values;
 `print $fh LIST` or only `print {$fh} LIST` (D21); what an error from
 the system is (`$!`'s text comes from the C library and differs
-between machines, so a `same` test can't print it).
+between machines, so a `same` test can't print it). **D152**: a file
+handle is the first resource from outside the program, and what it is
+as a value, and how it is given back with no `DESTROY` (D26), is what
+every library shipped after it will copy; and starting a process and
+a pipe to it, wherever it is proposed, is the one way a program
+reaches a C library that was not shipped.
 
 ### 22. Numbers and time
 
