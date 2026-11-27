@@ -88,6 +88,7 @@ in, the fuzzer run from seed 900000, the file put back:
 |---|---|---|
 | T600 | A sub called for nothing that gives back a range: perl makes it a flip-flop, which works out its left end and may stop there, and compares a constant end with `$.` and warns; `(LIST) x N` and `reverse` there work on one value. Found as a WARNS by seed 1001211 (`Use of uninitialized value $. in range (or flip)`) | A fault as the sub begins to give it back (D245; 5701 to 5703) |
 | T601 | A sub called for nothing that gives back a sort: perl skips it, its block never run; and a call among what it gives back is for nothing too. Found by hand, looking round T600 | Agreed with (D245; 5700) |
+| T602 | An index or key of a chain that changes what holds the container before it (`$v->{f()}` with `f` assigning `$v`, `$a[0][f()]` with `f` assigning `@a`): perl has taken the container and holds no count on it, so it reads undef from a freed one or dies (`Modification of a read-only value attempted`). Found as a WRONG by seed 1002315, reduced by `reduce.py` to 12 lines | Refused (D246; 5720 to 5731, and 5704 for what stays in) |
 
 ## Totals
 
