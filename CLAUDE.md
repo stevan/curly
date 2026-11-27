@@ -499,7 +499,9 @@ put back: `lib/warnings.t` caught a deprecation now fatal "in 5.46").
 `build.sh` builds it from the tarball into `/opt/perl-5.42-roles` and
 checks it has roles; a `Devel::PatchPerl` plugin does the same for
 perlbrew. Checked: the branch's `t/role/` and perl's `t/class/` pass,
-perl's whole suite (its result on the final patch is a later commit's), and of 1,101 claims about 5.42 all hold
+perl's whole suite all but one test that fails on stock 5.42.0 here
+too, Curly's oracle check all 1,950 golden tests with the roles perl
+as the oracle, and of 1,101 claims about 5.42 all hold
 but three (`role`, `:does`, and **one message**: a `method`'s
 argument count counts `$self`, `17-method-count`, which Curly's
 uncatchable fault for a wrong count hides). Two tests of the branch's

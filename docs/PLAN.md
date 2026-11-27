@@ -6259,7 +6259,11 @@ roles) or by `patchperl` through the plugin beside it; the two make
 the same tree.
 
 **Checked**: the branch's `t/role/` (10 files, 233 tests) and perl's
-`t/class/` pass; perl's own suite, run whole, (its result on the final patch is a later commit's); and every
+`t/class/` pass; perl's own suite, run whole from the tarball and
+the patch, passes all of its 1,339,352 tests but one that fails on
+stock 5.42.0 on the same machine (`lib/perl5db.t`, for want of
+manual pages); Curly's oracle check holds all 1,950 golden tests
+with the roles perl as the oracle; and every
 statement `claims.py` makes about perl 5.42, 1,101 of them, holds
 under the roles perl but three: `17-role` and `17-does`, which are
 roles, and `17-method-count`, below. **Where it

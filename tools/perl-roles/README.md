@@ -116,7 +116,16 @@ The generated files are made again: `regen.pl` (`embed.h`,
   all pass. `op/signatures.t`, `op/universal.t`, `op/coresubs.t`,
   `op/coreamp.t`, `op/sub.t`, `uni/method.t` and `lib/B/Deparse.t`:
   all pass.
-- perl's own suite, whole (`make test_harness`): (its result on the final patch is a later commit's).
+- perl's own suite, whole (`make test_harness`, from the tarball and
+  the patch): 2,930 files, 1,339,352 tests, all pass but one,
+  `lib/perl5db.t` 124, which fails on stock 5.42.0 on the same
+  machine (its `perldoc` finds a system with the manuals taken out).
+  The first build of the port failed three more files, each mended
+  above: `lib/warnings.t` and `lib/feature.t` (the 5.46) and
+  `lib/B/Deparse-core.t`.
+- Curly's own oracle check, `CURLY_PERL=/opt/perl-5.42-roles/bin/perl
+  python3 t/checks.py oracle`: all 1,950 golden tests hold, under
+  eight hash seeds, with the roles perl as the oracle.
 - `docs/briefs/claims.py --perl /opt/perl-5.42-roles/bin/perl`: of
   the 1,101 statements the documents make about perl 5.42, all hold
   but three: `17-role` and `17-does`, which are roles, and
