@@ -1,0 +1,3 @@
+before
+fault: a character past ASCII printed without 'use open' at t/4765-fault-printf-stderr-without-open.pl line 6.
+exit: 1

@@ -62,6 +62,8 @@ pvm/numeric-radix-04.pl	D38	0377 starts with a zero: perl reads that as octal, w
 pvm/packages-01.pl	D19	'package' is not in the language
 pvm/packages-02.pl	D19	'package' is not in the language
 pvm/packages-03.pl	D19	'package' is not in the language
+pvm/pod-and-data-03.pl	D211	<DATA>: a bareword file handle, which is not in the language (D211); stdin is read with <STDIN>
+pvm/pod-and-data-04.pl	D211	<DATA>: a bareword file handle, which is not in the language (D211); stdin is read with <STDIN>
 pvm/quote-like-terms-05.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
 pvm/range-03.pl	D80	a range where one value is wanted: '..' is another operator to perl there
 pvm/strings-03.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -2617,6 +2619,7 @@ son-corpus/ew-p30.pl	D19	'our' is not in the language
 son-corpus/ew-p4.pl	D19	'our' is not in the language
 son-corpus/ew-p6.pl	D19	'::' hard after $main in a string: perl reads a variable of another package; write ${main}:: or $main\::
 son-corpus/ew-p8.pl	D19	'our' is not in the language
+son-corpus/gl1.pl	D211	'<' where a value begins is a readline or a glob to perl, and only <STDIN> is in the language (D211)
 son-corpus/hs-h11.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-corpus/hs-h7.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ia-a1.pl	D17	@_ is not in the language: a sub has a signature (D17)

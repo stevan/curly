@@ -1,0 +1,1 @@
+{'same': 862, 'fault': 90, 'refused': 70}

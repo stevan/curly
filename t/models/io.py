@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""t/4700 to t/4733 and the faults t/4740 to t/4762: stdin, @ARGV, %ENV,
+"""t/4700 to t/4733 and the faults t/4740 to t/4765: stdin, @ARGV, %ENV,
 exit, STDOUT and printf to a handle (step 21a; D211 to D219).
 
 The definition, which is all this file knows of them:
@@ -140,6 +140,12 @@ Every command that writes a file, one a line (t/checks.py runs them all):
     python3 t/models/io.py 4761 > t/4761-fault-wide-line-without-open.expected
     python3 t/models/io.py --program 4762 > t/4762-fault-env-slice-store.pl
     python3 t/models/io.py 4762 > t/4762-fault-env-slice-store.expected
+    python3 t/models/io.py --program 4763 > t/4763-fault-utf8-overlong-three.pl
+    python3 t/models/io.py 4763 > t/4763-fault-utf8-overlong-three.expected
+    python3 t/models/io.py --program 4764 > t/4764-fault-utf8-lead-past-the-last.pl
+    python3 t/models/io.py 4764 > t/4764-fault-utf8-lead-past-the-last.expected
+    python3 t/models/io.py --program 4765 > t/4765-fault-printf-stderr-without-open.pl
+    python3 t/models/io.py 4765 > t/4765-fault-printf-stderr-without-open.expected
 """
 
 import random
@@ -536,6 +542,10 @@ MALFORMED = {
     4746: b'ok\n\xc3',
     4747: b'ok\na\xc3',
     4748: b'ok\nab\xe9cd\n',
+    # (Two holes the breakages found: an overlong form of three bytes, and
+    # a byte that begins a sequence past U+10FFFF.)
+    4763: b'ok\n\xe0\x80\x80\n',
+    4764: b'ok\n\xf5\x80\x80\x80\n',
 }
 
 
@@ -573,6 +583,9 @@ def case_fault(n):
     if n == 4760:
         head, _, _ = program(stdin=b'')
         return fault(head, [], ['say "before";', 'chomp(my $l = <STDIN>);', 'say "not reached";'], 'before\n', 'undef where a string is wanted', 2)
+    if n == 4765:
+        # (A hole the breakages found: printf STDERR looks at what it prints.)
+        return fault([], ['use utf8;'], ['say "before";', 'printf STDERR "%s\\n", "é";', 'say "not reached";'], 'before\n', "a character past ASCII printed without 'use open'", 2)
     if n == 4761:
         head, _, _ = program(stdin=b'plain\n\xc3\xa9\n')
         return fault(head, [], ['my $a1 = <STDIN>;', 'print $a1;', 'my $a2 = <STDIN>;', 'print $a2;'], 'plain\n', "a character past ASCII printed without 'use open'", 4)
@@ -592,7 +605,7 @@ NAMES = {
     4753: 'fault-env-through-a-reference', 4754: 'fault-env-step', 4755: 'fault-env-new-key',
     4756: 'fault-exit-not-a-number', 4757: 'fault-exit-undef', 4758: 'fault-exit-reference',
     4759: 'fault-line-past-the-end', 4760: 'fault-chomp-past-the-end', 4761: 'fault-wide-line-without-open',
-    4762: 'fault-env-slice-store',
+    4762: 'fault-env-slice-store', 4763: 'fault-utf8-overlong-three', 4764: 'fault-utf8-lead-past-the-last', 4765: 'fault-printf-stderr-without-open',
 }
 
 

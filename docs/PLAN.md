@@ -7418,6 +7418,111 @@ files a header names. 21c: `-e -f -d -s -r -w -x -z`, `unlink`,
 `rename`, `mkdir`, `rmdir`, `opendir`, `readdir` (sorted by the test,
 since the order is the system's), `closedir`.
 
+#### What the review found
+
+No second agent could be started in the session that built 21a (the
+tools it had did not include one), so the review was the builder's
+own, done as a pass apart from the proposal and held to perl:
+`briefs/step21-review/contexts.py` puts a readline in 74 places
+(every context the compiler distinguishes: assignments of one value
+and of a list, brackets, call arguments, `return` and a sub's last
+statement, `map`, `grep` and `sort` blocks, a loop's list and test,
+`x` both ways, slices, the logical operators, an element on the left,
+`eof`), each with and without `use open`, under seven inputs (empty,
+a last line `0`, an empty line, blanks), and runs each under perl and
+the compiler. Its first run, before anything was mended
+(`first-run.txt`): 860 the same, 90 faults, 70 refusals, and **two
+WRONGs, one program under both `use open`s: T516**. Once a line has
+been read, perl's message for a `die` or a `warn` that does not end
+in a newline names the handle and how many lines it has given, `oops
+at FILE line 7, <STDIN> line 2.`; not after `eof(STDIN)` alone, nor
+after a read that found nothing. Mended by agreeing: the runtime
+counts the lines read, and `unwind.c`'s message says so (4717, 4718,
+and four claims). Rerun after the build: see "21a, as built".
+
+#### 21a, as built
+
+**Built 2026-11-27, by Fable 5.2, under Stevan's standing
+instruction.** Everything proposed above, and T516 from the review.
+
+**In the compiler.** The lexer has a token for `<STDIN>` where a value
+may begin (`readline`), and refuses every other `<...>` there by what
+it holds; `<<>>` too. The tree gains `readline` and `stdineof`, and a
+statement `exit`; a `call` has `handle`, the handle's name, where it
+had `stderr`. `names.ts` gains `STDIN` (`stdin`), `eof`, `exit`, and
+STDOUT as a `handle` beside STDERR, each with its `printf`. The parser
+reads `exit` as a named unary operator's argument, `eof(STDIN)`, and
+`chomp(my $x = EXPR)` as the assignment of what `chomp` makes of the
+value, one statement, so that the `my` is the enclosing block's. The
+resolver makes `@ARGV` and `%ENV` file variables the first time either
+is named (`builtins`), and refuses a `my` of either. `shapes.ts` has
+`readsLine`, the loop test perl tests with `defined`; `shaped` and the
+code generator's `listy` count a readline as an array is counted; the
+checker refuses the loop shapes, D213's element, and counts a readline
+as no constant for D53. The code generator: `rt_readline` where one
+value is wanted, `rt_list_add_lines` where a list is, `rt_is_undef` for
+the `while`'s test, `rt_argv` and `rt_environ` as the program starts,
+`main(argc, argv)` and `rt_run_args`.
+
+**In the runtime** (`runtime/io.c`, included by rt.c): a line is read
+with `getc` into a buffer kept in the context (so a fault leaves none
+to free); a byte past ASCII is made two bytes of UTF-8, or under `use
+open` the line is checked as perl's `:encoding(UTF-8)` checks it;
+`eof(STDIN)` looks at a character and puts it back; `%ENV` is filled
+with the name kept in a frame of its own while the value is made, then
+marked `RT_FROZEN_READONLY`, a bit `hash.c`'s one gate for changes
+looks at; `rt_exit` flushes and exits; `rt_printf_err` is `sprintf`
+written as `print STDERR` writes. The context counts the lines read,
+for T516.
+
+**The harness** (D220): `t/run.sh` runs a test's program under `env
+-i` with `PATH`, the knobs and the test's `# env:` (and what the
+sanitizers are told); `t/checks.py` gives perl and the program the
+same (`program_environment`), perl its seed beside; `Warned.pm` marks
+`exit`. Three fixtures: `same-env-machine`, `same-env-knob`,
+`dies-exits`, each seen to go red with its mend taken out.
+`claims.py` gives a row its `stdin`, `args` and `env`.
+
+**The builder's defaults**, each Stevan's to overturn: `printf(STDOUT
+...)`, a handle in the brackets, is refused (perl takes it); `chop(my
+$x = ...)` stays refused, D219 being `chomp`'s; the D213 rule counts
+`eof(STDIN)` as a read; `print STDIN` is refused with a message of its
+own; a `# args:` or `# env:` header cannot hold a byte past ASCII (a
+header comes before `use utf8;`, T73), so the bytes of `@ARGV` and
+`%ENV` past ASCII are held to perl by claims (T503) and by the line
+read without `use open`, which goes through the same function.
+
+**Tests.** 4700 to 4716 and 4720 to 4733 from `t/models/io.py` (lines
+in every context, bytes, UTF-8, `eof`, `@ARGV`, `%ENV`, STDOUT,
+`printf STDERR` as a `warns` test, `chomp` of an assignment, numbers
+read, a line tested, and `exit` at each of its edges); 4717 (`dies`)
+and 4718 (`warns`) by hand, written by `make oracle`, for T516; the
+faults 4740 to 4762 from the model (each kind of malformed UTF-8, the
+cut character alone and after text, in a line and in a list; `%ENV`
+changed seven ways; `exit` of a string, undef and a reference; a line
+past the end printed and chomped; a byte past ASCII printed without
+`use open`); 4800 to 4850 refusals from a table by hand
+(`briefs/step21-refusals.py`). 2788, 2846 and 3144, refusals of steps
+15 and 16 that named step 21, are `same` tests now.
+
+**The review, rerun after the build** (`second-run.txt`): 862 the
+same, 90 faults, 70 refusals, no WRONG.
+
+**Broken on purpose** (`briefs/step21-mutations.py`, 55 breakages of
+the runtime and every pass): MUTATIONS-PLAN
+
+**The census** (`make census`, sorted): 49 probes are SAME that were refused (45 at `%ENV`, `@ARGV` or `exit`, four of step 21's rows), 4 LOUD (three change `%ENV`, D216), 11 that stopped at `open` stop at `<$fh>` now, still 21b's, and 3 are refused by design (D211: `<DATA>` and a glob) and moved; **1,349 SAME, 182 LOUD, 1,195 REFUSED (435 for a later step, 760 open), 4 UNJUDGED, of 2,730 run, 2,850 by design, no WRONG**, no probe left SAME.
+
+**Doubtful or left.** No second reader looked at the proposal: the
+review is the builder's, which is weaker than step 14's, and the next
+to take step 21 should have 21a read again by one. Each default above.
+`%ENV` is read-only where perl lets a program change it; `while
+(<STDIN>)`, the commonest way to read lines in Perl, is refused for
+`$_`. **21b and 21c are not built**: files, handles as values (the
+choice between `print {$fh}` and `print $fh`, D21 and T111), `$!` and
+the clean directory per run; file tests and directories. The next to
+take step 21 starts with 21b's proposal. Not yet run on Stevan's Mac.
+
 ### 22. Numbers and time
 
 Referee: perl. Size: medium.
