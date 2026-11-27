@@ -6,12 +6,15 @@
 > was committed: all 80 printed what their `.out` says. Each is a row of
 > `briefs/claims17.py` (`R17-NN-name`), and the findings are T422 to T437
 > in `TRAPS.md`, answered in `PLAN.md`, step 17, "What the review found".
+> The decision numbers below are the ones of the merge with step 14
+> (D160 to D166 became D167 to D173, D170 to D177 became D174 to D181),
+> renumbered in the text; the reviewer wrote the old ones.
 
 # Step 17a, adversarial review: findings
 
 I am a reviewer who did not write the proposal (2026-11-27).
 
-**What I read:** `CLAUDE.md`; `docs/PLAN.md` from "### 17. Classes" to "### 18. Modules"; D160 to D166, D170 to D177, D16 to D19, D69, D76, D77, D109 and D112; T400 to T421; and `briefs/claims17.py`.
+**What I read:** `CLAUDE.md`; `docs/PLAN.md` from "### 17. Classes" to "### 18. Modules"; D167 to D173, D174 to D181, D16 to D19, D69, D76, D77, D109 and D112; T400 to T421; and `briefs/claims17.py`.
 
 **What I ran:** step 17 is not built, so I reasoned from the proposal's text. I ran the existing compiler only to see how built parts behave today. Every statement about perl comes from a program run under `/opt/perl-5.42/bin/perl` (5.42.0), and the 17b ones under `/opt/perl-5.42-roles/bin/perl`; outputs are pasted.
 
@@ -399,7 +402,7 @@ The proposal does not say when each fault comes. Say "before anything runs", whi
 
 ## 16. The root class's table
 
-If D162's `Object` gives a program's classes any method, every class's table answers to that name. Then `$o->that` runs where perl dies, and "a name no class has is refused" stops refusing it. The proposal should say that the core gives nothing to dispatch to, and test it.
+If D169's `Object` gives a program's classes any method, every class's table answers to that name. Then `$o->that` runs where perl dies, and "a name no class has is refused" stops refusing it. The proposal should say that the core gives nothing to dispatch to, and test it.
 
 ## 17. Holes in the test plan
 

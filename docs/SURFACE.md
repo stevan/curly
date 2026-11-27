@@ -338,11 +338,11 @@ that names it.
 | Construct | Here | Step |
 |---|---|---|
 | `class Name { }` | In | 17 |
-| `class Name;`, with no block | Later | | D174 |
-| A `my`, a statement, a `sub` or a `use` in a class's block | Cut | | D171, T408, T411: a class's block holds `field`, `method`, `my method` and `ADJUST` |
+| `class Name;`, with no block | Later | | D178 |
+| A `my`, a statement, a `sub` or a `use` in a class's block | Cut | | D175, T408, T411: a class's block holds `field`, `method`, `my method` and `ADJUST` |
 | `field $x`, `field @a`, `field %h`, defaults | In | 17 |
 | `:param`, `:reader` | In | 17 |
-| `:writer` | In | 17 | D174 |
+| `:writer` | In | 17 | D178 |
 | `method name (signature) { }`, `$self`, lexical methods | In | 17 |
 | `ADJUST` | In | 17 |
 | `:isa(Parent)` | In | 17 |
@@ -352,25 +352,25 @@ that names it.
 | A method named for a builtin, `method keys` | In | 17 |
 | `$self->SUPER::m()` | In | 17 |
 | `$self->next::method()`, `Name::m($obj)`, `method m;` with no block | Cut | | T417, T411, T419 (17b takes `method m;` in a role) |
-| `$obj->new`, `ref($self)->new` | Cut | | D173: `Name->new`, and `__CLASS__->new` in a method |
+| `$obj->new`, `ref($self)->new` | Cut | | D177: `Name->new`, and `__CLASS__->new` in a method |
 | `$obj->isa(...)`, `->can`, `->DOES`, `->VERSION`; a method of those names or `new`, `DESTROY`, `AUTOLOAD`, `import`, `unimport` | Cut | | D19, T409, T416: `isa`, the operator |
-| An assignment to `$self`; `$self` as a parameter, a `my` or a field; `\$self` | Cut | | D175, D178, T413, T430, T432 |
-| A bare call of the program's sub in a class, `helper(1)` | Cut | | D178, T422: perl looks it up in the class's package |
-| `main::NAME(ARGS)` in a class | In | 17 | D178, T422 |
-| A method, reader or writer named for an import of `use v5.42`, a special block, or a class | Cut | | D178, T423, T425 |
-| A class's name with a part that does not begin with a capital letter, or that perl already holds | Cut | | D178, T426 |
-| A class named `Object`, `Role` or `Class`, or one after `isa` | Cut | | D177, T415: held back until step 28 |
+| An assignment to `$self`; `$self` as a parameter, a `my` or a field; `\$self` | Cut | | D179, D182, T413, T430, T432 |
+| A bare call of the program's sub in a class, `helper(1)` | Cut | | D182, T422: perl looks it up in the class's package |
+| `main::NAME(ARGS)` in a class | In | 17 | D182, T422 |
+| A method, reader or writer named for an import of `use v5.42`, a special block, or a class | Cut | | D182, T423, T425 |
+| A class's name with a part that does not begin with a capital letter, or that perl already holds | Cut | | D182, T426 |
+| A class named `Object`, `Role` or `Class`, or one after `isa` | Cut | | D181, T415: held back until step 28 |
 | `method name { }` with no signature | In | 17 | D105 |
 | A parent's field read in a subclass; `:isa` of a class the program doesn't define | Cut | |
 | `:param(name)`, `:reader(name)`, `my method` | In | 17 | |
-| `class Name VERSION`, `:isa(Name VERSION)` | Later | | D174 |
+| `class Name VERSION`, `:isa(Name VERSION)` | Later | | D178 |
 | `__CLASS__`, `isa`, `ref($obj)` | In | 17 |
 | `DESTROY`, `AUTOLOAD`, `can` to fetch code, `bless`, `@ISA`, overloading | Cut | |
-| `role`, `:does` (perl 5.42 has neither; refereed by a perl with Stevan's roles, D161) | New | 17 |
-| `class Object`, `role Role`, `class Class`: every class and role an instance of one, made by the runtime (D162) | New | 17 |
-| An instance that is a scalar, an array, a hash..., and a construction protocol a class can hook (D160) | New | 17 |
-| `DEMOLISH` (D164) | Later | |
-| A metaobject protocol: introspection while the program runs; no change to a class while it runs, and wrapping or replacing a method only as the program compiles (D163) | New | 28 |
+| `role`, `:does` (perl 5.42 has neither; refereed by a perl with Stevan's roles, D168) | New | 17 |
+| `class Object`, `role Role`, `class Class`: every class and role an instance of one, made by the runtime (D169) | New | 17 |
+| An instance that is a scalar, an array, a hash..., and a construction protocol a class can hook (D167) | New | 17 |
+| `DEMOLISH` (D171) | Later | |
+| A metaobject protocol: introspection while the program runs; no change to a class while it runs, and wrapping or replacing a method only as the program compiles (D170) | New | 28 |
 
 ## What the erasure removes
 

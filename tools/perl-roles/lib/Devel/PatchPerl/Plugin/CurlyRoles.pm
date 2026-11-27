@@ -1,7 +1,7 @@
 package Devel::PatchPerl::Plugin::CurlyRoles;
 
 # A Devel::PatchPerl plugin that applies roles-5.42.0.patch, so that
-# perlbrew or plenv can build the roles perl (D161, D166):
+# perlbrew or plenv can build the roles perl (D168, D173):
 #
 #   PERL5LIB=/path/to/curly/tools/perl-roles/lib \
 #   PERL5_PATCHPERL_PLUGIN=CurlyRoles \

@@ -4,7 +4,7 @@
 #
 #     python3 docs/briefs/claims.py T400 17-dispatch-shape
 #
-# A row with roles=True is a statement about the roles perl (D161, D166),
+# A row with roles=True is a statement about the roles perl (D168, D173),
 # and claims.py runs it under $CURLY_PERL_ROLES (default
 # /opt/perl-5.42-roles/bin/perl, which tools/perl-roles/build.sh makes).
 # The program is claim.pl: `use v5.42;` is line 1 and CLASS line 2, so a

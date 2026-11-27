@@ -479,20 +479,20 @@ step 17, names the five repositories to read first
 it, from the early days of the Corinna spec work, `master` its newest
 state and its branches older ones merged; a `:REPR` attribute was
 planned there and not written), and
-**D160 to D165, Stevan's (2026-11-27)**: both adapted, not copied;
+**D167 to D172, Stevan's (2026-11-27)**: both adapted, not copied;
 an instance of more representations than a hash, with a construction
-protocol a class can hook (D160); **roles refereed by a perl with his
+protocol a class can hook (D167); **roles refereed by a perl with his
 roles**, the branch `slittle/roles-v3-pr` of `stevan/perl5` made a
-patch to 5.42.0 for `patchperl` (D161); **the runtime holds `class
+patch to 5.42.0 for `patchperl` (D168); **the runtime holds `class
 Object`, `role Role` and `class Class`, bootstrapped** (`Class` does
 `Role`, both subclasses of `Object`, `Object` an instance of
 `Class`), and every class and role a program declares is an instance
-of one (D162); the metaobject protocol is step 28's, an API onto
-that core, introspection at run time and never mutation (D163); no
-`DEMOLISH` for now (D164); step 17 split (D165; `PLAN.md` has a
+of one (D169); the metaobject protocol is step 28's, an API onto
+that core, introspection at run time and never mutation (D170); no
+`DEMOLISH` for now (D171); step 17 split (D172; `PLAN.md` has a
 first cut, 17a classes, 17b roles, 17c representations). perl
 5.42's `class` has none of it (claims `17-role` to `17-new`).
-**The roles perl is built** (D166, Stevan's "port it", 2026-11-27;
+**The roles perl is built** (D173, Stevan's "port it", 2026-11-27;
 `tools/perl-roles/`, whose `README.md` has the account): the branch
 is blead's (5.43.10), and its roles stand on blead's rework of
 classes since 5.42.0, so **`roles-5.42.0.patch` is four layers on
@@ -517,18 +517,18 @@ environment's setup script yet** (three minutes), and nothing runs it
 outline; **T400 to T421** found writing it (`briefs/claims17.py`,
 about 150 programs; a row marked `roles` runs under the roles perl,
 and fails without it); the questions Q1 to Q8, each with a
-recommendation, all taken by Stevan (**D170 to D177**). **Its
+recommendation, all taken by Stevan (**D174 to D181**). **Its
 adversarial review found eight ways to be WRONG** (T422 to T437,
 `briefs/step17-review/`, 80 programs, each a claims row): all from
 one fact, **a class is a package**, so a bare `helper()` in a method
 is `P::helper`, a method named `floor` is never installed, a `my
 method` hides a builtin, a method of a class's name hides the class,
 `new` copies each value at its field's turn and runs code the walks
-must see, `SUPER::` is the written class's parent. **D178**, the
+must see, `SUPER::` is the written class's parent. **D182**, the
 builder's defaults on it, is Stevan's to confirm. **Paused there
 (Stevan, 2026-11-27)**: perl's class system is in places badly
 designed, and he wants Curly stricter than it rather than repeating
-it, so D170 to D178 may change. **D179 records what of perl's class
+it, so D174 to D182 may change. **D183 records what of perl's class
 is not wanted** (from T400 to T437): most is refused already; open are
 a `:param` given twice (the proposal let the last win) and the
 construction order (the proposal agreed with perl's). **17a waits for
@@ -693,7 +693,7 @@ in `pmmc-labs/esoteric-language-workbench`.
   `libclang-rt-18-dev`, clang's sanitizer runtime, for `make
   sanitize`. On a Mac, any perl 5.42 will do (perlbrew, plenv, or the
   script above with another prefix), named by `CURLY_PERL`.
-- **The roles perl** (D161, D166), for a program with a role in it
+- **The roles perl** (D168, D173), for a program with a role in it
   and nothing else: `tools/perl-roles/build.sh [PREFIX]` (default
   `/opt/perl-5.42-roles`), about three minutes, or perlbrew with the
   plugin (`tools/perl-roles/README.md`). Nothing runs it yet; 17b
@@ -713,7 +713,7 @@ in `pmmc-labs/esoteric-language-workbench`.
 | `t/` | Golden tests `NNN-name.pl` and `.expected`; `census.py` and `census/`, other people's probes and their verdicts (step 11b); `run.sh`; `knobs.sh`, what every test assumes of the runtime; `checks.py`; `checks/`, the oracle check's own tests; `oracle/Warned.pm`, which marks perl's own warnings for `dies` and `warns` tests (step 15); `harness/`, the test runner's own; `models/` (`arith`, `num`, `str`, `bool`, `var`, `loop`, `sub`, `list`, `each`, `ret`, `it`, `sort`, `interp`, `hash`, `ref`, `whole`, `sref`, `qref`, `die`, `quote`, `fmt`, `strfn`, and `merge`, perl's merge sort as a generator, which holds itself to perl) |
 | `docs/` | The documents above; `PROCESS.md`, `MODELS.md` and `REPORT.md`, the workbench's; `briefs/`, with `claims.py` (every statement about perl, as a program, which reads `claims16.py` and `claims13d.py`), `step1-review/` (a reviewer's model of step 1's language, and the scripts that ran the compiler against it), `step2-*`, `step3-strings-as-numbers.py`, `step4-comparisons.py` and `step5-increments.py` (the evidence for those steps' rules), `step3-mutations.py` to `step8-mutations.py`, `step9a-mutations.py`, `step9b-mutations.py`, `step10a-mutations.py`, `step10b-mutations.py`, `step10c-mutations.py`, `step11a-mutations.py`, `step12a-mutations.py`, `step12b-mutations.py`, `step13a-mutations.py`, `step13b-mutations.py`, `step13c-mutations.py`, `step13d-mutations.py`, `step15-mutations.py` and `step16-mutations.py` (the runtime, and from step 5 the compiler, broken on purpose; each is a record of its step and stops at a piece of text a later step has changed), `step8-names.py` and `step8-stack.c` (step 8's evidence for which names a sub may have, and for the limit on recursion), `step3-review/`, `step4-review/` and `step5-review/` (each reviewer's model, and the scripts that ran the compiler against it), `step7-review/` (the reviewer's prototype of the collector), `step8-review/`, `step9-review/` and `step10-review/` (the findings of those steps' reviews, with their programs), `step11a-review/` (the reviewer's model of where a variable in a string ends, the scripts that held it to perl, and `compiler.py`, which holds the compiler to both), `step11a-refusals.py`, `step12a-refusals.py`, `step12b-refusals.py`, `step13a-refusals.py`, `step13b-refusals.py`, `step13c-refusals.py`, `step13d-refusals.py`, `step15-refusals.py`, `step16a-refusals.py`, `step16b-tests.py` and `step16c-tests.py` (the tables those steps' refusal tests are written from: the program, the place and the message, by hand), `step12-review/` (the findings of step 12's review, with its scripts and programs), `step16-review/` (step 16's), and `step13d-review/` (the builder's evidence for where a reference in a string ends: `strings.py`, which holds the compiler to perl over generated strings, and its `outputs.txt`) |
 | `exp/`, `tools/decisions/` | The workbench's: its experiments (`MODELS.md` cites them) and the decision-log browser |
-| `tools/perl-roles/` | The roles perl (D161, D166): `roles-5.42.0.patch`, `build.sh`, a `Devel::PatchPerl` plugin, and `README.md`, what the patch is made of and how it was checked |
+| `tools/perl-roles/` | The roles perl (D168, D173): `roles-5.42.0.patch`, `build.sh`, a `Devel::PatchPerl` plugin, and `README.md`, what the patch is made of and how it was checked |
 | `build/` | Output (ignored) |
 
 `docs/PLAN.md` has what is still to come: `lib/`, `examples/`.

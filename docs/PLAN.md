@@ -6226,8 +6226,8 @@ are walked for D109 as `join`'s. Tests 3820 to 3837.
 
 ### 17. Classes
 
-Referee: perl, and for roles a perl with Stevan's roles (D161).
-Size: large, and split (D165).
+Referee: perl, and for roles a perl with Stevan's roles (D168).
+Size: large, and split (D172).
 
 D19: `class`, `field`, `:param`, `:reader`, `method`, `ADJUST`,
 `:isa`, `new`, method calls, `isa`, `SUPER::`. A missing method is a
@@ -6242,7 +6242,7 @@ Traps: T52, T56.
 **Roles, from the start** (Stevan, 2026-11-25). He wants roles to be
 a key part of the object system, and not left for the metaobject
 protocol, so this step's proposal takes them up beside `class`
-instead of leaving them to step 27. What is decided is D160 to D165
+instead of leaving them to step 27. What is decided is D167 to D172
 (2026-11-27, below); the rest is the proposal's. Read five of
 Stevan's repositories first, all public (a session clones them with
 `add_repo`):
@@ -6313,14 +6313,14 @@ Stevan's repositories first, all public (a session clones them with
   into `TypeReference`s, which the compiler does not read. Its tests
   were read, not run.
 
-**What Stevan decided of them** (2026-11-27, D160 to D165). Both are
+**What Stevan decided of them** (2026-11-27, D167 to D172). Both are
 Perl-specific implementations, to adapt and not copy: most of
 `p5-MOP`'s API is usable here, with adaptations and new names; the
 representation types of `p5-UNIVERSAL-Object`, an instance that is a
 scalar, an array, a hash and so on, with a construction protocol a
-class can hook into at each part, are a feature (D160). **Roles are
-refereed by a perl with Stevan's roles** (D161), below. **The runtime
-holds the core of the object system, bootstrapped** (D162): `class
+class can hook into at each part, are a feature (D167). **Roles are
+refereed by a perl with Stevan's roles** (D168), below. **The runtime
+holds the core of the object system, bootstrapped** (D169): `class
 Object`, `role Role` and `class Class`, where `Class` does `Role`,
 `Role` and `Class` are subclasses of `Object`, and `Object` is an
 instance of `Class`, the piece `p5-MOP` leaves implicit by taking a
@@ -6328,10 +6328,10 @@ package's stash to be its class's instance; every class and role a
 program declares is an instance of `Class` or `Role`, created
 internally. That is classes and roles done, from a user's point of
 view; the metaobject protocol, the API that shows those instances to
-a program, stays step 28's (D163: introspection at run time, never
+a program, stays step 28's (D170: introspection at run time, never
 mutation, never wrapping or replacing a method at run time).
-`DEMOLISH` is left out until something needs it (D164). **The step
-is split** (D165), below.
+`DEMOLISH` is left out until something needs it (D171). **The step
+is split** (D172), below.
 
 **perl 5.42 has no roles** (run 2026-11-25: `role Eq {` is a syntax
 error, and `:does(...)` is `Unrecognized class attribute does`;
@@ -6342,11 +6342,11 @@ reference`, and nothing between `new` and `ADJUST` chooses or makes
 the instance; a `sub new` in a class replaces the constructor with
 the warning `Subroutine new redefined`, which D15 makes a fault
 (claims `17-reftype` to `17-new`, run 2026-11-27). So both are
-exceptions to D2 (D5). Roles have their referee (D161);
+exceptions to D2 (D5). Roles have their referee (D168);
 **representations have none yet**, and the sub-step that builds them
 proposes one, or a model, or that they erase to a program perl runs.
 
-**The referee for roles** (D161). Stevan's branch,
+**The referee for roles** (D168). Stevan's branch,
 `stevan/perl5`'s `slittle/roles-v3-pr`, implements the roles algebra.
 **It is blead's, not 5.42's**: it was cut from blead at 5.43.10
 (2026-03) and has merged blead since. Its roles are thirteen commits
@@ -6375,7 +6375,7 @@ patch is a port to 5.42.0, not an extraction. The port was
 recommended over building the branch as it is, which would referee a
 role program's every other construct by a perl that is not 5.42
 (`toke.c` alone differs by 3,154 lines), and **Stevan picked it**
-(D166).
+(D173).
 
 **The port, as built** (2026-11-27; `tools/perl-roles/`, whose
 `README.md` has the whole account). **The hunks were the small part
@@ -6428,18 +6428,18 @@ environment's setup script yet: `build.sh` takes about three minutes
 on four cores, and a session that needs it builds it or has the
 script grow by it.
 
-**A first cut of the split** (D165; the proposal may change it):
+**A first cut of the split** (D172; the proposal may change it):
 
 - **17a, classes as perl 5.42 has them** (D19, the paragraph above),
-  with the bootstrap in the runtime from the start (D162), since
+  with the bootstrap in the runtime from the start (D169), since
   every class is an instance of `Class`. Referee: perl 5.42.
 - **17b, roles**: `role`, `:does`, composition by the algebra.
-  Referee: the roles perl (D161, D166), built (`tools/perl-roles/`).
-- **17c, representations and the construction protocol** (D160).
+  Referee: the roles perl (D168, D173), built (`tools/perl-roles/`).
+- **17c, representations and the construction protocol** (D167).
   Referee: to be proposed.
 
 Step 27 keeps whatever of roles 17b does not take, and step 28 the
-API (D163).
+API (D170).
 
 #### The proposal (begun 2026-11-27)
 
@@ -6452,9 +6452,9 @@ the line above says, and 17a alone is about 13a's: a new kind of value
 in the runtime, a new kind of call, and every walk over names learning
 what a method call may reach. The questions are Q1 to Q8 below, each
 with a recommendation, and **Stevan took every recommendation**
-(2026-11-27: D170 to D177). **Its adversarial review found eight
+(2026-11-27: D174 to D181). **Its adversarial review found eight
 ways to be WRONG** (T422 to T437, "What the review found" at the end,
-answered by D178, the builder's defaults for Stevan to confirm). 17b and 17c are outlined here and
+answered by D182, the builder's defaults for Stevan to confirm). 17b and 17c are outlined here and
 proposed in full when 17a is built.
 
 **The census**: 124 probes wait for step 17. 104 stop at a method
@@ -6470,7 +6470,7 @@ the census shows.
 
 **An object is a value that says which instance it is; an instance is
 a block of the collector's that holds its class and one slot a
-field.** A class is itself an instance of `Class` (D162), made as the
+field.** A class is itself an instance of `Class` (D169), made as the
 program starts from what the compiler wrote down: its name, its
 parent, its fields, the code of each method, the code that builds an
 instance. `Object`, `Role` and `Class` are the first three, built by
@@ -6591,16 +6591,16 @@ The rows of T400 to T421; the ones that would print what perl doesn't:
 - **An object made a string is its address** (T414), which differs
   from run to run.
 
-##### The questions, each with a recommendation: all taken, D170 to D177
+##### The questions, each with a recommendation: all taken, D174 to D181
 
-- **Q1 (D170). Three sub-steps, and the core from the first** (D165): 17a
-  classes as perl 5.42 has them, on the core of D162 built from the
+- **Q1 (D174). Three sub-steps, and the core from the first** (D172): 17a
+  classes as perl 5.42 has them, on the core of D169 built from the
   start, its three names held back from programs; 17b roles, by the
   roles perl; 17c representations and the construction protocol.
   **Recommended.** Rejected: plain records for classes at 17a and the
-  core at 17b (every class would be made twice over, and D162 says a
+  core at 17b (every class would be made twice over, and D169 says a
   class *is* an instance of `Class`).
-- **Q2 (D171). A class's block holds declarations only** (T408, T411):
+- **Q2 (D175). A class's block holds declarations only** (T408, T411):
   `field`, `method`, `my method`, `ADJUST`. **Recommended.** Rejected:
   `my` in the block with perl's meaning (a variable that is undef
   until the block's place in the file is reached, T408: a file
@@ -6608,7 +6608,7 @@ The rows of T400 to T421; the ones that would print what perl doesn't:
   rule again); `sub` in a class (perl calls it as a method with the
   class's name or an object first, T411: a second kind of method, and
   the first thing a class method wants is a class named by a string).
-- **Q3 (D172). A method call reaches every method of its name**, the program
+- **Q3 (D176). A method call reaches every method of its name**, the program
   being one file: its shape is a list if any of them gives one, and
   the fault of D18 is raised at run time by the method reached, as a
   `return` raises it now; every walk over names takes all of them.
@@ -6618,29 +6618,29 @@ The rows of T400 to T421; the ones that would print what perl doesn't:
   makes every call of its name a change of that field's name, wherever
   the call is, which is blunt and safe; whether it bites is for the
   review and the census to say.
-- **Q4 (D173). `new` on a class's name alone, `__CLASS__->new` in a method.**
+- **Q4 (D177). `new` on a class's name alone, `__CLASS__->new` in a method.**
   **Recommended.** Rejected: `$obj->new` as perl has it (T411), a
   class named by what a value holds.
-- **Q5 (D174). The surface of 17a**: `:writer` in (it is small, and perl 5.42
+- **Q5 (D178). The surface of 17a**: `:writer` in (it is small, and perl 5.42
   has it); `class NAME;` without a block, `class NAME VERSION` and
   `:isa(NAME VERSION)` out until a step wants them (the first is a
   class that runs to the end of the file or the next `package`, which
   is step 18's question). **Recommended.**
-- **Q6 (D175). `$self` is read-only, and a field is a container** (T412,
+- **Q6 (D179). `$self` is read-only, and a field is a container** (T412,
   T413): frozen by a loop over it, reached by `\`, known to D109.
   **Recommended.**
-- **Q7 (D176). An object is a reference by D112**: true, `==` by identity,
+- **Q7 (D180). An object is a reference by D112**: true, `==` by identity,
   `ref` and `blessed` its class, `reftype` `OBJECT`, a fault as a
   number or a string. **Recommended.** Rejected: a string for an
   object (perl's is an address).
-- **Q8 (D177). `Object`, `Role` and `Class` are held back**: refused as a
+- **Q8 (D181). `Object`, `Role` and `Class` are held back**: refused as a
   class's name and after `isa`, until step 28 shows them (T415).
   **Recommended.** Rejected: letting a program see them now (`$o isa
   Object` would be true here and false under perl).
 
 ##### 17b and 17c, in outline
 
-**17b, roles**, refereed by the roles perl (D161, D166): `role NAME {
+**17b, roles**, refereed by the roles perl (D168, D173): `role NAME {
 }` with what a class's block holds and `method NAME;` for a required
 method; `:does(ROLE, ...)` on a class or a role; composition by the
 algebra as the roles perl does it, its errors refusals here (missing,
@@ -6649,12 +6649,12 @@ conflicting: `17b-required-missing`, `17b-conflict`, a field's too,
 (`17b-class-wins`); a role's fields private to it
 (`17b-field-private`); its `ADJUST` after the class's (T420); no `sub`
 in a role (T421); `EXPR does ROLE` (`17b-does`). A role is an instance
-of `Role` (D162). Its questions: whether a role's method that names a
+of `Role` (D169). Its questions: whether a role's method that names a
 role's field is compiled once or once per class that does it; the
 test kind for a program the roles perl referees; whether `isa` of a
 role is refused (perl gives false).
 
-**17c, representations and the construction protocol** (D160): no
+**17c, representations and the construction protocol** (D167): no
 perl has them, so the sub-step's first question is its referee. The
 options to weigh then: the instance made by `:repr(...)` or by a
 method of `p5-UNIVERSAL-Object`'s (`REPR`, `CREATE`), with `Cor`'s
@@ -6695,18 +6695,18 @@ had, so that perl referees it; or a model of its own (D5). Nothing of
   rated with the answers.
 - **The census**: as above, about 16 in and 108 by design.
 
-##### What of perl's class we do not want (D179)
+##### What of perl's class we do not want (D183)
 
 Stevan, 2026-11-27, after the review: perl's `class` is in places
 badly designed, and Curly is to be stricter than it, not repeat it.
-**D179** lists what is not wanted, from T400 to T437, and where each
-stands: most are refused already, by D171, D173, D175 and D178. **Two
+**D183** lists what is not wanted, from T400 to T437, and where each
+stands: most are refused already, by D175, D177, D179 and D182. **Two
 are open, and their answers below no longer stand**: a parameter
 given twice, the last winning (T403, which "The language at 17a"
 agrees with), and **the construction order** (T400, T427, which this
 proposal and its review agreed with), where being stricter means
 refusing what would let a program see the order. The rethink, after
-step 14 lands, decides both and may move D170 to D178.
+step 14 lands, decides both and may move D174 to D182.
 
 ##### What the review found
 
@@ -6716,7 +6716,7 @@ each a row of `briefs/claims17.py`), found **eight ways to be WRONG**
 and nine lesser things: T422 to T437. Every one comes from one fact
 the proposal left out: **a class is a package, and a method a sub of
 it**, so names in a class are looked up there, and `new`, readers and
-writers are code that runs. **D178** has the answers, the builder's
+writers are code that runs. **D182** has the answers, the builder's
 defaults for Stevan to confirm. They amend 17a as follows.
 
 - **A call of the program's sub in a class** (T422, finding 1): perl
@@ -6863,10 +6863,10 @@ To be proposed; exceptions to D2. One option to weigh: roles that
 erase by being flattened into the classes that use them, which is
 what composing a role means, and which would keep perl as their
 oracle. **Roles are to be taken up at step 17 instead** (Stevan,
-2026-11-25: see there), refereed by a perl with Stevan's roles (D161),
+2026-11-25: see there), refereed by a perl with Stevan's roles (D168),
 and with them the core of the object system, bootstrapped in the
-runtime (D162), so what is left of 27 is what step 17 doesn't take.
-**Step 28, the metaobject protocol, is an API onto that core** (D163):
+runtime (D169), so what is left of 27 is what step 17 doesn't take.
+**Step 28, the metaobject protocol, is an API onto that core** (D170):
 `stevan/p5-MOP`'s API the starting point, adapted; introspection while
 the program runs; no change to a class while it runs, and wrapping
 or replacing a method a compile-time feature if at all; a class made

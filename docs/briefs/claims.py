@@ -1067,7 +1067,7 @@ def main(argv):
             only.append(argv[i]); i += 1
     version = subprocess.run([perl, '-e', 'print $^V'], capture_output=True, text=True).stdout
     print(f'perl {version} ({perl}), each program after: {prelude.strip()}')
-    # A row marked roles is a statement about the roles perl (D161, D166),
+    # A row marked roles is a statement about the roles perl (D168, D173),
     # which has no other way to be asked; without that perl the row fails.
     roles = os.environ.get('CURLY_PERL_ROLES', '/opt/perl-5.42-roles/bin/perl')
     print(f'roles perl ({roles}) for the rows marked roles')
