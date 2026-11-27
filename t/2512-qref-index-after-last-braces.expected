@@ -1,0 +1,2 @@
+t/2512-qref-index-after-last-braces.pl:5:12: '[' hard after $#{$r} in a string: a subscript after a last index through a reference is refused (D114; perl reads on after braces, and after a postfix form it is text); write $#{$r}\[
+exit: 1

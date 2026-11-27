@@ -1,0 +1,2 @@
+t/2518-qref-key-after-postfix-scalar.pl:6:12: '{' hard after $s->$* in a string: a subscript after the scalar through a reference is refused (D114; perl reads on after braces, and after a postfix form it is text); write $s->$*\{
+exit: 1

@@ -1,5 +1,5 @@
-# kind: refused
-# perl dies: not a SCALAR reference.
+# kind: fault
+# perl dies: not a SCALAR reference. A fault since step 13d, which takes the chain in.
 use v5.42;
 my $x = 3;
 say "${$x}";

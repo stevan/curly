@@ -1,0 +1,2 @@
+t/2531-qref-index-not-closed.pl:5:10: an index in a string that does not close: write \[ for the character
+exit: 1

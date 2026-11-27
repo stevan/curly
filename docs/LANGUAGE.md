@@ -483,15 +483,17 @@ message that says how to write it:
 
 - **`::`** after a name: `"$x::y"` is a variable of another package to
   perl. Write `"${x}::y"` or `"$x\::y"`.
-- **`{`**: after an array or an element; `"$x{a}"` is an element of
-  the hash `%x` ("A hash's element in a string").
-  Write `"${x}{a}"` or `"$x\{a}"`.
+- **`{`**: after an array, a slice or `$#a`; `"$x{a}"` is an element
+  of the hash `%x` ("A hash's element in a string"), and after an
+  element a key through the reference it holds ("References in a
+  string"). Write `"${x}{a}"` or `"$x\{a}"`.
 - **`[`** after a scalar is always the element, `"$x[1]"` of `@x`,
   whether or not there is a `$x`. For the scalar and a bracket, write
-  `"${x}[1]"` or `"$x\[1]"`. A second `[`, after an element or a
-  slice, is refused.
-- **`->`** before `[`, `{`, `@` or `$`: a dereference, to perl. Write
-  `"$x\->[0]"`.
+  `"${x}[1]"` or `"$x\[1]"`. After an element a second `[` is an
+  index through the reference it holds; after a slice it is refused.
+- **`->`** before `[`, `{`, `@` or `$`: a dereference, to perl, which
+  after a scalar or an element is "References in a string" and after
+  anything else is refused. Write `"$x\->[0]"`.
 - **A character past ASCII** after a bare name: `"$xé"` is the
   variable `$xé` to perl. Write `"${x}é"`.
 
@@ -506,9 +508,9 @@ line: a `$` or `@` begins one of the shapes above, hard against it,
 or it has a backslash. A variable in a string is declared like any
 other: `"user@example.com"` is refused for want of an `@example`.
 
-Not in the language yet: an expression in a string (`"@{[ ... ]}"`,
-`"${\ ... }"`), which waits for references;
-the case escapes, `\U` and its kin.
+Not in the language: an expression in a string (`"@{[ ... ]}"`,
+`"${\ ... }"`), which is code in it: work the value out first, into a
+`my`. Not yet: the case escapes, `\U` and its kin.
 
 ### Joining and repeating
 
@@ -2207,8 +2209,10 @@ perl what stands there is code, with quotes, calls and arithmetic, so
 `"$h{'a b'}"`, `"$h{ a }"`, `"$h{1}"` and `"$h{$i + 1}"` are refused.
 Take the value into a `my` first, or join the pieces with `.`.
 
-After the closing brace `[`, `{`, and `->` before `[ { @ $` are
-refused, since perl reads on; anything else is text: `"$h{a}::x"`,
+After the closing brace `[`, `{`, and an arrow before one of them go
+on through the reference the element holds ("References in a
+string"), and `->` before `@` or `$` is refused unless it is one of the
+postfix forms there; anything else is text: `"$h{a}::x"`,
 `"$h{a}->x"`. A slice in a string, `"@h{...}"`, is refused: join it.
 `"%h"` is text, as it is to perl.
 
@@ -2466,6 +2470,49 @@ a scalar a reference reaches** in its block, by any name, or in a sub
 the block calls: perl's loop walks the scalar itself. A store through
 an element or a whole container through a reference is allowed there.
 
+### References in a string
+
+In double quotes, `qq` and a heredoc, what an element through a
+reference is outside a string it is inside one:
+
+    my $user = {name => "Ada", langs => ["Perl", "C"]};
+    say "$user->{name} writes $user->{langs}[0] and $user->{langs}->[1].";
+    say "@{$user->{langs}} ($user->{langs}->$#* is the last index)";
+
+- **A chain** after a scalar variable, or after an element of a named
+  array or hash: `"$r->[0]"`, `"$r->{k}"`, `"$a[0][1]"`, `"$h{a}{b}"`,
+  `"$r->[1]->[0]{k}"`. After a variable the arrow is written; between
+  two subscripts it may be left out. **Each index is a whole number or
+  a scalar variable and each key a word or a scalar variable**, as for
+  a named array and hash, hard against its brackets.
+- **After the chain, one postfix form**: `->@*`, the array's values
+  with one space between each two; `->$#*`, its last index; `->$*`, the
+  scalar; `->@[0, 1]` or `->@[0 .. 2]`, a slice, joined with a space.
+- **In braces**, `"@{$r}"`, `"$#{$r}"` and `"${$s}"`, with blanks round
+  what they hold if wanted, `"@{ $r->[1] }"`: what stands in them is a
+  scalar variable, with its subscripts or without, hard together.
+
+Each is made a string where it stands, as `.` makes one, and the
+string is one value, made before anything after it in the statement
+runs, as every interpolated string is. **Reading through undef, or
+through an element or a key that is not there, is a fault**, as it is
+outside a string: `"$seen->{$k}{x}"` faults when `$seen->{$k}` was
+never stored. An element that holds a reference is a fault too, `a
+reference where a string is wanted`, where perl prints an address.
+
+**Where a chain ends.** To perl it goes on while `[`, `{`, or an arrow
+before one of them, stands hard after it, and the language takes each
+such subscript as part of the chain. What else follows is text:
+`"$r->[0] [1]"`, `"$r->[0]->x"`, `"$r->[0]::x"`, `"$r->[0]."`. An arrow
+before `@` or `$` that is not one of the postfix forms is refused
+(`"$r->[0]->@x"` is text and the array `@x` to perl): write `\->`.
+**After a postfix form or the braces nothing may be subscripted**:
+`"$r->@*[0]"` is text to perl and `"@{$r}[0]"` a slice, so a `[`, a
+`{`, or an arrow before one of `[ { @ $` hard after either is refused.
+
+Mind `qq<...>`: the `>` of an arrow ends it, to perl, so `qq<$r->[0]>`
+does not compile; take another bracket.
+
 ### What references may not do, and what is to come
 
 Not in the language: a dereference without braces, `@$r`, `%$r`,
@@ -2493,8 +2540,10 @@ chain also changes the variable it starts from, since a hop that is
 undef is made in it: `my @l = ($r, ($r->[0] = 1));` is refused. Take
 the value into a `my` first.
 
-Still to come: a reference in a string, `"$r->[0]"`, `"@{$r}"`,
-`"${ $r }"` (step 13d).
+In a string: code, `"@{[ ... ]}"`, `"${\ ... }"`; a dereference without
+braces, `"@$r"`, `"$$r[0]"`; anything but a scalar variable and its
+subscripts in the braces; a slice of a hash through a reference,
+`"$r->@{...}"` ("References in a string").
 
 ## die, try and catch
 

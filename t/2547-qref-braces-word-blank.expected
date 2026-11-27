@@ -1,0 +1,2 @@
+t/2547-qref-braces-word-blank.pl:5:6: in a string a name in braces is hard against both of them: @{name}
+exit: 1

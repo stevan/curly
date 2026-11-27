@@ -492,7 +492,7 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         const literal = (value: string): C => genExpr({ kind: 'str', text: '', value, pos: e.pos }, b);
         let whole: C | undefined;
         for (const part of e.parts) {
-            const joined = part.kind === 'array' || part.kind === 'slice';
+            const joined = part.kind === 'array' || part.kind === 'slice' || (part.kind === 'deref' && !part.last);
             const piece = joined ? temp(b, `rt_join(cx, ${literal(' ').c}, ${genList([part], b).c})`) : genExpr(part, b);
             whole = whole !== undefined ? temp(b, `rt_concat(cx, ${whole.c}, ${piece.c})`)
                 : joined || part.kind === 'str' ? piece

@@ -184,7 +184,11 @@ Four ideas do the cleaning, and `SURFACE.md` applies them:
   and every use of the variable goes through it; `\$x` is that block
   with another tag, and the scalar through a reference reads it or, for
   a store, makes it as a chain's last hop. D109's name has a part, the
-  scalars references reach, which a loop over one guards (D77). The collector walks from a container to what it
+  scalars references reach, which a loop over one guards (D77). In a
+  string (step 13d) every element, whole container and scalar through
+  a reference is the node it is in code, a piece of the interpolated
+  string, made where it stands, so it names nothing for the walks
+  (D111, D114). The collector walks from a container to what it
   holds with a stack of its own, so a chain of references takes none of
   C's, and a cycle is collected like anything else (D26).
 - The collector traces: precise, non-moving, roots on a shadow stack

@@ -5186,6 +5186,116 @@ of the runtime), and it took one session, with a fix to 13a's tests
   A taken scalar in a string is already read through its cell, as every
   `variable` is.
 
+#### 13d, as built
+
+**Built** (2026-11-27, by Fable 5.2, alone under Stevan's standing
+instruction): references in a string, and with it step 13. **The Size
+line**, large, is the whole step's; 13d alone is a small sub-step for
+this model by the workbench's `docs/MODELS.md` (the lexer and a few
+lines of the parser and the code generator, nothing in the runtime),
+and it took one session, most of it the evidence.
+
+- **What is in**: in double quotes, `qq` and a heredoc, after a scalar
+  variable or an element of a named array or hash, **a chain**, each
+  subscript after an arrow or hard after the one before it,
+  `"$r->[0]"`, `"$r->{k}"`, `"$a[0][1]"`, `"$h{a}{b}"`,
+  `"$r->[$i]->{$k}[2]"`, each index one D91 allows and each key one D99
+  does; after it, if it comes, **one postfix form**, `->@*` (joined with
+  one space), `->$#*`, `->$*`, `->@[...]` (the indexes of an array's
+  slice in a string); and **the braces**, `"@{ CHAIN }"`, `"$#{ CHAIN
+  }"`, `"${ CHAIN }"`, CHAIN a scalar variable with its subscripts or
+  without, hard together, blanks round it. Each piece is the node it is
+  outside a string, so D107's faults, D48's and D112's hold inside one
+  with nothing new; the string is made where it stands (T235), so it
+  names nothing for D76, D77 and D57, and a chain in it freezes nothing
+  in a binder's list (the resolver's `quoted`, ready since 13a). T230's
+  rule sees a chain in an interpolated string as reading what references
+  reach, as 13a's code already had it. **Refused**: a subscript after a
+  postfix form or the braces (D114, T253); an arrow before `@` or `$`
+  that is no postfix form (T354); a hash's slice through a reference,
+  `"$r->@{...}"` (D99, D111); `"$$r"`, `"@$r"`, `"$#$r"`, `"$$r[0]"`
+  (D108); code, `"@{[ ... ]}"`, `"${\ ... }"`, and anything else in the
+  braces (D111); `qq<...>` holding an arrow, which perl does not compile
+  (T352). **Nothing of 13d's scope is left undone, and step 13 is
+  done.**
+- **The tree and the passes**: the lexer's string pieces gain `chain`
+  (`head`, `index` or `key`), `deref` (`head`, `last`), `sderef` and
+  `dslice`, each a piece with a head; `scalar` reads a scalar variable
+  and what perl takes with it, `key` a key, `ends` refuses what may not
+  follow a postfix form or braces. The parser maps each to `chain`,
+  `deref`, `sderef` and `slice` with a `deref`; the code generator joins
+  a whole array through a reference as it joins `@a`. **The runtime
+  gained nothing.**
+- **Builder's defaults** (none of them a decision; each the simplest
+  answer that cannot be WRONG, and Stevan's to overturn): **`::` after
+  a chain, a postfix form or the braces is text**, as perl has it, and
+  after an array's element stays refused (11a's, D92); an arrow before
+  `@` or `$` that is not `->@*`, `->$#*`, `->$*` or `->@[` is refused,
+  where perl takes the arrow as text and then a variable (`"$r->[0]->@x"`
+  is `1->2`); `->%*`, `->&*` and the rest are text to perl and here (a
+  reference before them is D112's fault); **in the braces only a scalar
+  variable and its subscripts, hard together**, blanks before and after
+  (spaces, on one line), no postfix form, no call, no blank between a
+  variable and its subscript (code to perl, where `@{$r [0]}` is an
+  element of `@r`); a slice through a reference in a string takes its
+  indexes as an array's slice in a string does, ranges and a comma after
+  the last; the scalar through a reference ends the chain, as in code
+  (13c's default); the hash's slice through a reference is refused, as
+  D111 said, though perl does not warn of it.
+- **The evidence** (`briefs/step13d-review/`, after the method of 11a's
+  review): `strings.py` makes strings of four kinds and holds every one
+  the compiler takes to perl, each printed in a block of its own that
+  declares the program's data again (perl makes what a read goes through,
+  in silence, and a later string would see it): **valid**, every chain
+  that reaches something in the data, written every way, with what may
+  follow it, 25,534 strings, all 15,029 taken run; **exhaustive**, heads
+  and links of every kind two deep with suffixes, 116,675 strings;
+  **braces**, 217,992; **random**, 30,000 over an alphabet of pieces; of
+  the last three, 12,000 taken run each. **Nothing differs**: 8,080
+  strings print what perl prints; every string perl warns of, dies at or
+  prints an address for (34,185 and 3,200) that was compiled alone, 3,501
+  of them, faults; and the 468 that fault where perl prints in silence
+  are all D107's, a last index or a whole container through what is not
+  there, which perl makes (T353). Of the strings the compiler refuses,
+  perl runs about one in twenty of those asked in silence, by the rules
+  above (`outputs.txt`).
+- **What the build found**: T352 (`qq<$q->{k}>`: the arrow's `>` ends
+  the string, to perl), T353 (a last index through undef in a string
+  makes the array, in silence), T354 (an arrow and a variable are text
+  and the variable; a slice through a reference reads on, a postfix form
+  does not). 37 rows of `briefs/claims13d.py`, which `claims.py` reads.
+- **Tests**: 2400 to 2403 from `t/models/qref.py` (the model's own data,
+  every chain to a value four deep, every array to its whole, last index
+  and slices, `qq` and heredocs, and strings made where they stand beside
+  stores through what they read, a loop and a `map` over them), on which
+  perl agreed the first time but for the model's own `qq<...>`, which was
+  T352; 2420 to 2458, 39 programs that fault once: every read through
+  undef or what is not there in a string, the wrong kind, an undef or a
+  reference made a string, in `qq` and a heredoc, the second of two
+  pieces; 2500 to 2555, 56 refusals from a table by hand
+  (`briefs/step13d-refusals.py`, each comment perl's own words, pasted by
+  its `--perl`). Old tests moved: 1960 to 1963 and 3833 to 3835 are
+  `same` tests now; 1375, 1376, 1383, 1385, 1388 to 1392 and 1755 to 1757
+  fault, as perl dies; 1371 to 1374, 1384, 1393 and 2635 say their new
+  words. One unit test more, the lexer's pieces. **2,049 golden tests,
+  159 unit tests, 1,131 statements about perl.**
+- **Broken on purpose** (`briefs/step13d-mutations.py`, the compiler
+  alone): 35 of 39 caught the first time. Of the four: a line nothing
+  read (a bracket hard after a variable, which its array's element had
+  taken first), which went; two that the refusals of 11a's and 12b's
+  strings catch, which the script now runs too, and of which one, a key
+  with more after its word, had no test of 13d's, now 2537 and 2538;
+  and one nothing in the language can see (a last index joined as a list
+  of one is the number made a string all the same).
+- **The census** (`make census`, sorted): of the 85 probes that waited
+  for 13d, **22 print what perl prints**, none faults, 44 are refused by
+  design for D108 (`"@$r"`, `"$$r{k}"` in a string), 11 for D111 (code
+  in a string, `"@{[ ... ]}"`), 2 for D19 and one each for D17, D78 and
+  D99, all 60 moved to `by-design/`; one waits for step 19 and 2 are
+  open (`length` and `shift` with no argument). No probe left SAME, and
+  none is WRONG. **1,213 SAME, 172 LOUD, 1,402 REFUSED (613 for a later
+  step, 789 open), 4 UNJUDGED, of 2,791 run**, and 2,789 by design.
+
 ### 14. Closures
 
 Referee: perl. Size: large.

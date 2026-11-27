@@ -58,8 +58,20 @@ export type Piece =
     | { kind: 'var' | 'array' | 'lastindex'; name: string; pos: Pos }
     | { kind: 'elem'; name: string; index: Index; pos: Pos }
     // `$name{key}` (step 12b; D99): the key a word or a scalar variable.
-    | { kind: 'helem'; name: string; key: { kind: 'word'; text: string } | { kind: 'var'; name: string; pos: Pos }; pos: Pos }
-    | { kind: 'slice'; name: string; indexes: readonly Index[]; pos: Pos };
+    | { kind: 'helem'; name: string; key: Key; pos: Pos }
+    | { kind: 'slice'; name: string; indexes: readonly Index[]; pos: Pos }
+    // Step 13d (D111): an element through a reference, `$r->[0]`,
+    // `$r->{k}`, `$a[0][1]`, `$h{a}{b}`, its head a scalar variable or an
+    // element; the whole array through one, `$r->@*` and `@{ $r }`, and with
+    // `last` its last index, `$r->$#*` and `$#{ $r }`; the scalar through
+    // one, `$r->$*` and `${ $r }`; and a slice through one, `$r->@[...]`.
+    | { kind: 'chain'; head: Piece; index?: Index; key?: Key; pos: Pos }
+    | { kind: 'deref'; head: Piece; last?: true; pos: Pos }
+    | { kind: 'sderef'; head: Piece; pos: Pos }
+    | { kind: 'dslice'; head: Piece; indexes: readonly Index[]; pos: Pos };
+
+// A key in a string (D99): a word, or a scalar variable.
+export type Key = { kind: 'word'; text: string } | { kind: 'var'; name: string; pos: Pos };
 
 const INDEX = 'in a string an index is a whole number or a scalar variable (D91): take the index into a my first';
 const INDEX_MAX = 9223372036854775807n;
@@ -330,26 +342,64 @@ export const lex = (src: string): Token[] => {
         const from = i - 1;
         let open = sigil;
         if (sigil === '$' && at() === '#') {
-            if (!isWordStart(src[i + 1] ?? '') && src[i + 1] !== '{') {
+            if (!isWordStart(src[i + 1] ?? '') && src[i + 1] !== '{' && src[i + 1] !== '$') {
                 refuse("after '$#' in a string comes an array's name, or one in braces: write \\$ for the character", where);
             }
             take();
             open = '$#';
         }
         const kind = open === '$' ? 'var' : open === '@' ? 'array' : 'lastindex';
-        const reference = (what: string): never => refuse(`${what} in a string takes a reference, and a reference in a string is not in the language yet (step 13d)`, where);
-        if (at() === '$' && (isWordStart(src[i + 1] ?? '') || src[i + 1] === '{')) reference(open + '$');
+        // (Step 13d: a dereference without braces is cut, in a string as
+        // outside one, D108: `"$$r[1]"` is `${$r}[1]` to perl, T246.)
+        if (at() === '$' && (isWordStart(src[i + 1] ?? '') || src[i + 1] === '{')) {
+            const spelled = open === '$' ? '${ $r } or $r->$*, and $r->[0] for an element' : open === '@' ? '@{ $r } or $r->@*' : '$#{ $r } or $r->$#*';
+            refuse(`${open}$ in a string: a dereference without braces is cut (D108); write ${spelled}`, where);
+        }
         const tooLong = (name: string): void => {
             if (name.length > NAME_MAX_LENGTH) refuse(`a name of more than ${NAME_MAX_LENGTH} characters: perl refuses it as too long`, where);
         };
         if (at() === '{') {
-            const inside = src[i + 1] ?? '';
-            if (inside === '\\' || inside === '[' || inside === '$') reference(open + '{' + inside);
+            let k = i + 1;
+            while (src[k] === ' ') k += 1;
+            const inside = src[k] ?? '';
+            if (inside === '\\' || inside === '[') {
+                refuse(`${open}{${inside} in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it`, where);
+            }
+            // The whole container, or the scalar, through a reference (step
+            // 13d; D111): in the braces a scalar variable, with subscripts or
+            // without, and blanks round it. To perl what stands there is
+            // code, and goes on as code does: a blank between a variable and
+            // its subscript, or before an arrow, is no end there (`@{$r [0]}`
+            // is an element of `@r`), so they are hard together here.
+            if (inside === '$') {
+                take();
+                while (at() === ' ') take();
+                const headAt = pos();
+                take();
+                const head = scalar(headAt, true);
+                if (head.kind === 'deref' || head.kind === 'sderef' || head.kind === 'dslice') {
+                    refuse(`in a string what stands in ${open}{ ... } is a scalar variable, with subscripts or without (D111): a postfix form there is refused; take the reference into a my first`, headAt);
+                }
+                while (at() === ' ') take();
+                if (at() !== '}') {
+                    refuse(i >= src.length || at() === '"' ? `${open}{ ... } in a string that does not close` : `in a string what stands in ${open}{ ... } is a scalar variable, with subscripts or without (D111): take the reference into a my first`, i >= src.length || at() === '"' ? where : pos());
+                }
+                take();
+                const piece: Piece = open === '$' ? { kind: 'sderef', head, pos: where } : open === '@' ? { kind: 'deref', head, pos: where } : { kind: 'deref', head, last: true, pos: where };
+                ends(piece, src.slice(from, i));
+                return piece;
+            }
+            if (!isWordStart(inside)) {
+                refuse(`in a string what stands in ${open}{ ... } is a scalar variable, with subscripts or without (D111), or a name hard against both braces, ${open}{name}`, where);
+            }
             const hard = (): never => refuse(`in a string a name in braces is hard against both of them: ${open}{name}`, where);
             take();
             if (!isWordStart(at())) hard();
             const name = run(isWord);
             if (at() === '[') refuse(`${open}{${name}[...]} in a string: perl warns that it is ambiguous; write ${open}${name}[...]`, where);
+            if (at() !== '}' && at() !== ' ' && i < src.length && at() !== '"') {
+                refuse(`in a string what stands in ${open}{ ... } is a scalar variable, with subscripts or without (D111), or a name hard against both braces, ${open}{name}`, where);
+            }
             if (at() !== '}') hard();
             take();
             if (kind === 'array' && name === '_') refuse('@_ is not in the language: a sub has a signature (D17)', where);
@@ -361,56 +411,144 @@ export const lex = (src: string): Token[] => {
                 ? "'$' in a double-quoted string begins a variable, and no name is hard against it: write \\$ for the character"
                 : "'@' in a double-quoted string begins an array, and no name is hard against it: write \\@ for the character", where);
         }
+        if (kind === 'var') {
+            const piece = scalar(where, false);
+            if (piece.kind === 'deref' || piece.kind === 'sderef' || piece.kind === 'dslice') ends(piece, src.slice(from, i));
+            return piece;
+        }
         const name = run(isWord);
         if (kind === 'array' && name === '_') refuse('@_ is not in the language: a sub has a signature (D17)', where);
-        if (kind === 'var' && name === '_' && (at() === '[' || at() === '{')) refuse(`$_${at()} is an element of perl's own @_ or %_, which are not in the language`, where);
         tooLong(name);
         const braced = `${open}{${name}}`;
         let piece: Piece = { kind, name, pos: where };
-        if (at() === '{' && kind === 'var') {
-            // An element of a hash (D99). To perl what stands in the braces
-            // is code, as an index is: blanks, quotes, calls, arithmetic.
-            take();
-            const keyAt = pos();
-            let key: (Piece & { kind: 'helem' })['key'];
-            if (at() === '$') {
-                take();
-                if (!isWordStart(at())) refuse(KEY, keyAt);
-                key = { kind: 'var', name: run(isWord), pos: keyAt };
-            } else {
-                if (!isWordStart(at())) refuse(KEY, keyAt);
-                key = { kind: 'word', text: run(isWord) };
-            }
-            if (at() !== '}') refuse(KEY, i >= src.length || at() === '"' ? keyAt : pos());
-            take();
-            tooLong(key.kind === 'var' ? key.name : key.text);
-            piece = { kind: 'helem', name, key, pos: where };
-        } else if (at() === '[' && kind !== 'lastindex') {
-            piece = kind === 'var' ? { kind: 'elem', name, index: indexes(false)[0]!, pos: where } : { kind: 'slice', name, indexes: indexes(true), pos: where };
-        }
+        if (at() === '[' && kind === 'array') piece = { kind: 'slice', name, indexes: indexes(true), pos: where };
         const shown = src.slice(from, i);
-        const named = piece.kind !== 'elem' && piece.kind !== 'slice' && piece.kind !== 'helem';
+        const named = piece.kind !== 'slice';
         const or = (after: string): string => (named ? `${braced}${after} or ` : '');
-        // (After a hash's element `::` is text, to perl: T227.)
-        if (src.startsWith('::', i) && piece.kind !== 'helem') refuse(`'::' hard after ${shown} in a string: perl reads a variable of another package; write ${or('::')}${shown}\\::`, pos());
+        if (src.startsWith('::', i)) refuse(`'::' hard after ${shown} in a string: perl reads a variable of another package; write ${or('::')}${shown}\\::`, pos());
         if (at() === '{') {
-            refuse(piece.kind === 'array'
+            refuse(piece.kind === 'slice' || piece.kind === 'array'
                 ? `'{' hard after ${shown} in a string: a slice of a hash, to perl, which is not in a string (D99): join it first; or write ${or('{')}${shown}\\{`
-                : `'{' hard after ${shown} in a string: an element of what that holds, to perl, and an element through a reference in a string is not in the language yet (step 13d); write ${shown}\\{`, pos());
+                : `'{' hard after ${shown} in a string: perl reads on, and does not compile it; write ${shown}\\{`, pos());
         }
-        // (After an element it is an element of what that holds, which
-        // step 13d takes; after a slice or `$#a` it stays out.)
-        const deeper = piece.kind === 'elem' || piece.kind === 'helem' ? ', and an element through a reference in a string is not in the language yet (step 13d)' : '';
-        if (at() === '[') refuse(`'[' hard after ${shown} in a string: another index, to perl${deeper}; write ${shown}\\[`, pos());
+        if (at() === '[') refuse(`'[' hard after ${shown} in a string: another index, to perl; write ${shown}\\[`, pos());
         const then = src[i + 2] ?? '';
         if (src.startsWith('->', i) && then !== '' && '[{@$'.includes(then)) {
-            refuse(`'->${then}' hard after ${shown} in a string: a dereference, to perl, and a dereference in a string is not in the language yet (step 13d); write ${shown}\\->${then}`, pos());
+            refuse(`'->${then}' hard after ${shown} in a string: a dereference of what that gives, to perl, which is no reference; write ${shown}\\->${then}`, pos());
         }
         const next = src.codePointAt(i) ?? 0;
         if (named && next > 0x7f && line >= utf8From) {
             refuse(`a character past ASCII (${codePoint(next)}) hard after ${shown} in a string: perl takes a letter, a digit or a mark there into the name; write ${braced}`, pos());
         }
         return piece;
+    };
+
+    // A key in a string (D99), its brace next: a word or a scalar variable,
+    // hard against both braces. To perl what stands there is code, as an
+    // index is: blanks, quotes, calls, arithmetic.
+    const key = (): Key => {
+        take();
+        const keyAt = pos();
+        let found: Key;
+        if (at() === '$') {
+            take();
+            if (!isWordStart(at())) refuse(KEY, keyAt);
+            found = { kind: 'var', name: run(isWord), pos: keyAt };
+        } else {
+            if (!isWordStart(at())) refuse(KEY, keyAt);
+            found = { kind: 'word', text: run(isWord) };
+        }
+        if (at() !== '}') refuse(KEY, i >= src.length || at() === '"' ? keyAt : pos());
+        take();
+        const name = found.kind === 'var' ? found.name : found.text;
+        if (name.length > NAME_MAX_LENGTH) refuse(`a name of more than ${NAME_MAX_LENGTH} characters: perl refuses it as too long`, keyAt);
+        return found;
+    };
+
+    // A scalar variable in a string, its `$` just taken at `where` and its
+    // name next, and what perl goes on to take with it: an element of the
+    // array or the hash of its name, `$a[0]`, `$h{k}`; then, from step 13d
+    // (D111, T247), a chain of subscripts, each after an arrow, or hard
+    // after the subscript before it with the arrow left out; and last, if
+    // it comes, one postfix form, `->@*`, `->$#*`, `->$*` or a slice,
+    // `->@[...]`. To perl the chain goes on while `[`, `{`, or an arrow
+    // before `[`, `{`, `@` or `$` is hard after it; past anything else it
+    // is text. Each index is one D91 allows and each key one D99 does.
+    // `inner`: in the braces of `@{ ... }`, where what follows is the
+    // caller's.
+    const scalar = (where: Pos, inner: boolean): Piece => {
+        const from = i - 1;
+        if (!isWordStart(at())) refuse(`in a string what stands in braces after a sigil is a scalar variable, with subscripts or without (D111): take the reference into a my first`, where);
+        const name = run(isWord);
+        if (name.length > NAME_MAX_LENGTH) refuse(`a name of more than ${NAME_MAX_LENGTH} characters: perl refuses it as too long`, where);
+        if (name === '_' && (at() === '[' || at() === '{')) refuse(`$_${at()} is an element of perl's own @_ or %_, which are not in the language`, where);
+        let piece: Piece = { kind: 'var', name, pos: where };
+        if (at() === '{') piece = { kind: 'helem', name, key: key(), pos: where };
+        else if (at() === '[') piece = { kind: 'elem', name, index: indexes(false)[0]!, pos: where };
+        // (A variable with a bracket hard after it was an element above, so
+        // a bracket here follows a subscript.)
+        for (;;) {
+            if (src.startsWith('->[', i) || at() === '[') {
+                if (at() === '-') { take(); take(); }
+                piece = { kind: 'chain', head: piece, index: indexes(false)[0]!, pos: where };
+            } else if (src.startsWith('->{', i) || at() === '{') {
+                if (at() === '-') { take(); take(); }
+                piece = { kind: 'chain', head: piece, key: key(), pos: where };
+            } else {
+                break;
+            }
+        }
+        const shown = src.slice(from, i);
+        if (src.startsWith('->@*', i)) {
+            take(); take(); take(); take();
+            return { kind: 'deref', head: piece, pos: where };
+        }
+        if (src.startsWith('->$#*', i)) {
+            for (let n = 0; n < 5; n++) take();
+            return { kind: 'deref', head: piece, last: true, pos: where };
+        }
+        if (src.startsWith('->$*', i)) {
+            take(); take(); take(); take();
+            return { kind: 'sderef', head: piece, pos: where };
+        }
+        if (src.startsWith('->@[', i)) {
+            take(); take(); take();
+            return { kind: 'dslice', head: piece, indexes: indexes(true), pos: where };
+        }
+        if (src.startsWith('->@{', i)) {
+            refuse(`'->@{' hard after ${shown} in a string: a slice of a hash through a reference, which is not in a string (D99, D111): join it first; or write ${shown}\\->@{`, pos());
+        }
+        const then = src[i + 2] ?? '';
+        if (src.startsWith('->', i) && (then === '@' || then === '$')) {
+            refuse(`'->${then}' hard after ${shown} in a string: perl reads on, into a dereference or a variable after the arrow, and the language takes ->@*, ->$#*, ->$* and ->@[...] there (D111); write ${shown}\\->${then}`, pos());
+        }
+        if (inner) return piece;
+        // (After a hash's element `::` is text, to perl, T227, and after a
+        // chain, step 13d; after an array's element it stays refused, D92.)
+        if (piece.kind === 'elem' && src.startsWith('::', i)) refuse(`'::' hard after ${shown} in a string: perl reads a variable of another package; write ${shown}\\::`, pos());
+        if (piece.kind === 'var') {
+            const braced = `\${${name}}`;
+            if (src.startsWith('::', i)) refuse(`'::' hard after ${shown} in a string: perl reads a variable of another package; write ${braced}:: or ${shown}\\::`, pos());
+            const next = src.codePointAt(i) ?? 0;
+            if (next > 0x7f && line >= utf8From) {
+                refuse(`a character past ASCII (${codePoint(next)}) hard after ${shown} in a string: perl takes a letter, a digit or a mark there into the name; write ${braced}`, pos());
+            }
+        }
+        return piece;
+    };
+
+    // After a whole container, a scalar or a slice through a reference in
+    // a string, its last character just taken: to perl the braces of `@{
+    // ... }` and the rest go on into a subscript, or an arrow before one,
+    // and after a postfix form it is text (T253). Either way a subscript
+    // there is refused (D114).
+    const ends = (piece: Piece, shown: string): void => {
+        const then = src[i + 2] ?? '';
+        const after = at() === '[' || at() === '{' ? at() : src.startsWith('->', i) && then !== '' && '[{@$'.includes(then) ? `->${then}` : '';
+        if (after !== '') {
+            const what = piece.kind === 'dslice' ? 'a slice' : piece.kind === 'sderef' ? 'the scalar through a reference' : (piece as { last?: true }).last ? 'a last index through a reference' : 'the whole array through a reference';
+            refuse(`'${after}' hard after ${shown} in a string: a subscript after ${what} is refused (D114; perl reads on after braces, and after a postfix form it is text); write ${shown}\\${after}`, pos());
+        }
     };
 
     // A string literal. In single quotes a backslash is itself, except

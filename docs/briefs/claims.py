@@ -980,6 +980,9 @@ CLAIMS = [
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from claims16 import STEP16  # noqa: E402
 CLAIMS += STEP16
+# And step 13d's, docs/briefs/claims13d.py.
+from claims13d import STEP13D  # noqa: E402
+CLAIMS += STEP13D
 
 def run(perl, prelude, code, flags):
     with tempfile.TemporaryDirectory() as d:

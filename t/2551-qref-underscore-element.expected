@@ -1,0 +1,2 @@
+t/2551-qref-underscore-element.pl:5:10: $_[ is an element of perl's own @_ or %_, which are not in the language
+exit: 1

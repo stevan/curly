@@ -1,0 +1,3 @@
+1
+fault: not a reference to a scalar at t/2442-fault-qref-postfix-scalar-of-a-hash.pl line 6.
+exit: 1

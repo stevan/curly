@@ -1,0 +1,2 @@
+t/2501-qref-at-dollar.pl:5:6: @$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+exit: 1

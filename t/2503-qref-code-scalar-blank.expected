@@ -1,0 +1,2 @@
+t/2503-qref-code-scalar-blank.pl:5:6: ${\ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
+exit: 1

@@ -1,0 +1,2 @@
+t/2520-qref-arrow-after-slice.pl:5:14: '->[' hard after $r->@[0] in a string: a subscript after a slice is refused (D114; perl reads on after braces, and after a postfix form it is text); write $r->@[0]\->[
+exit: 1

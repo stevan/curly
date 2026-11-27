@@ -1,2 +1,2 @@
-t/1385-interpolate-element-of-an-element.pl:5:11: '[' hard after $a[0] in a string: another index, to perl, and an element through a reference in a string is not in the language yet (step 13d); write $a[0]\[
+fault: not a reference to an array at t/1385-interpolate-element-of-an-element.pl line 5.
 exit: 1

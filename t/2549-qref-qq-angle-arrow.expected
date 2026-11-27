@@ -1,0 +1,2 @@
+t/2549-qref-qq-angle-arrow.pl:5:15: what stands in this string runs past its end: perl ends the string first, and does not compile the rest
+exit: 1

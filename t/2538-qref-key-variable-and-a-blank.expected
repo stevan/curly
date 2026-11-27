@@ -1,0 +1,2 @@
+t/2538-qref-key-variable-and-a-blank.pl:6:16: in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
+exit: 1

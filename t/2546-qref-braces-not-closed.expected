@@ -1,0 +1,2 @@
+t/2546-qref-braces-not-closed.pl:5:6: @{ ... } in a string that does not close
+exit: 1

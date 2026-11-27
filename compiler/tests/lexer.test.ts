@@ -206,19 +206,16 @@ test('what a string may not hold of a variable, each at its character (D91, D92)
     at('"$h{}"', key, 5);
     at('"$h{a"', key, 5);
     at('"$h{-a}"', key, 5);
-    at('"$h{a}{b}"', "'{' hard after $h{a} in a string: an element of what that holds, to perl, and an element through a reference in a string is not in the language yet (step 13d); write $h{a}\\{", 7);
-    at('"$h{a}[0]"', "'[' hard after $h{a} in a string: another index, to perl, and an element through a reference in a string is not in the language yet (step 13d); write $h{a}\\[", 7);
-    at('"$h{a}->[0]"', "'->[' hard after $h{a} in a string: a dereference, to perl, and a dereference in a string is not in the language yet (step 13d); write $h{a}\\->[", 7);
+    // (Since step 13d a subscript after an element is a chain.)
+    assert.doesNotThrow(() => lex('"$h{a}{b}$h{a}[0]$h{a}->[0]$a[0]{k}$a[0][1]$x->[0]"'));
     at('"@h{a}"', "'{' hard after @h in a string: a slice of a hash, to perl, which is not in a string (D99): join it first; or write @{h}{ or @h\\{", 4);
-    at('"$a[0]{k}"', "'{' hard after $a[0] in a string: an element of what that holds, to perl, and an element through a reference in a string is not in the language yet (step 13d); write $a[0]\\{", 7);
-    at('"$a[0][1]"', "'[' hard after $a[0] in a string: another index, to perl, and an element through a reference in a string is not in the language yet (step 13d); write $a[0]\\[", 7);
     at('"$#a[1]"', "'[' hard after $#a in a string: another index, to perl; write $#a\\[", 5);
-    at('"$x->[0]"', "'->[' hard after $x in a string: a dereference, to perl, and a dereference in a string is not in the language yet (step 13d); write $x\\->[", 4);
+    at('"@a->[0]"', "'->[' hard after @a in a string: a dereference of what that gives, to perl, which is no reference; write @a\\->[", 4);
     at('"${ x }"', 'in a string a name in braces is hard against both of them: ${name}', 2);
     at('"@{a[0, 1]}"', '@{a[...]} in a string: perl warns that it is ambiguous; write @a[...]', 2);
-    at('"${\\ $x}"', '${\\ in a string takes a reference, and a reference in a string is not in the language yet (step 13d)', 2);
-    at('"@{[ $x ]}"', '@{[ in a string takes a reference, and a reference in a string is not in the language yet (step 13d)', 2);
-    at('"$$x"', '$$ in a string takes a reference, and a reference in a string is not in the language yet (step 13d)', 2);
+    at('"${\\ $x}"', '${\\ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it', 2);
+    at('"@{[ $x ]}"', '@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it', 2);
+    at('"$$x"', '$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element', 2);
     at('"$$"', "'$' in a double-quoted string begins a variable, and no name is hard against it: write \\$ for the character", 2);
     at('"$#"', "after '$#' in a string comes an array's name, or one in braces: write \\$ for the character", 2);
     at('"@_"', '@_ is not in the language: a sub has a signature (D17)', 2);
@@ -616,4 +613,42 @@ test('the whole container through a reference: a postfix form is one token, brac
     refused('say @{true\n};', 'a word alone in @{ ... } is the name of a variable, to perl (@{true} is @true): D114 refuses it; name a variable, @{ $r }', 1, 6);
     // A word that is not alone is a call, or a word operator.
     assert.equal(lex('@{ f() } @{ not $x }').length, 12);
+});
+
+// Step 13d: references in a string, the pieces the lexer makes of them,
+// where a chain ends, and what may not follow one (D108, D111, D114).
+test('references in a string: a chain, the whole container, the scalar and a slice through one', () => {
+    const pieces = (src: string) => {
+        const t = lex(src)[0]!;
+        assert.equal(t.kind, 'str');
+        const show = (p: unknown): string => {
+            const q = p as { kind: string; name?: string; value?: string; head?: unknown; index?: { kind: string; text?: string; name?: string }; key?: { kind: string; text?: string; name?: string }; last?: true; indexes?: unknown[] };
+            if (q.kind === 'text') return JSON.stringify(q.value);
+            if (q.kind === 'var') return `$${q.name}`;
+            if (q.kind === 'elem') return `$${q.name}[${q.index!.text ?? '$' + q.index!.name}]`;
+            if (q.kind === 'helem') return `$${q.name}{${q.key!.text ?? '$' + q.key!.name}}`;
+            if (q.kind === 'chain') return `${show(q.head)}${q.key ? `{${q.key.text ?? '$' + q.key.name}}` : `[${q.index!.text ?? '$' + q.index!.name}]`}`;
+            if (q.kind === 'deref') return `${q.last ? 'last' : 'whole'}(${show(q.head)})`;
+            if (q.kind === 'sderef') return `scalar(${show(q.head)})`;
+            if (q.kind === 'dslice') return `slice(${show(q.head)}, ${q.indexes!.length})`;
+            return q.kind;
+        };
+        return ((t as { pieces?: unknown[] }).pieces ?? []).map(show);
+    };
+    assert.deepEqual(pieces('"$r->[0]$r->{k} $a[0][1]$h{a}{b}|$r->[$i]->{$k}[2]"'),
+        ['$r[0]', '$r{k}', '" "', '$a[0][1]', '$h{a}{b}', '"|"', '$r[$i]{$k}[2]']);
+    assert.deepEqual(pieces('"$r->@*,$r->$#*,$s->$*,$r->@[0, 1 .. 2],$a[0]->@*"'),
+        ['whole($r)', '","', 'last($r)', '","', 'scalar($s)', '","', 'slice($r, 2)', '","', 'whole($a[0])']);
+    assert.deepEqual(pieces('"@{$r}${ $s }$#{  $r->[0]{k} }"'), ['whole($r)', 'scalar($s)', 'last($r[0]{k})']);
+    // What perl leaves as text after a chain.
+    assert.deepEqual(pieces('"$r->[0] [1]$r->[0]->x$r->[0]::x$r->@*::x$r->[0]->"'),
+        ['$r[0]', '" [1]"', '$r[0]', '"->x"', '$r[0]', '"::x"', 'whole($r)', '"::x"', '$r[0]', '"->"']);
+    refused('"$r->@*[0]"', "'[' hard after $r->@* in a string: a subscript after the whole array through a reference is refused (D114; perl reads on after braces, and after a postfix form it is text); write $r->@*\\[", 1, 8);
+    refused('"@{$r}->[0]"', "'->[' hard after @{$r} in a string: a subscript after the whole array through a reference is refused (D114; perl reads on after braces, and after a postfix form it is text); write @{$r}\\->[", 1, 7);
+    refused('"$r->[0]->@x"', "'->@' hard after $r->[0] in a string: perl reads on, into a dereference or a variable after the arrow, and the language takes ->@*, ->$#*, ->$* and ->@[...] there (D111); write $r->[0]\\->@", 1, 9);
+    refused('"$r->@{k}"', "'->@{' hard after $r in a string: a slice of a hash through a reference, which is not in a string (D99, D111): join it first; or write $r\\->@{", 1, 4);
+    refused('"@{$r [0]}"', 'in a string what stands in @{ ... } is a scalar variable, with subscripts or without (D111): take the reference into a my first', 1, 7);
+    refused('"@{[ 1 ]}"', '@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it', 1, 2);
+    refused('"$$r[0]"', '$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element', 1, 2);
+    refused('"$a[0]::x"', "'::' hard after $a[0] in a string: perl reads a variable of another package; write $a[0]\\::", 1, 7);
 });
