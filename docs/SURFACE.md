@@ -351,6 +351,8 @@ that names it.
 | `ADJUST` | In | 17 |
 | `:isa(Parent)` | In | 17 |
 | `Name->new(k => v)`, `$obj->method(...)` | In | 17 |
+| `Name->new` given an odd count, an unknown name, a required one missing, or a name twice | Fault | 17 | D178, D187, T402 to T404, T435: found before any of the construction runs; perl warns, dies late, or lets the last win |
+| The order of construction: every field of every class from the root down, then every `ADJUST`, each argument copied at its field's turn | In | 17 | T400, T427, D187: perl's, for 17a; taken up again at 17c |
 | `$obj->$name(...)`, a method chosen by a string; a class named by a string | Later | 17 |
 | `$obj->m` and `Name->new` without brackets | In | 17 |
 | A method named for a builtin, `method keys` | In | 17 |

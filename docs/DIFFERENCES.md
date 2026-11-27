@@ -466,7 +466,10 @@ full when its step is, and its rows join the sections above then.
   begins with a capital letter in every part. And by D179, Curly is
   stricter than perl's `class` on purpose wherever perl's is lax: a
   constructor that warns or guesses, a package that shows through, a
-  mistake that is only a warning.
+  mistake that is only a warning: so a `:param` given twice to `new`
+  is a fault, where perl lets the last win (D187), and the order of
+  construction stays perl's two passes until 17c takes it up with the
+  construction protocol (D187).
 - **Regexes** (steps 19, 20). Perl's syntax and matching order, a
   subset, compiled. No `s///e`, no `(?{ })`, no string interpolated
   as a pattern. **How `s///` and a match read with `$_` read-only

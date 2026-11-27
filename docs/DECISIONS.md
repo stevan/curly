@@ -22,7 +22,9 @@ confirmed. D96 and D97 are his, on the census; D98 to D101 his answers to
 step 12's, D103 his, on the file of differences, D105 his answer on subs with no signature, and D102 the builder's defaults on its review, which he
 confirmed. D104 was the builder's defaults from building step 12a,
 which he confirmed. D180 to D185 are Stevan's, on the object system
-before step 17's proposal, 2026-11-27.
+before step 17's proposal, 2026-11-27; D170 to D177 his answers to
+step 17's proposal, D178 the builder's defaults on its review, which
+he confirmed, and D179 and D187 his, the same day.
 What a decision leaves for a step to settle is listed under Open
 questions at the end of [`DESIGN.md`](DESIGN.md).
 
@@ -2510,8 +2512,8 @@ where `$o isa Object` would be true here and false under perl.
 
 **D178. What is done about the review of step 17.** *(Default: the
 builder's, 2026-11-27, on the review's seventeen findings, T422 to
-T437; Stevan's to confirm. `PLAN.md`, step 17, "What the review
-found", has each.)* **A class is a package**: a bare call of the
+T437; confirmed by Stevan the same day: "I accept the builders'
+defaults". `PLAN.md`, step 17, "What the review found", has each.)* **A class is a package**: a bare call of the
 program's sub in a class is refused, and `main::NAME(ARGS)` taken in,
 which is what perl needs there (T422); no method, reader, writer or
 `my method` of a name `use v5.42` imports, of a special block's, of a
@@ -2545,20 +2547,22 @@ be stricter than it and not repeat bad or poorly designed features",
 and of the list below, worked out from T400 to T437: "record that
 too".)* Each is something perl 5.42 does that Curly will not repeat:
 it refuses or faults instead, which D2 always allows. Where the
-answers so far already do, the entry says so; **where they agree with
-perl, the item is open for the rethink, and those answers no longer
-stand**.
+answers so far already do, the entry says so. **The two items that
+were left open are answered by D187** (Stevan, the same day): a
+parameter given twice is a fault, and the construction order stays
+perl's for 17a.
 - **A lax constructor.** An odd count of arguments only warned (T402):
   a fault, already. A parameter given twice, the last silently winning
-  (T403): **not wanted, and open** (the proposal agreed). Unknown
+  (T403): **not wanted: a fault, by D187**. Unknown
   parameters reported only after every `ADJUST`, in hash order
   (T404, T435): a fault before anything runs, already (D178). `new`
   on an object as well as a class (T411): refused, already (D173).
 - **A construction order that surprises.** Every field of every class
   before any `ADJUST` (T400), and each argument copied only at its
-  field's turn, after the defaults above it have run (T427): **not
-  wanted, and open** (the proposal agreed with both). Being stricter
-  here means refusing whatever would let a program see the order.
+  field's turn, after the defaults above it have run (T427): **kept
+  as perl has it for 17a, by D187**, and taken up again at 17c with
+  the construction protocol (D180). Being stricter here would mean
+  refusing whatever would let a program see the order.
 - **The package showing through.** A bare `helper()` in a method being
   `P::helper` (T422), a method named `floor` or `END` silently being
   none (T423), a method of a class's name hiding the class (T425), a
@@ -2577,3 +2581,19 @@ stand**.
   `isa` or `can` over them: refused, already.
 Rejected: perl's `class` as the whole of the design, with Curly
 refusing only where it must.
+
+**D187. A `:param` given twice to `new` is a fault; the construction
+order stays perl's two passes for 17a.** *(User, 2026-11-27, answering
+D179's two open items.)* (a) `P->new(x => 1, x => 2)` is a fault that
+names the parameter, found with the odd count, the unknown name
+and the missing one, before any of the construction runs (T403, T435;
+D178 already put the other three there). (b) Construction is perl's
+two passes, every field of every class from the root down and then
+every `ADJUST` from the root down, each argument copied at its field's
+turn (T400, T427, as D178 answers it); it is taken up again at 17c,
+with the construction protocol (D180). Rejected: the last one given
+winning, as perl has it, in silence (D179: a lax constructor); for
+now, a walk that refuses whatever would let a program see the order
+of construction, which would refuse most `ADJUST`s that print and
+every default that reads a variable a default above it changes, and
+is better decided beside the protocol that may change the order.

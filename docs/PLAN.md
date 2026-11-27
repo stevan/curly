@@ -4980,7 +4980,8 @@ D10 commit before it.
   variable's slot holds (`rt_deref`), so every array and hash function
   takes it.
 - **Builder's defaults** (none of them a decision; each the simplest
-  answer that cannot be WRONG): what may stand before a postfix form
+  answer that cannot be WRONG; Stevan accepted them, 2026-11-27, and
+  they stand as decided): what may stand before a postfix form
   is what may stand before an arrow, and in the braces any expression
   of one value; **a subscript or an arrow after the braces is refused
   wherever it stands**, past blanks and the end of a line (perl reads
@@ -5108,7 +5109,8 @@ of the runtime), and it took one session, with a fix to 13a's tests
   good as a slot's is: a sub is handed `&RT_CELL(f[n])` for a taken
   variable, and reads it late, as perl reads the scalar.
 - **Builder's defaults** (none of them a decision; each the simplest
-  answer that cannot be WRONG): **nothing may follow the scalar through a
+  answer that cannot be WRONG; Stevan accepted them, 2026-11-27, and
+  they stand as decided): **nothing may follow the scalar through a
   reference**, `$r->$*->[0]`, `${ $r }->{k}`, `$r->$*->$*`, where perl
   goes on through the reference the scalar holds (`${ $r->$* }` says the
   last); `\` before `->$*` or `${ }` is refused; the scalar through a
@@ -5227,7 +5229,8 @@ and it took one session, most of it the evidence.
   a whole array through a reference as it joins `@a`. **The runtime
   gained nothing.**
 - **Builder's defaults** (none of them a decision; each the simplest
-  answer that cannot be WRONG, and Stevan's to overturn): **`::` after
+  answer that cannot be WRONG; Stevan accepted them, 2026-11-27, and
+  they stand as decided): **`::` after
   a chain, a postfix form or the braces is text**, as perl has it, and
   after an array's element stays refused (11a's, D92); an arrow before
   `@` or `$` that is not `->@*`, `->$#*`, `->$*` or `->@[` is refused,
@@ -5582,7 +5585,8 @@ compiler and a piece of the runtime, and it took one session.
   `to_str`, `numeric`, the truth, `a_scalar`, `==`, `die` and `chomp`
   read. `ref` gives `CODE`.
 - **Builder's defaults** (none of them a decision; each the simplest
-  answer that cannot be WRONG, and Stevan's to overturn): **a statement
+  answer that cannot be WRONG; Stevan accepted them, 2026-11-27, and
+  they stand as decided): **a statement
   may begin with a sub with no name**, which the proposal's text refused
   and T367's `sub ($x) { sub ($y) { ... } }` needs (perl takes it); `sub
   { ... };` alone is refused as a statement with only a value; **a blank
@@ -6805,7 +6809,7 @@ what a method call may reach. The questions are Q1 to Q8 below, each
 with a recommendation, and **Stevan took every recommendation**
 (2026-11-27: D170 to D177). **Its adversarial review found eight
 ways to be WRONG** (T422 to T437, "What the review found" at the end,
-answered by D178, the builder's defaults for Stevan to confirm). 17b and 17c are outlined here and
+answered by D178, the builder's defaults, which Stevan confirmed the same day). 17b and 17c are outlined here and
 proposed in full when 17a is built.
 
 **The census**: 124 probes wait for step 17. 104 stop at a method
@@ -6891,9 +6895,10 @@ no generated code: it makes the instance and fills the tables.
   `:param`s are the child's arguments too (`17-param-parent`).
 - **`NAME->new(PAIRS)`**, on a class's name and nothing else (Q4:
   perl takes an object too, `T411-new-on-object`). Each pair names a
-  `:param` of the class or a parent; the last of a name given twice
-  wins (T403); an odd count (T402), an unknown name or a missing
-  required one (T404) is a fault. Inside a method,
+  `:param` of the class or a parent; an odd count (T402), an unknown
+  name, a missing required one (T404) or **a name given twice** (T403,
+  D187: perl lets the last win, in silence) is a fault, each found
+  before any of the construction runs (D178). Inside a method,
   **`__CLASS__->new(...)`** makes one of the object's own class
   (`17-field-class`).
 - **`EXPR->NAME(ARGS)`** and `EXPR->NAME`, a method call: the
@@ -7084,13 +7089,14 @@ Written before closures landed, and read against "14, as built" since
 Stevan, 2026-11-27, after the review: perl's `class` is in places
 badly designed, and Curly is to be stricter than it, not repeat it.
 **D179** lists what is not wanted, from T400 to T437, and where each
-stands: most are refused already, by D171, D173, D175 and D178. **Two
-are open, and their answers below no longer stand**: a parameter
-given twice, the last winning (T403, which "The language at 17a"
-agrees with), and **the construction order** (T400, T427, which this
-proposal and its review agreed with), where being stricter means
-refusing what would let a program see the order. The rethink, after
-step 14 lands, decides both and may move D170 to D178.
+stands: most are refused already, by D171, D173, D175 and D178. The
+two it left open are answered by **D187** (Stevan, 2026-11-27): a
+parameter given twice is a fault, found before any of the
+construction runs, with the odd count, the unknown name and the
+missing one (T403); and the construction order stays perl's two
+passes for 17a (T400, T427, as D178 answers it), to be taken up again
+at 17c with the construction protocol (D180). D170 to D178 stand as
+they are, and 17a is built on them.
 
 ##### What the review found
 

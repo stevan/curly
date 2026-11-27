@@ -113,7 +113,10 @@ programs, as it is built. In outline:
 - **Subs:** named and anonymous, with a signature or none (D105);
   closures (step 14; D160 to D166); lexical `my sub` later (D160).
   Called with brackets (D21). No `@_`, no `wantarray`.
-- **Classes:** `class`, `field`, `method`, `ADJUST`, `:isa` (D19).
+- **Classes:** `class`, `field`, `method`, `ADJUST`, `:isa` (D19), on
+  a core of `Object`, `Role` and `Class` the runtime holds (D182);
+  stricter than perl's where perl's is lax (D179, D187: a `:param`
+  given twice to `new` is a fault); step 17 (D170 to D178).
 - **Packages:** `package Name;` names a file's subs, and nothing
   more: no `bless`, no package variables (D19).
 - **Strings and regexes:** Unicode strings (D24); Perl 5's regexes, a
@@ -357,7 +360,10 @@ step, roughly in the order it will matter:
     (D186, `tools/perl-roles/`); the core of the object
     system bootstrapped in the runtime (D182); representations and
     the construction protocol (D180), and what referees them; how
-    step 17 is cut (D185, D170); the referee of representations (17c);
+    step 17 is cut (D185, D170), what of perl's `class` is not wanted
+    (D179) and its two open items (D187: a `:param` given twice is a
+    fault; the order of construction perl's for 17a, open again at
+    17c with the construction protocol); the referee of representations (17c);
     the metaobject protocol's API (D183, step 28); the shape of concurrency, and D13 revisited with it
     (step 29).
 14. **The extension of a file that carries type annotations** (step
