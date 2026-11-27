@@ -99,6 +99,7 @@ main > section { scroll-margin-top: calc(var(--bar) + 40px); }
 .mark { font: 700 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; padding: 3px 6px; border-radius: 3px; border: 1.5px solid currentColor; }
 .mark.user { color: var(--user); } .mark.default { color: var(--default); } .mark.other, .mark.none { color: var(--other); }
 .attr { font: italic 15px/1.45 var(--read); color: var(--muted); }
+.meta.group { color: var(--muted); }
 .seclabel { font-size: 12px; color: var(--muted); border-left: 3px solid var(--c); padding-left: 6px; }
 .retired { margin: 8px 0 0; padding: 6px 10px; border-left: 3px solid var(--retire); background: var(--panel); font-size: 13px; }
 .retired b { color: var(--retire); }
@@ -599,12 +600,13 @@ function entry(e) {
     <h3>${inline(e.title)}</h3>
     <div class="meta"><span class="mark ${c}">${ATTR[c]}</span>${e.attribution.text ? `<span class="attr">${inline(e.attribution.text)}</span>` : ''}</div>
     <div class="meta"><span class="seclabel" style="--c:${secColour(e.section)}">${esc(plain(s.title))}</span></div>
+    ${e.group ? `<div class="meta group"><span>One of ${dref(e.group.first)} to ${dref(e.group.last)}: ${inline(e.group.title)}</span></div>${e.group.text ? `<div class="body">${md(e.group.text)}</div>` : ''}` : ''}
     ${ret}
     <div class="body">${md(e.body)}</div>
 </div>
 <dl class="links">${row('Cites', e.mentions.filter(m => m < e.n))}${row('Points to', e.mentions.filter(m => m > e.n))}${row('Cited by', e.mentioned_by)}${row('Retires', e.retires.map(r => r.n), 'rt')}${e.cited_in && e.cited_in.length ? `<dt>In the docs</dt><dd class="din">${e.cited_in.map(sref).join('<span aria-hidden="true">·</span>')}</dd>` : ''}${e.tests.length ? `<dt>Tests</dt><dd>${e.tests.join(', ')}</dd>` : ''}</dl>
 <div class="goto"><a href="#around-D${e.n}">Around D${e.n}</a><a href="#arcs-D${e.n}">On the arc map</a></div>`;
-    hay.set(e.n, (e.title + ' ' + e.attribution.text + ' ' + e.body).toLowerCase());
+    hay.set(e.n, (e.title + ' ' + e.attribution.text + ' ' + e.body + (e.group ? ' ' + e.group.title + ' ' + e.group.text : '')).toLowerCase());
     return a;
 }
 const clip = (s, n) => s.length > n ? s.slice(0, n).replace(/\s+\S*$/, '') + ' …' : s;

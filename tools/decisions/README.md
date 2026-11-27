@@ -43,9 +43,13 @@ as text. `--syntax` is a Sublime syntax for the language's
 s-expressions; without it code isn't coloured. `--fragment` leaves out the
 doctype and metas, for a host that wraps the page itself.
 
-The extractor fails if the entries it parsed aren't as many as the
-lines that start `**D`, or if a number appears twice, so a format
-change that drops an entry is loud. Its output is deterministic, so a
+A line that starts `**D106 to D113.` (or `**D150 and D151.`) heads a
+group: the entries right after it, within its range, are its members,
+and each carries the group's title and text as `group`; one with no
+attribution of its own has the group's. The extractor fails if the
+entries and group heads it parsed aren't as many as the lines that
+start `**D`, if a group head has no entries after it, or if a number
+appears twice, so a format change that drops an entry is loud. Its output is deterministic, so a
 JSON can be committed and diffed.
 
 ## The page
