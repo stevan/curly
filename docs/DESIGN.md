@@ -330,14 +330,13 @@ step, roughly in the order it will matter:
 11. **Regex captures** (step 19): `$1`, or only named and returned.
 12. **Bytes**, for binary files, as a type apart from strings (with
     step 21).
-13. **The syntax of a type** (step 25); **roles**, as part of the
-    object system and whether they erase by flattening into classes,
-    which would keep perl as their oracle, and with them the bootstrap
-    (`class Object` an instance of `class Class`) and instances of
-    other representations than perl's (step 17, which reads
-    `stevan/p5-roles-algebra`, `stevan/p5-core-role-tests`,
-    `stevan/p5-MOP` and `stevan/p5-UNIVERSAL-Object` first; step 27
-    before); the shape of concurrency, and D13 revisited with it
+13. **The syntax of a type** (step 25); **roles**, refereed by a
+    perl with Stevan's roles (D161), and whether that perl is his
+    branch ported to 5.42.0 or built as it is; the core of the object
+    system bootstrapped in the runtime (D162); representations and
+    the construction protocol (D160), and what referees them; how
+    step 17 is cut (D165); the metaobject protocol's API (D163, step
+    28); the shape of concurrency, and D13 revisited with it
     (step 29).
 14. **The extension of a file that carries type annotations** (step
     25). A program is a `.pl` file until then.

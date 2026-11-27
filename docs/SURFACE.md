@@ -351,8 +351,11 @@ that names it.
 | `class Name VERSION`, `:param(name)`, `:reader(name)`, `sub` inside a class, `my method` | Later | 17 |
 | `__CLASS__`, `isa`, `ref($obj)` | In | 17 |
 | `DESTROY`, `AUTOLOAD`, `can` to fetch code, `bless`, `@ISA`, overloading | Cut | |
-| `role`, `:does` (perl 5.42 has neither; Stevan wants them in the object system from the start, so step 17's proposal takes them up: `PLAN.md`) | New | 17 or 27 |
-| A metaobject protocol | New | 28 |
+| `role`, `:does` (perl 5.42 has neither; refereed by a perl with Stevan's roles, D161) | New | 17 |
+| `class Object`, `role Role`, `class Class`: every class and role an instance of one, made by the runtime (D162) | New | 17 |
+| An instance that is a scalar, an array, a hash..., and a construction protocol a class can hook (D160) | New | 17 |
+| `DEMOLISH` (D164) | Later | |
+| A metaobject protocol: introspection while the program runs; no change to a class while it runs, and wrapping or replacing a method only as the program compiles (D163) | New | 28 |
 
 ## What the erasure removes
 

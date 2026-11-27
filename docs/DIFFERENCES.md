@@ -429,8 +429,15 @@ full when its step is, and its rows join the sections above then.
   value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle
   (step 21). 16a to 16c (D121 to D131) are built, and their rows are in
   the sections above.
-- **Objects** (step 17; D19). `class` as 5.42 has it. Roles are
-  wanted, and perl has none: an exception to D2 (D5).
+- **Objects** (step 17; D19). `class` as 5.42 has it, on a core
+  the runtime holds, `Object`, `Role` and `Class`, of which every
+  class and role is an instance (D162). Roles are wanted, and perl
+  5.42 has none: an exception to D2 (D5), refereed by a perl with
+  Stevan's roles (D161). Instances that are a scalar or an array as
+  well as a hash, with a construction protocol a class can hook
+  (D160); no `DEMOLISH` for now (D164); split into sub-steps (D165).
+  A metaobject protocol (step 28) that looks at a class while the
+  program runs and never changes it (D163).
 - **Regexes** (steps 19, 20). Perl's syntax and matching order, a
   subset, compiled. No `s///e`, no `(?{ })`, no string interpolated
   as a pattern. **How `s///` and a match read with `$_` read-only

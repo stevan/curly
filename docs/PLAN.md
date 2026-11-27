@@ -6116,7 +6116,8 @@ are walked for D109 as `join`'s. Tests 3820 to 3837.
 
 ### 17. Classes
 
-Referee: perl. Size: large.
+Referee: perl, and for roles a perl with Stevan's roles (D161).
+Size: large, and split (D165).
 
 D19: `class`, `field`, `:param`, `:reader`, `method`, `ADJUST`,
 `:isa`, `new`, method calls, `isa`, `SUPER::`. A missing method is a
@@ -6131,10 +6132,10 @@ Traps: T52, T56.
 **Roles, from the start** (Stevan, 2026-11-25). He wants roles to be
 a key part of the object system, and not left for the metaobject
 protocol, so this step's proposal takes them up beside `class`
-instead of leaving them to step 27. Nothing about them is decided;
-this is a note of where the question is to be raised, not an answer
-to it. Read four of Stevan's repositories first, all public (a
-session clones them with `add_repo`):
+instead of leaving them to step 27. What is decided is D160 to D165
+(2026-11-27, below); the rest is the proposal's. Read four of
+Stevan's repositories first, all public (a session clones them with
+`add_repo`):
 
 - `stevan/p5-roles-algebra`: `ROLE_ALGEBRA.md`, an algebra of role
   composition for `feature 'class'` (every class and role built from
@@ -6166,52 +6167,89 @@ session clones them with `add_repo`):
   reference, a code reference and a regex as well as a hash
   (`t/030-instance/`, `t/040-immutable/010-repr-types.t`).
 
-**What Stevan wants of the last two** (2026-11-27; directions for the
-proposal, not decisions). Both are Perl-specific implementations:
-**adapt what they do, don't copy how.** Of `p5-MOP`, most of the API
-is usable here, with adaptations and new names. **A role is part of
-the structure of the object system itself**: `class Class` does `role
-Role`, `role Role` is a subclass of `class Object`, and `class Class`
-is a subclass of `class Object`. What `p5-MOP` leaves implicit, since
-it takes a package's stash to be the instance of its class, is the
-last piece of the bootstrap, **`class Object` an instance of `class
-Class`**; here it is made explicit. Of `p5-UNIVERSAL-Object`: **the
-representation types are a feature to support**, an object whose
-instance is a scalar, an array, a hash and so on, with a protocol a
-class can hook into at each part of an object's construction.
+**What Stevan decided of them** (2026-11-27, D160 to D165). Both are
+Perl-specific implementations, to adapt and not copy: most of
+`p5-MOP`'s API is usable here, with adaptations and new names; the
+representation types of `p5-UNIVERSAL-Object`, an instance that is a
+scalar, an array, a hash and so on, with a construction protocol a
+class can hook into at each part, are a feature (D160). **Roles are
+refereed by a perl with Stevan's roles** (D161), below. **The runtime
+holds the core of the object system, bootstrapped** (D162): `class
+Object`, `role Role` and `class Class`, where `Class` does `Role`,
+`Role` and `Class` are subclasses of `Object`, and `Object` is an
+instance of `Class`, the piece `p5-MOP` leaves implicit by taking a
+package's stash to be its class's instance; every class and role a
+program declares is an instance of `Class` or `Role`, created
+internally. That is classes and roles done, from a user's point of
+view; the metaobject protocol, the API that shows those instances to
+a program, stays step 28's (D163: introspection at run time, never
+mutation, never wrapping or replacing a method at run time).
+`DEMOLISH` is left out until something needs it (D164). **The step
+is split** (D165), below.
 
-**What the proposal has to answer of them**, found reading them
-beside perl 5.42 (run 2026-11-27):
+**perl 5.42 has no roles** (run 2026-11-25: `role Eq {` is a syntax
+error, and `:does(...)` is `Unrecognized class attribute does`;
+claims `17-role` and `17-does`), and **no representations**: its
+object is of the reftype `OBJECT` whatever its fields (`$o->{x}` dies
+`Not a HASH reference`), `bless` of one dies `Can't bless an object
+reference`, and nothing between `new` and `ADJUST` chooses or makes
+the instance; a `sub new` in a class replaces the constructor with
+the warning `Subroutine new redefined`, which D15 makes a fault
+(claims `17-reftype` to `17-new`, run 2026-11-27). So both are
+exceptions to D2 (D5). Roles have their referee (D161);
+**representations have none yet**, and the sub-step that builds them
+proposes one, or a model, or that they erase to a program perl runs.
 
-- perl 5.42's `class` has neither. Its object is of the reftype
-  `OBJECT` whatever its fields (`$o->{x}` dies `Not a HASH
-  reference`), `bless` of one dies `Can't bless an object
-  reference`, and nothing between `new` and `ADJUST` chooses or makes
-  the instance; a `sub new` in a class replaces the constructor with
-  the warning `Subroutine new redefined`, which D15 makes a fault. So
-  representation types and the hooks are, like roles, an exception to
-  D2 (D5) unless they erase to a program perl runs, and the proposal
-  says which, and what referees them.
-- A class that is an object while the program runs, `class Object`
-  an instance of `class Class`, is the metaobject protocol, which D5
-  put at step 28; the runtime has no class at run time today, and D19
-  has nothing reach the symbol table. Taking the bootstrap here moves
-  part of step 28 forward, and the proposal says which part, and what
-  of it is known as the program compiles and what the runtime holds.
-- `DEMOLISH` runs as an object is destroyed: D19 cut `DESTROY`, and
-  the collector (D26) frees at no time a program can see.
-- The Size line above, "large", was written before roles, the
-  bootstrap and representations were in this step; the proposal says
-  whether it is still one step, and how it is cut.
+**The referee for roles** (D161). Stevan's branch,
+`stevan/perl5`'s `slittle/roles-v3-pr`, implements the roles algebra.
+**It is blead's, not 5.42's**: it was cut from blead at 5.43.10
+(2026-03) and has merged blead since. Its roles are thirteen commits
+of Stevan's (`1dec215`, "class: roles v3 -- algebraic composition
+with conflict detection and 'does'", and twelve that fix CI, move
+the tests to `t/role/` and follow a macro blead renamed), the first
+of them 41 files, 7,100 lines in and 2,500 out. Applied to perl
+5.42.0's source as they are (2026-11-27), 135 of the first commit's
+213 hunks are refused, and 10 of the other twelve's 61:
 
-**perl 5.42 has neither** (run 2026-11-25: `role Eq {` is a syntax
-error, and `:does(...)` is `Unrecognized class attribute does`), so
-roles are still an exception to D2 (D5) wherever they are built, and
-the proposal says what referees them: whether they erase by being
-flattened into the classes that use them, which would keep perl as
-the oracle (step 27's option), and whether the algebra's tests can be
-the model. It also says whether roles are a step of their own,
-straight after this one, and what is then left for step 27.
+- **Most are generated files**, made again rather than patched:
+  `perly.tab`, `perly.act` and `perly.h` (`regen_perly.pl`, which
+  takes bison 2.5 to 2.7 or 3.0 to 3.8; the cloud machine's is 3.8.2),
+  `keywords.c` and `keywords.h`, `opcode.h` and `opnames.h`,
+  `embed.h` and `proto.h` (`regen.pl`).
+- **Sixteen are source, ported by hand**: `class.c` 9 (the largest
+  is the change of a field's index to one relative to its class,
+  made absolute when the class is sealed, against a `class.c` that
+  differs from blead's by 258 lines), `perly.y` 3 (the grammar of
+  `role`, whose context moved: `perly.y` differs by 997 lines), and
+  one each in `pad.c`, `hv.h`, `gv.c` and `B::Deparse`. The two in
+  `Module::CoreList` are blead's version and are dropped.
+
+So "a patch could be extracted and `patchperl` used" holds, but the
+patch is a port to 5.42.0, not an extraction, and it is the first
+job of 17b. **Recommended: the port**, a file in the repository
+applied to 5.42.0's source by the setup script as the oracle is
+built, and trusted once the branch's own `t/role/` tests and perl's
+`t/class/` pass under it. The alternative, the branch built as it
+is, costs nothing now and is the quickest mock-up, but it would
+referee a role program's every other construct by a perl that is not
+5.42 (`toke.c` alone differs by 3,154 lines), which is the one thing
+D10 keeps the oracle from being. **Open until Stevan picks.** Either
+way the roles perl is a second oracle named by an environment
+variable of its own, asked only of a program with a role in it, and
+not run by `make test` until a sub-step makes it so.
+
+**A first cut of the split** (D165; the proposal may change it):
+
+- **17a, classes as perl 5.42 has them** (D19, the paragraph above),
+  with the bootstrap in the runtime from the start (D162), since
+  every class is an instance of `Class`. Referee: perl 5.42.
+- **17b, roles**: `role`, `:does`, composition by the algebra.
+  Referee: the roles perl (D161). Its first job is that perl.
+- **17c, representations and the construction protocol** (D160).
+  Referee: to be proposed.
+
+Step 27 keeps whatever of roles 17b does not take, and step 28 the
+API (D163).
 
 ### 18. Modules
 
@@ -6292,10 +6330,16 @@ To be proposed; exceptions to D2. One option to weigh: roles that
 erase by being flattened into the classes that use them, which is
 what composing a role means, and which would keep perl as their
 oracle. **Roles are to be taken up at step 17 instead** (Stevan,
-2026-11-25: see there), and with them the bootstrap of the metaobject
-protocol, `class Object` an instance of `class Class` (Stevan,
-2026-11-27), so what is left here, if anything, is what step 17
-doesn't take.
+2026-11-25: see there), refereed by a perl with Stevan's roles (D161),
+and with them the core of the object system, bootstrapped in the
+runtime (D162), so what is left of 27 is what step 17 doesn't take.
+**Step 28, the metaobject protocol, is an API onto that core** (D163):
+`stevan/p5-MOP`'s API the starting point, adapted; introspection while
+the program runs; no change to a class while it runs, and wrapping
+or replacing a method a compile-time feature if at all; a class made
+while the program runs only if it costs a declared class nothing, and
+doubtful even then. These are Stevan's thoughts for now, and the
+protocol may go another way.
 
 ### 29. Concurrency
 

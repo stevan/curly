@@ -474,12 +474,24 @@ the object system, and step 17's proposal takes them up; `PLAN.md`,
 step 17, names the four repositories to read first
 (`stevan/p5-roles-algebra`, `stevan/p5-core-role-tests`, and since
 2026-11-27 `stevan/p5-MOP` and `stevan/p5-UNIVERSAL-Object`), and
-what Stevan wants of the last two: `class Class` does `role Role`,
-both subclasses of `class Object`, which is an instance of `class
-Class`; instances of more representations than a hash, with a
-construction protocol a class can hook; each adapted, not copied.
-Nothing about them is decided, and perl 5.42's `class` has none of
-it.
+**D160 to D165, Stevan's (2026-11-27)**: both adapted, not copied;
+an instance of more representations than a hash, with a construction
+protocol a class can hook (D160); **roles refereed by a perl with his
+roles**, the branch `slittle/roles-v3-pr` of `stevan/perl5` made a
+patch to 5.42.0 for `patchperl` (D161); **the runtime holds `class
+Object`, `role Role` and `class Class`, bootstrapped** (`Class` does
+`Role`, both subclasses of `Object`, `Object` an instance of
+`Class`), and every class and role a program declares is an instance
+of one (D162); the metaobject protocol is step 28's, an API onto
+that core, introspection at run time and never mutation (D163); no
+`DEMOLISH` for now (D164); step 17 split (D165; `PLAN.md` has a
+first cut, 17a classes, 17b roles, 17c representations). **Found
+building on D161**: the branch is blead's (5.43.10), and its roles
+do not apply to 5.42.0 as they are: sixteen hunks of source to port
+by hand (`class.c` 9, `perly.y` 3), the generated files made again;
+port it or build the branch as it is is open, the port recommended
+(`PLAN.md`, step 17, "The referee for roles"). perl 5.42's `class`
+has none of it (claims `17-role` to `17-new`).
 Not agreed: what the decisions leave to steps, listed at the end of
 [`docs/DESIGN.md`](docs/DESIGN.md).
 

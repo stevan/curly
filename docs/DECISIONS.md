@@ -21,7 +21,8 @@ to step 11a's; D95 was the builder's defaults there, which he
 confirmed. D96 and D97 are his, on the census; D98 to D101 his answers to
 step 12's, D103 his, on the file of differences, D105 his answer on subs with no signature, and D102 the builder's defaults on its review, which he
 confirmed. D104 was the builder's defaults from building step 12a,
-which he confirmed.
+which he confirmed. D160 to D165 are Stevan's, on the object system
+before step 17's proposal, 2026-11-27.
 What a decision leaves for a step to settle is listed under Open
 questions at the end of [`DESIGN.md`](DESIGN.md).
 
@@ -2305,3 +2306,78 @@ is enough, and this is the one place it shows today. Rejected:
 keeping an errno of the runtime's own (a model of perl's every call
 that sets it); faulting at the underflow itself (a fault where
 nothing could show it).
+
+## Step 17: classes, roles and the object system
+
+**D160. An object may be one of several representations, a scalar, an
+array, a hash and so on, with a protocol for its construction that a
+class can hook into at each part: `stevan/p5-UNIVERSAL-Object`'s,
+adapted, not copied.** *(User, 2026-11-27: "a feature I want to
+support in Curly. Again, it is a perl specific implementation, which
+I do not want to copy, but I do want to adapt the functionality in
+provides." Of `stevan/p5-MOP` the same day: "very Perl specific, but
+most of the API is usable for Curly (with some adaptations and naming
+adjustments).")* perl 5.42's `class` has neither: an object is of
+the reftype `OBJECT`, and nothing between `new` and `ADJUST` makes
+the instance (`PLAN.md`, step 17; claims `17-reftype` to `17-new`).
+So it is an exception to D2 (D5) with no referee yet; the sub-step
+that builds it proposes one. Rejected: the module's mechanism
+(`bless`, `%HAS`, a hash with locked keys), which D19 cut.
+
+**D161. Roles are refereed by a perl with Stevan's roles: the branch
+`slittle/roles-v3-pr` of `stevan/perl5`, which implements the roles
+algebra, made a patch that `patchperl` applies to perl 5.42.0, so
+that it is rebuilt as the oracle is.** *(User, 2026-11-27: "it should
+be sufficient to mock this up. A patch could be extracted and
+patchperl used, to make it easy to rebuild.")* It answers what D5
+left to the step: roles still have no perl 5.42 to agree with, and
+this perl stands in for one, asked only of a program with a role in
+it; every other program is perl 5.42's alone (D10). Found the same
+day: the branch is blead's (5.43.10), and its commits do not apply to
+5.42.0 as they are, sixteen hunks of source to port by hand and the
+generated files to make again; whether to port it or build the branch
+as it is, is open (`PLAN.md`, step 17, "The referee for roles",
+which recommends the port). Rejected, by being overtaken: the
+algebra's own tests as the model, which step 17's note had asked;
+with a perl that has roles, programs are run.
+
+**D162. The runtime holds the core of the object system,
+bootstrapped: `class Object`, `role Role` and `class Class`, where
+`Class` does `Role`, `Role` and `Class` are subclasses of `Object`,
+and `Object` is an instance of `Class`. Every class and role a
+program declares is an instance of `Class` or of `Role`, created
+internally.** *(User, 2026-11-27: "This should be sufficient to call
+classes & roles done from a users perspective.")* It is the structure
+of `stevan/p5-MOP`, where `MOP::Class` does `MOP::Role` and both are
+`UNIVERSAL::Object`s, with the piece that module leaves implicit,
+taking a package's stash to be its class's instance, made explicit.
+It brings forward that much of step 28 and no more: "we do not need
+to build the full MOP functionality to make classes and roles work."
+Rejected: the whole metaobject protocol at step 17, which roles and
+classes do not need.
+
+**D163. The metaobject protocol is an API that shows a program the
+instances D162 makes; `stevan/p5-MOP`'s API is its starting point,
+adapted to what makes sense where.** *(User, 2026-11-27, as "my
+thoughts about it for now": "It's also possible the MOP could go in
+an entirely different direction as well.")* A class may be looked at
+while the program runs, and not changed while it runs. Wrapping or
+replacing a method is never done while the program runs: if at all,
+it is a feature of compiling. Making a new class while the program
+runs is wanted only if it costs a declared class nothing, and is
+doubtful even then: not decided. The protocol stays step 28's.
+Rejected: changing a class while the program runs; wrapping or
+replacing a method while it runs ("always a bad idea").
+
+**D164. `DEMOLISH` is left out for now**, to be taken up when
+something needs it. *(User, 2026-11-27.)* D19 cut `DESTROY`, and the
+collector (D26) frees an object at no moment a program can see, so
+nothing in step 17 asks for it. Rejected: taking it with the rest of
+`p5-UNIVERSAL-Object`'s protocol.
+
+**D165. Step 17 is split into sub-steps**, the cut made by its
+proposal. *(User, 2026-11-27: "We can still split up 17, I think that
+makes sense.")* A first cut is in `PLAN.md`, step 17: classes as perl
+5.42 has them on the bootstrapped core, roles, and representations.
+Rejected: one step, whose size, "large", was written before roles,
+the core and representations were in it.
