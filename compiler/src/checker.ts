@@ -199,7 +199,6 @@ const gives = (w: World): Gives => call => w.names.lists[w.names.calls.get(call)
 const addId = (w: World, into: Set<number>, id: number): void => {
     into.add(id);
     if (w.names.taken.has(id)) into.add(REACH);
-    if (w.names.taken.has(id) && !w.names.isArray[id]) into.add(CELLS);
 };
 
 // What making the hops of a store through a chain changes (T248, T249,

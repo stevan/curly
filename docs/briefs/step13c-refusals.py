@@ -72,6 +72,13 @@ r('loop-over-it-replaces-the-reference', "perl runs it: '1\\n'.", X + 'my $y = 2
 r('reference-changes-what-the-concatenation-reads', "perl runs it, and says nothing: $x is 0v (T348).", 'my $x;\nmy @a = (\\$x);\nmy $i = 5;\n${ $a[$i = 0] } = $i . "v";', '= 0', "the reference changes $i, which the concatenation on the right reads: perl joins its pieces as it stores, after the reference is worked out; take the string into a my first")
 r('makes-what-the-right-side-took', "perl runs it, and says nothing: ${ $r } holds a reference (T349).", 'my $r;\n(${ $r }, my $z) = ($r, 1);', '${', 'the store makes what $r holds, which the right side has already taken: perl takes it after it is made; take the value into a my first')
 
+# ---- four more, which the breakages of the step showed no test reached
+# (briefs/step13c-mutations.py); each but the last a WRONG without its rule
+r('stored-then-store-by-name', "perl runs it: '77' (the assignment is the scalar itself, read late).", X + 'say(($r->$* = 5), ($x = 7));', '= 7', LATER.format("say's list", 'what references reach'))
+r('list-assignment-in-a-sub', "perl runs it: '51'.", X + 'sub swap() {\n    (${ $r }, my $z) = (5, 6);\n    return 1;\n}\nsay(${ $r }, swap());', 'swap())', LATER.format("say's list", 'what references reach'))
+r('makes-what-the-scalar-is', "perl runs it, and says nothing: $x->[0] is an array, $x itself.", 'my $x;\nmy $r = \\$x;\n$x->[0] = $r->$*;', '$x->', 'the store makes what it goes through, which the right side has already taken: perl takes it after it is made; take the value into a my first')
+r('octal-in-the-braces', "perl dies: Can't use an undefined value as a SCALAR reference ($a[15]).", X + 'my @a = ($r);\nsay ${ $a[017] };', '017', '017 starts with a zero: perl reads that as octal, which the language writes 0o17')
+
 def write(first, table=None):
     n = first
     for name, why, body, at, message, nth in (T if table is None else table):

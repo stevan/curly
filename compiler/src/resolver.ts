@@ -237,12 +237,12 @@ export const resolve = (program: Program): Resolution => {
             walk(e.head, declared);
             if (!quoted) chains.fill(true);
             return;
-        // Step 13c: the scalar through a reference, its head first, which a
-        // loop freezes the containers of as it does an element's.
+        // Step 13c: the scalar through a reference, its head first. (What a
+        // loop freezes on its way is its head's: an element of a named
+        // container, or a chain, which says so itself. The cell is frozen
+        // by nothing: D77 keeps the block from storing to it.)
         case 'sderef':
-            walk(e.head, declared);
-            if (!quoted) chains.fill(true);
-            return;
+            return walk(e.head, declared);
         case 'ref': {
             if (e.of.kind === 'array') array(e.of, e.of.name, true);
             else walk(e.of, declared);

@@ -3,7 +3,11 @@
 # side out first, the others make the scalar first); a scalar variable
 # whose reference is taken read late, as any variable is (D14, T346: `$x
 # + ($$r = 5)` is 10); chomp and chop of one; a default; a file's
-# variable stepped by a sub; references taken in a map.
+# variable stepped by a sub; references taken in a map. And two that the
+# breakages of the step showed no test reached: a value ends after `->$*`
+# and a step, so `x` repeats; and brackets round the scalar through a
+# reference on the left of `=` make a list assignment, which takes the
+# first value of the list.
 use v5.42;
 my $r;
 ${ $r } = defined($r) ? "made" : "not";
@@ -58,3 +62,10 @@ my $rk = \$key;
 $seen{$key} = 1;
 $seen{${ $rk } . "2"} = 2;
 say(join(",", map { "$_=$seen{$_}" } sort keys %seen));
+my $c3 = 3;
+my $rc3 = \$c3;
+say($rc3->$*++ x 2, " ", $c3);
+my $l7 = 0;
+my $rl7 = \$l7;
+($rl7->$*) = (7, 8);
+say($l7);
