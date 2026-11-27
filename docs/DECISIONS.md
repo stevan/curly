@@ -2431,3 +2431,34 @@ a string for an object (perl's is its address).
 refused as a class's name and after `isa` until the metaobject
 protocol (step 28) shows them. Rejected: letting a program see them,
 where `$o isa Object` would be true here and false under perl.
+
+**D178. What is done about the review of step 17.** *(Default: the
+builder's, 2026-11-27, on the review's seventeen findings, T422 to
+T437; Stevan's to confirm. `PLAN.md`, step 17, "What the review
+found", has each.)* **A class is a package**: a bare call of the
+program's sub in a class is refused, and `main::NAME(ARGS)` taken in,
+which is what perl needs there (T422); no method, reader, writer or
+`my method` of a name `use v5.42` imports, of a special block's, of a
+class's, or `N` of `C` beside a class `C::N` (T423, T425); every part
+of a class's name begins with a capital letter and is none of the
+packages perl holds by the end of the preamble (T426). **`my method`
+and `->&`**: not of a perl word, `->&` after its `my method` and of
+nothing else, on `$self` alone, no `my method` beside a method of its
+name (T424). **The orders**: `new` is handed places, its keys read at
+the call and each value copied at its field's turn (T427); the walks
+see `new` as every default and `ADJUST` of the class and its parents,
+and of every class below for `__CLASS__->new`, a reader as a read and
+a writer as a store (T428); the invocant is the first argument in
+every shape (T429). **Names in a class**: a field is seen from its
+declaration on; `$self` is no parameter, `my` or field, and no `my`
+or parameter takes a field's name (T430); `SUPER::` is the parent of
+the class written in, resolved as the program compiles, on `$self`
+alone, never `SUPER::new` (T431); a scalar field is a cell from
+construction, `\$self` refused, `ref \$o` is `REF` (T432); in a role,
+no `SUPER::` and T422's rule (T433). **The rest**: attributes
+written hard against their brackets, once each (T434); the
+constructor's faults before any of it runs (T435); a field's
+declaration a statement to D150 (T436); the core gives a program's
+classes no method to dispatch to (finding 16). Rejected: keeping
+"a method is a sub to every rule of step 8" as the whole account of a
+call in a class, which the review showed is WRONG eight ways.

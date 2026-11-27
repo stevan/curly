@@ -6452,8 +6452,9 @@ the line above says, and 17a alone is about 13a's: a new kind of value
 in the runtime, a new kind of call, and every walk over names learning
 what a method call may reach. The questions are Q1 to Q8 below, each
 with a recommendation, and **Stevan took every recommendation**
-(2026-11-27: D170 to D177); **the proposal is reviewed adversarially
-before anything is built** (a large step's rule). 17b and 17c are outlined here and
+(2026-11-27: D170 to D177). **Its adversarial review found eight
+ways to be WRONG** (T422 to T437, "What the review found" at the end,
+answered by D178, the builder's defaults for Stevan to confirm). 17b and 17c are outlined here and
 proposed in full when 17a is built.
 
 **The census**: 124 probes wait for step 17. 104 stop at a method
@@ -6693,6 +6694,82 @@ had, so that perl referees it; or a model of its own (D5). Nothing of
   `->can`, a reader of an array where one value is wanted. Each to be
   rated with the answers.
 - **The census**: as above, about 16 in and 108 by design.
+
+##### What the review found
+
+A reader who did not write the proposal, given it, the decisions and
+perl (`briefs/step17-review/FINDINGS.md`, 17 findings, 80 programs,
+each a row of `briefs/claims17.py`), found **eight ways to be WRONG**
+and nine lesser things: T422 to T437. Every one comes from one fact
+the proposal left out: **a class is a package, and a method a sub of
+it**, so names in a class are looked up there, and `new`, readers and
+writers are code that runs. **D178** has the answers, the builder's
+defaults for Stevan to confirm. They amend 17a as follows.
+
+- **A call of the program's sub in a class** (T422, finding 1): perl
+  looks a bare name up in the class's package and never in `main`, so
+  `helper(1)` dies there. Refused, with a message naming `P::helper`;
+  **`main::helper(1)` is taken in**, which perl runs. The same in a
+  field's default and an `ADJUST`.
+- **Names a method may not have** (T423, T425, finding 2, 4): the
+  thirteen `use v5.42` imports (`true`, `false`, `weaken`, `unweaken`,
+  `is_weak`, `blessed`, `refaddr`, `reftype`, `ceil`, `floor`,
+  `is_tainted`, `trim`, `indexed`), the five special blocks, a class's
+  name, and `N` in `C` when a class `C::N` exists. The same for a
+  reader, a writer and a `my method`.
+- **A class's name** (T426, finding 5): every part begins with a
+  capital letter, and is not one of perl's own (`UNIVERSAL`, `CORE`,
+  `SUPER`, `DB`, `STDIN` and the rest) nor a package perl holds by the
+  end of the preamble with every pragma D16 allows, a list kept in
+  `names.ts` from a run of perl. The C names made from a class's and a
+  method's are injective and prefixed (finding 17).
+- **`my method` and `->&`** (T424, finding 3): a `my method` takes
+  every call of its name below it, a builtin's too, and `->&` calls
+  with no dispatch. So: no `my method` of a perl word or an import;
+  `->&NAME` only below `my method NAME`, only of one, only on
+  `$self`; no `my method` beside a method of its name.
+- **`new`'s order** (T427, finding 6): its keys are read at the call,
+  and each value at its field's turn, after the defaults above it, the
+  parents' included. **Agreed**: `new` is handed places, as a sub is
+  (D73), and copies each value at its turn; D76's walk counts every
+  default above a `:param`, along the chain, as a later part.
+- **What `new`, readers and writers run** (T428, finding 7): the
+  walks see `NAME->new` as a call of every field's default and every
+  `ADJUST` of NAME and its parents, `__CLASS__->new` written in C as
+  that for C and every class below it, a reader as a read of its field
+  and a writer as a store.
+- **The invocant** (T429, finding 8): the call's first argument, in
+  every shape D14 knows, for D14 and every walk.
+- **Names inside a class** (T430, finding 9): a field is seen from its
+  declaration on, as a `my` is; `$self` is not a parameter, a `my` or
+  a field, and no `my` or parameter takes a field's name.
+- **`SUPER::`** (T431, finding 10): the parent of the class the method
+  is written in, resolved as the program compiles; on `$self` alone;
+  not `SUPER::new`; no other `->NAME::NAME`.
+- **References** (T432, finding 11): `\$x` of a scalar field is the
+  same cell each time, made with the instance; `\$self` is refused;
+  `ref \$o` is `REF`. Every place the runtime asks "is this a
+  reference" learns the object's tag, `rt_ref` first, and each has a
+  test.
+- **17b** (T433, finding 12): no `SUPER::` in a role, and T422's rule
+  in a role's block too.
+- **Attributes** (T434, finding 13): hard against their brackets, no
+  blank inside them, never empty, each once.
+- **When the constructor faults** (T435, finding 14): an odd count, an
+  unknown name and a missing one are all found before any of the
+  construction runs, which stops sooner than perl and is allowed.
+- **D150** (T436, finding 15): a field's declaration is a statement.
+- **The core** (finding 16): `Object` gives a program's classes no
+  method to dispatch to; a test calls each name the core might have.
+- **The tests** (T437, finding 17): no test asks perl for the
+  segmentation fault of a `grep` whose method shifts the field it is
+  over; a parent's `ADJUST` that dispatches to the child's method is a
+  `same` test; findings 1 to 5 are refusals from the table, not the
+  model; a reader of a hash field shows D27's order, so its test is a
+  `new` test; construction runs under the stress knob with the
+  instance in a slot; nested construction counts against D68's limit;
+  `use experimental 'class'` stands with the pragmas, before the first
+  statement.
 
 ### 18. Modules
 

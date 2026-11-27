@@ -448,7 +448,11 @@ full when its step is, and its rows join the sections above then.
   printed or made a key is a fault, as any reference is (D176);
   `Object`, `Role` and `Class` are no class's names (D177); and a
   call of a method whose name some class gives a list faults where
-  one value is wanted, whichever class it reaches (D172).
+  one value is wanted, whichever class it reaches (D172). From the
+  review (D178): the program's subs are called from a class as
+  `main::helper(...)`, as perl wants there; a method may not be named
+  `floor`, `trim` or another of `use v5.42`'s imports; a class's name
+  begins with a capital letter in every part.
 - **Regexes** (steps 19, 20). Perl's syntax and matching order, a
   subset, compiled. No `s///e`, no `(?{ })`, no string interpolated
   as a pattern. **How `s///` and a match read with `$_` read-only

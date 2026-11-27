@@ -354,7 +354,11 @@ that names it.
 | `$self->next::method()`, `Name::m($obj)`, `method m;` with no block | Cut | | T417, T411, T419 (17b takes `method m;` in a role) |
 | `$obj->new`, `ref($self)->new` | Cut | | D173: `Name->new`, and `__CLASS__->new` in a method |
 | `$obj->isa(...)`, `->can`, `->DOES`, `->VERSION`; a method of those names or `new`, `DESTROY`, `AUTOLOAD`, `import`, `unimport` | Cut | | D19, T409, T416: `isa`, the operator |
-| An assignment to `$self` | Cut | | D175, T413 |
+| An assignment to `$self`; `$self` as a parameter, a `my` or a field; `\$self` | Cut | | D175, D178, T413, T430, T432 |
+| A bare call of the program's sub in a class, `helper(1)` | Cut | | D178, T422: perl looks it up in the class's package |
+| `main::NAME(ARGS)` in a class | In | 17 | D178, T422 |
+| A method, reader or writer named for an import of `use v5.42`, a special block, or a class | Cut | | D178, T423, T425 |
+| A class's name with a part that does not begin with a capital letter, or that perl already holds | Cut | | D178, T426 |
 | A class named `Object`, `Role` or `Class`, or one after `isa` | Cut | | D177, T415: held back until step 28 |
 | `method name { }` with no signature | In | 17 | D105 |
 | A parent's field read in a subclass; `:isa` of a class the program doesn't define | Cut | |

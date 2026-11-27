@@ -517,8 +517,15 @@ environment's setup script yet** (three minutes), and nothing runs it
 outline; **T400 to T421** found writing it (`briefs/claims17.py`,
 about 150 programs; a row marked `roles` runs under the roles perl,
 and fails without it); the questions Q1 to Q8, each with a
-recommendation, all taken by Stevan (**D170 to D177**), and then an
-adversarial review before anything is built. What it turns
+recommendation, all taken by Stevan (**D170 to D177**). **Its
+adversarial review found eight ways to be WRONG** (T422 to T437,
+`briefs/step17-review/`, 80 programs, each a claims row): all from
+one fact, **a class is a package**, so a bare `helper()` in a method
+is `P::helper`, a method named `floor` is never installed, a `my
+method` hides a builtin, a method of a class's name hides the class,
+`new` copies each value at its field's turn and runs code the walks
+must see, `SUPER::` is the written class's parent. **D178**, the
+builder's defaults on it, is Stevan's to confirm; then 17a is built. What it turns
 on: **a method call reaches every method of its name** (the program
 is one file, Q3); **construction is perl's two passes** (T400);
 **a class's block holds declarations only** (T408, T411).
