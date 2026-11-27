@@ -238,6 +238,18 @@ REASONS = [
     (r"^expected a value, found '(pack|unpack)'$", 'later', 'bytes'),
     (r"^'`' is not in the language yet|^expected a value, found 'qx'$", 'later', 'library'),
     (r"^'state' is not in the language$", 'later', 'D160'),
+    # And the new corpus's (t/census/import_more.py): perl's pods and the rest.
+    (r"^a backslash in qw\(", 'design', 'D121'),
+    (r"^a heredoc's terminator is a word|^a blank after '<<': a heredoc's terminator", 'design', 'D123'),
+    (r"^'utf8' is not in the language; a call of a sub", 'design', 'D19'),
+    (r"^reverse of nothing", 'design', 'D85'),
+    (r"^'@' in a double-quoted string begins an array, and no name is hard against it", 'design', 'D92'),
+    (r"in a string: perl warns that it is ambiguous", 'design', 'D15'),
+    (r"runs into '.*': perl reads a version only before a blank", 'design', 'D38'),
+    (r"^after '\$' comes a name", 'later', '21', None, r"^\$(\?|\^V)"),
+    (r"^after '\$' comes a name", 'later', '19', None, r"^\$\^N"),
+    (r"^\\N\{\.\.\.\} is not an escape", 'later', '16d'),
+    (r"^expected a value, found 'blessed'$", 'later', '17'),
 ]
 REASONS = [(re.compile(row[0]), row[1], row[2],
             re.compile(row[3]) if len(row) > 3 and row[3] else None,
