@@ -2630,3 +2630,31 @@ runs: a call through a reference, a `return g()`); faulting every
 list-shaped value given to a call for nothing (`return @list;` called
 as a statement is common, and perl does nothing with it); faulting on
 the sort too (agreeing is the generated list without the sort).
+
+**D246. An index or key of a chain may not change what holds the
+container before it.** *(The builder's recommendation, under Stevan's
+standing instruction of 2026-11-27; his to overturn. Found by the
+differential fuzzer, `briefs/fuzz/`, T602.)* perl works a chain out
+left to right: the variable, then each container, then the index or
+key after it, holding no count on the container while it does. An
+index that assigns the variable the chain starts from (`$v->[f()]`
+with `f` storing to `$v`, or `$v->[($v = [7, 8]) ? 0 : 1]`), that
+assigns the array or hash whose element it starts from, or that stores
+through a reference to what holds a container past the first, can free
+the container perl has taken: perl then reads undef from it, with a
+warning, or dies (`Modification of a read-only value attempted`, `Not
+a HASH reference`), or stores into it and loses the store, where the
+language, whose collector keeps what it took, read or stored the old
+container, or vivified the new one. Refused, by the checker, for every
+chain, read or stored, in `exists` and `delete` and a list assignment
+too: the index of hop k may not change the variable or the array or
+hash the chain starts from, nor, from an element or past the first
+hop, what references reach (D109). Rejected: agreeing with perl (the
+container freed, a read undef and a store a death, depends on whether
+anything else holds it, which perl counts and the language does not);
+faulting as it runs (the language would have to count what holds a
+container); refusing only where the container is certainly freed
+(when another reference holds it perl agrees with the language, but
+whether one does is known only as the program runs). Stricter than
+perl where something else holds the container, and where an index
+stores through some reference that does not reach it.

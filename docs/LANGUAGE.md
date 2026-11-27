@@ -2552,6 +2552,17 @@ chain also changes the variable it starts from, since a hop that is
 undef is made in it: `my @l = ($r, ($r->[0] = 1));` is refused. Take
 the value into a `my` first.
 
+**An index or a key in a chain may not change what holds the container
+it is an index of**: `$v->{f()}` is refused when `f`, or anything it
+calls, assigns `$v`; `$a[0][f()]` when it changes `@a`; and
+`$r->[0][f()]`, or a chain that starts from an element, when it stores
+through any reference. perl takes each container before it works out
+the index after it, and keeps no hold on it, so an index that lets go
+of it leaves perl reading undef from a container that is gone, or dying
+with `Modification of a read-only value attempted`, where the language
+would read or store what it took (D246). Work the index out first, into
+a `my`.
+
 In a string: code, `"@{[ ... ]}"`, `"${\ ... }"`; a dereference without
 braces, `"@$r"`, `"$$r[0]"`; anything but a scalar variable and its
 subscripts in the braces; a slice of a hash through a reference,

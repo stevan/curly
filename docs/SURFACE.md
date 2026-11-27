@@ -260,6 +260,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | Reading the scalar through undef, `defined $$r` and a loop's list too | Fault | 13c | D107: perl makes `$r` in silence there (T350), and dies everywhere else a read stands |
 | `reftype`, `blessed`, `refaddr` | In | 17 | Imported by `use v5.42`; `refaddr`'s number is unspecified |
 | A later part changing what a reference reaches, read through by an earlier part | Cut | | D109, D114 (T235, T236, T249): refused, in every walk over names |
+| An index or key of a chain changing what holds the container before it, `$v->{f()}` with `f` assigning `$v` | Cut | | D246 (T602): perl reads or stores a freed container; refused |
 | `weaken`, `unweaken`, `is_weak`, `is_tainted` | Cut | | D26; all imported by `use v5.42`, so the names are still taken (D21) |
 | Typeglobs, `*name`, filehandles as barewords | Cut | | Except `STDIN`, `STDOUT`, `STDERR` |
 | `=>` quoting the word on its left, `q`, `y`, `s`, `if` and a sub's name included | In | 12a | T214. The word and its `=>` on one line: across a line, Cut (D102, T224) |

@@ -15,6 +15,14 @@ FUZZ = [
     c('T600-repeat', 'TRAPS; D245', 'sub f() { return (sort { $a <=> $b } (2, 1)) x 2; } f(); say "end";', out='end\n', err=r'Use of uninitialized value in repeat \(x\)'),
     c('T600-reverse', 'TRAPS; D245', 'my @a = (1, undef); sub f() { return reverse(@a); } f(); say "end";', out='end\n', err='Use of uninitialized value'),
     c('T600-reverse-list', 'TRAPS; D245', 'my @a = (1, 2); sub f() { return reverse(@a); } my @b = f(); say "@b";', out='2 1\n'),
+    # ---- T602: an index that frees the container it indexes
+    c('T602', 'TRAPS; D246', 'my $v; sub f() { $v = undef; return "k" } $v->{f()} = 5; say "end";', exit=255, err='Modification of a read-only value attempted'),
+    c('T602-read', 'TRAPS; D246', 'my $v = [1, 2]; sub f() { $v = [7, 8]; return 0 } say $v->[f()];', out='\n', err='Use of uninitialized value in say'),
+    c('T602-direct', 'TRAPS; D246', 'my $v = [1, 2]; say $v->[($v = [7, 8]) ? 0 : 1];', out='\n', err='Use of uninitialized value in say'),
+    c('T602-element', 'TRAPS; D246', 'my @a = ([1]); sub f() { @a = ([5]); return 0 } say $a[0][f()];', out='\n', err='Use of uninitialized value in say'),
+    c('T602-held', 'TRAPS; D246', 'my %h; my $r = \\%h; sub f() { $r = {}; return "k" } $r->{f()} = 1; say join(",", keys %h);', out='k\n'),
+    c('T602-second-hop', 'TRAPS; D246', 'my $r = [[1]]; sub f() { $r->[0] = [5]; return 0 } say $r->[0][f()];', out='\n', err='Use of uninitialized value in say'),
+    c('T602-named', 'TRAPS; D246', 'my @a = (1, 2); sub f() { @a = (5, 6); return 0 } say $a[f()];', out='5\n'),
     # ---- T601: a sort given back to a call for nothing is skipped
     c('T601', 'TRAPS; D245', 'sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } f(); say "end";', out='end\n'),
     c('T601-list-worked-out', 'TRAPS; D245', 'sub p($x) { say "p$x"; $x } sub f() { return sort { say "cmp"; $a <=> $b } (p(2), p(1)); } f(); say "end";', out='p2\np1\nend\n'),
