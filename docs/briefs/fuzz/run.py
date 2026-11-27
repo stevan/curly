@@ -40,6 +40,8 @@ PERL = os.environ.get('CURLY_PERL', 'perl')
 OURS_LIMIT = 20
 PERL_LIMIT = 5
 SEEDS = ['1', '2']
+# perl's warning at 100 calls deep, which the language does not give (D67)
+DEEP = re.compile(rb'^Deep recursion on (anonymous )?subroutine.*\n', re.M)
 ADDR = re.compile(rb'(?<=[A-Z]\()0x[0-9a-f]+(?=\))')
 
 
@@ -146,7 +148,7 @@ def one(seed, w, tally, out, knobs, rt):
         perl = [run([PERL, path], {'PATH': os.environ.get('PATH', ''), 'PERL_HASH_SEED': s}, PERL_LIMIT) for s in SEEDS]
         # perl prints an address where the language faults (D112): the
         # address moves from run to run, and the fault comes first anyway
-        perl = [p if p in (None, 'runaway') else (p[0], ADDR.sub(b'0xADDR', p[1]), ADDR.sub(b'0xADDR', p[2])) for p in perl]
+        perl = [p if p in (None, 'runaway') else (p[0], ADDR.sub(b'0xADDR', p[1]), DEEP.sub(b'', ADDR.sub(b'0xADDR', p[2]))) for p in perl]
         if any(p not in (None, 'runaway') and b'Out of memory' in p[2] for p in perl):
             tally['verdicts']['UNJUDGED'] += 1
             tally['unjudged']['perl runs out of memory'] += 1

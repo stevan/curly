@@ -553,14 +553,21 @@ class Gen:
         self.topics.append(1)
         self.in_block_expr += 1
         try:
+            if self.p(0.2):
+                # a block that prints: what perl runs, and when, shows
+                return f'print("b", (ref($_) ? "r" : $_ // "u"), " "); ' + self.blockexpr_(d, want)
+            return self.blockexpr_(d, want)
+        finally:
+            self.topics.pop()
+            self.in_block_expr -= 1
+
+    def blockexpr_(self, d, want):
+        if True:
             if want == 'num' and self.p(0.4):
                 return self.br(f'$_ {self.ch(["+", "*", "-", "."])} {self.expr(min(d, 1), "num")}')
             if want == 'bool' and self.p(0.4):
                 return self.br(f'$_ {self.ch([">", "<", "==", "ne", "eq"])} {self.expr(min(d, 1), "any")}')
             return self.expr(min(d, 2), want)
-        finally:
-            self.topics.pop()
-            self.in_block_expr -= 1
 
     def listexpr(self, d):
         """A list."""
@@ -572,7 +579,9 @@ class Gen:
             return self.ch(a)
         if k < 0.42:
             lo = self.ch(['0', '1', '-2', '3'])
-            hi = self.ch(['3', '5', '0', '2'] + [f'$#{x[1:]}' for x in a])
+            hi = self.ch(['3', '5', '0', '2'] + [f'$#{x[1:]}' for x in a] + [self.expr(0, 'num')])
+            if self.p(0.1):
+                lo = self.call(0, 'num')
             return f'({lo} .. {hi})'
         if k < 0.5 and a:
             x = self.ch(a)
@@ -620,6 +629,8 @@ class Gen:
                             f'{self.call(1, "num")} <=> 1 || $a cmp $b'])
         finally:
             self.sortvars = False
+        if self.p(0.2):
+            blk_ = 'print("c", ($a // "u"), ($b // "u"), " "); ' + blk_
         return f'(sort {{ {blk_} }} {inner})'
 
     def anonsub(self, d):

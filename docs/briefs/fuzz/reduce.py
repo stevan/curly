@@ -32,7 +32,7 @@ def verdict(text, rt, knobs):
     perl = [run.run([run.PERL, path], {'PATH': os.environ.get('PATH', ''), 'PERL_HASH_SEED': s}, run.PERL_LIMIT) for s in run.SEEDS]
     if 'runaway' in perl or ours == 'runaway':
         return 'UNJUDGED'
-    perl = [p if p is None else (p[0], run.ADDR.sub(b'0xADDR', p[1]), run.ADDR.sub(b'0xADDR', p[2])) for p in perl]
+    perl = [p if p is None else (p[0], run.ADDR.sub(b'0xADDR', p[1]), run.DEEP.sub(b'', run.ADDR.sub(b'0xADDR', p[2]))) for p in perl]
     v = run.judge(perl, ours)[0]
     if v == 'WRONG' and ours is not None and ours[0] == 2:
         v = 'CRASH'
