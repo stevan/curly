@@ -1172,5 +1172,16 @@ CLAIMS += [
     c('15-defined-or', 'PLAN 15', 'sub boom() { die "x\\n" } my %i; try { $i{k} //= boom() } catch ($e) { } my @e; try { $e[2] ||= boom() } catch ($e) { } say exists $i{k} ? "made" : "not", scalar(@e);', out='made3\n'),
 ]
 
+# ---- step 17, what perl 5.42's class has of roles, the bootstrap and
+# representations (PLAN 17, "Roles, from the start")
+CLAIMS += [
+    c('17-role', 'PLAN 17', CLASS + 'role Eq { }', compiles=False, err='syntax error'),
+    c('17-does', 'PLAN 17', CLASS + 'class P :does(Eq) { }', compiles=False, err='Unrecognized class attribute does'),
+    c('17-reftype', 'PLAN 17', CLASS + 'class P { field $x = 1; field @l; } say builtin::reftype(P->new);', out='OBJECT\n'),
+    c('17-not-hash', 'PLAN 17', CLASS + 'class P { field $x = 1; } my $o = P->new; my $v = $o->{x};', exit=255, err=r'^Not a HASH reference at '),
+    c('17-bless', 'PLAN 17', CLASS + 'class P { } my $o = P->new; bless $o, "Q";', exit=255, err=r"^Can't bless an object reference at "),
+    c('17-new', 'PLAN 17', CLASS + 'class P { sub new { return "mine" } } say P->new;', out='mine\n', err=r'Subroutine new redefined'),
+]
+
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

@@ -6012,8 +6012,8 @@ a key part of the object system, and not left for the metaobject
 protocol, so this step's proposal takes them up beside `class`
 instead of leaving them to step 27. Nothing about them is decided;
 this is a note of where the question is to be raised, not an answer
-to it. Read two of his repositories first, both public (a session
-clones them with `add_repo`):
+to it. Read four of Stevan's repositories first, all public (a
+session clones them with `add_repo`):
 
 - `stevan/p5-roles-algebra`: `ROLE_ALGEBRA.md`, an algebra of role
   composition for `feature 'class'` (every class and role built from
@@ -6025,6 +6025,63 @@ clones them with `add_repo`):
 - `stevan/p5-core-role-tests`: programs written for roles in core,
   `role Name { }` and `class Name :does(...)`, with the roles they use
   in `lib/`.
+- `stevan/p5-MOP` (CPAN's `MOP`, added 2026-11-27): a metaobject
+  protocol for Perl 5. `MOP::Role` is a package seen as a role: its
+  name, version and authority, the roles it does, its methods,
+  required methods and slots, each to add, get, delete and alias;
+  `MOP::Class` does `MOP::Role` and adds superclasses and the `mro`;
+  `MOP::Method`, `MOP::Slot` with its initializer, and `MOP::Util`'s
+  `compose_roles` and `inherit_slots`. Tests in `t/`, by role
+  (composition, method and slot conflicts), class, method and slot.
+- `stevan/p5-UNIVERSAL-Object` (CPAN's `UNIVERSAL::Object`, added
+  2026-11-27): what Stevan calls the *instance construction protocol*.
+  `new` hands its arguments to `BUILDARGS`, which makes them one hash
+  of names and values; `BLESS` calls `CREATE`, which takes an empty
+  instance from `REPR` and fills each slot `SLOTS` names, from the
+  arguments or the slot's initializer, and blesses it; then every
+  `BUILD` runs, the root class's first; `DEMOLISH` the other way at
+  destruction. `UNIVERSAL::Object::Immutable` makes the instance
+  read-only. Its tests build instances on a scalar, an array, a
+  reference, a code reference and a regex as well as a hash
+  (`t/030-instance/`, `t/040-immutable/010-repr-types.t`).
+
+**What Stevan wants of the last two** (2026-11-27; directions for the
+proposal, not decisions). Both are Perl-specific implementations:
+**adapt what they do, don't copy how.** Of `p5-MOP`, most of the API
+is usable here, with adaptations and new names. **A role is part of
+the structure of the object system itself**: `class Class` does `role
+Role`, `role Role` is a subclass of `class Object`, and `class Class`
+is a subclass of `class Object`. What `p5-MOP` leaves implicit, since
+it takes a package's stash to be the instance of its class, is the
+last piece of the bootstrap, **`class Object` an instance of `class
+Class`**; here it is made explicit. Of `p5-UNIVERSAL-Object`: **the
+representation types are a feature to support**, an object whose
+instance is a scalar, an array, a hash and so on, with a protocol a
+class can hook into at each part of an object's construction.
+
+**What the proposal has to answer of them**, found reading them
+beside perl 5.42 (run 2026-11-27):
+
+- perl 5.42's `class` has neither. Its object is of the reftype
+  `OBJECT` whatever its fields (`$o->{x}` dies `Not a HASH
+  reference`), `bless` of one dies `Can't bless an object
+  reference`, and nothing between `new` and `ADJUST` chooses or makes
+  the instance; a `sub new` in a class replaces the constructor with
+  the warning `Subroutine new redefined`, which D15 makes a fault. So
+  representation types and the hooks are, like roles, an exception to
+  D2 (D5) unless they erase to a program perl runs, and the proposal
+  says which, and what referees them.
+- A class that is an object while the program runs, `class Object`
+  an instance of `class Class`, is the metaobject protocol, which D5
+  put at step 28; the runtime has no class at run time today, and D19
+  has nothing reach the symbol table. Taking the bootstrap here moves
+  part of step 28 forward, and the proposal says which part, and what
+  of it is known as the program compiles and what the runtime holds.
+- `DEMOLISH` runs as an object is destroyed: D19 cut `DESTROY`, and
+  the collector (D26) frees at no time a program can see.
+- The Size line above, "large", was written before roles, the
+  bootstrap and representations were in this step; the proposal says
+  whether it is still one step, and how it is cut.
 
 **perl 5.42 has neither** (run 2026-11-25: `role Eq {` is a syntax
 error, and `:does(...)` is `Unrecognized class attribute does`), so
@@ -6114,8 +6171,10 @@ To be proposed; exceptions to D2. One option to weigh: roles that
 erase by being flattened into the classes that use them, which is
 what composing a role means, and which would keep perl as their
 oracle. **Roles are to be taken up at step 17 instead** (Stevan,
-2026-11-25: see there), so what is left here, if anything, is what
-step 17 doesn't take.
+2026-11-25: see there), and with them the bootstrap of the metaobject
+protocol, `class Object` an instance of `class Class` (Stevan,
+2026-11-27), so what is left here, if anything, is what step 17
+doesn't take.
 
 ### 29. Concurrency
 

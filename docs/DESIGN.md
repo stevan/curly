@@ -327,9 +327,12 @@ step, roughly in the order it will matter:
     step 21).
 13. **The syntax of a type** (step 25); **roles**, as part of the
     object system and whether they erase by flattening into classes,
-    which would keep perl as their oracle (step 17, which reads
-    `stevan/p5-roles-algebra` and `stevan/p5-core-role-tests` first;
-    step 27 before); the shape of concurrency, and D13 revisited with it
+    which would keep perl as their oracle, and with them the bootstrap
+    (`class Object` an instance of `class Class`) and instances of
+    other representations than perl's (step 17, which reads
+    `stevan/p5-roles-algebra`, `stevan/p5-core-role-tests`,
+    `stevan/p5-MOP` and `stevan/p5-UNIVERSAL-Object` first; step 27
+    before); the shape of concurrency, and D13 revisited with it
     (step 29).
 14. **The extension of a file that carries type annotations** (step
     25). A program is a `.pl` file until then.

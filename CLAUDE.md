@@ -470,9 +470,15 @@ operand: 41,594 operations, perl having more than one answer for
 on the Mac: `**` with a fractional operand is the C library's `pow`.
 **Roles come up at step 17, not 27**: Stevan wants them a key part of
 the object system, and step 17's proposal takes them up; `PLAN.md`,
-step 17, names the two repositories to read first
-(`stevan/p5-roles-algebra`, `stevan/p5-core-role-tests`). Nothing
-about them is decided.
+step 17, names the four repositories to read first
+(`stevan/p5-roles-algebra`, `stevan/p5-core-role-tests`, and since
+2026-11-27 `stevan/p5-MOP` and `stevan/p5-UNIVERSAL-Object`), and
+what Stevan wants of the last two: `class Class` does `role Role`,
+both subclasses of `class Object`, which is an instance of `class
+Class`; instances of more representations than a hash, with a
+construction protocol a class can hook; each adapted, not copied.
+Nothing about them is decided, and perl 5.42's `class` has none of
+it.
 Not agreed: what the decisions leave to steps, listed at the end of
 [`docs/DESIGN.md`](docs/DESIGN.md).
 
