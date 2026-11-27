@@ -37,6 +37,9 @@ import re
 import sys
 
 ENTRY = re.compile(r'^\*\*D(\d+)\.')
+# A head over several entries, `**D106 to D113. Title.** *(attribution)*`,
+# the entries following it at once: what it says is said of each.
+GROUP = re.compile(r'^\*\*D(\d+) (?:to|and) D(\d+)\.')
 CODE = re.compile(r'(`+)(.+?)\1', re.S)
 # A range, D8–D10 or D8-D10, or D8 to D10 when it's short: "D8 to D167"
 # is a chain of two, not 160 mentions.
@@ -127,6 +130,14 @@ def tests(text):
             a = int(a)
             out.update(range(a, int(b) + 1) if b and int(b) > a else [a])
     return sorted(out)
+
+def group_head(head, person):
+    """A group's head read as an entry's is: its range, title,
+    attribution and what follows."""
+    m = GROUP.match(head)
+    lo, hi = int(m.group(1)), int(m.group(2))
+    _, title, attr, rest = attribution(f'**D{lo}.' + head[m.end():], person)
+    return {'first': lo, 'last': hi, 'title': title, 'attribution': attr, 'text': rest}
 
 def attribution(head, person):
     """Split `**Dn. Title.** (note) *(attribution)* body` into its parts.
@@ -374,25 +385,48 @@ def doc_refs(docs, texts):
 def extract(text):
     lines = text.split('\n')
     plain = sum(1 for l in lines if l.startswith('**D'))
+    heads = 0
     pm = re.search(r'\*\*User\*\* means (.+?) decided', text)
     person = pm.group(1) if pm and not pm.group(1).startswith('[') else None
 
     preamble, sections, entries = [], [], []
-    cur = None          # lines of the entry being read
+    cur = None          # lines of the entry, or of the group's head, being read
+    group = None        # the group the entries being read are in
     def close():
         nonlocal cur
         if cur is not None:
-            entries[-1]['_raw'] = '\n'.join(cur).strip()
+            if entries and entries[-1].get('_raw') is None:
+                entries[-1]['_raw'] = '\n'.join(cur).strip()
+            else:
+                group['_raw'] = '\n'.join(cur).strip()
             cur = None
+    def end_group():
+        nonlocal group
+        if group is not None and not group['_members']:
+            sys.exit(f'extract: no entries follow the head of D{group["first"]} to D{group["last"]}')
+        group = None
     for line in lines:
         if line.startswith('## '):
             close()
+            end_group()
             sections.append({'title': line[3:].strip(), 'intro': [], 'entries': []})
+        elif GROUP.match(line):
+            close()
+            end_group()
+            heads += 1
+            m = GROUP.match(line)
+            group = {'first': int(m.group(1)), 'last': int(m.group(2)), '_members': []}
+            cur = [line]
         elif ENTRY.match(line):
             close()
+            n = int(ENTRY.match(line).group(1))
+            if group is not None and not group['first'] <= n <= group['last']:
+                end_group()
             if not sections:
                 sections.append({'title': '', 'intro': [], 'entries': []})
-            entries.append({'section': len(sections) - 1})
+            entries.append({'section': len(sections) - 1, '_raw': None, '_group': group})
+            if group is not None:
+                group['_members'].append(n)
             cur = [line]
         elif cur is not None:
             cur.append(line)
@@ -401,9 +435,10 @@ def extract(text):
         elif not line.startswith('# '):
             preamble.append(line)
     close()
+    end_group()
 
-    if len(entries) != plain:
-        sys.exit(f'extract: parsed {len(entries)} entries, but {plain} lines start **D')
+    if len(entries) + heads != plain:
+        sys.exit(f'extract: parsed {len(entries)} entries and {heads} heads of groups, but {plain} lines start **D')
 
     out, numbers = [], set()
     for order, e in enumerate(entries):
@@ -411,6 +446,13 @@ def extract(text):
         if n in numbers:
             sys.exit(f'extract: D{n} appears twice')
         numbers.add(n)
+        grp = None
+        if e['_group'] is not None:
+            g = group_head(e['_group']['_raw'], person)
+            grp = {'first': g['first'], 'last': g['last'], 'title': g['title'], 'text': g['text']}
+            # An entry with no attribution of its own has its group's.
+            if attr['class'] == 'none':
+                attr = dict(g['attribution'], group=True)
         sections[e['section']]['entries'].append(n)
         whole = title + '\n' + attr['text'] + '\n' + body
         retires, retired_by = retirements(n, (title, attr['text'], body))
@@ -424,6 +466,7 @@ def extract(text):
             'rejected': rejected(body),
             'tests': tests(whole),
             'first_seen': None, 'edits': None,
+            **({'group': grp} if grp else {}),
         })
 
     by_n = {e['n']: e for e in out}
