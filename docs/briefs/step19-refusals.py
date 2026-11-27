@@ -96,6 +96,10 @@ r('property', "perl runs it.", S + 'say $s =~ /\\p{L}/ ? 1 : 0;', '\\p', '\\p{..
 r('keep', "perl runs it.", S + 'say $s =~ /a\\Kb/ ? 1 : 0;', '\\K', LATER.format('\\K in a pattern'))
 r('named-backreference', "perl runs it.", S + 'say $s =~ /(a)\\g1/ ? 1 : 0;', '\\g', '\\g, a backreference by a number in braces or by a name, is not in the language yet: write \\1 to \\9 (D226)')
 
+# ---- step 20's, refused as the word (found by the census: son-audit/f/b13.pl)
+r('transliteration', "perl runs it: 'bb'.", S + '$s =~ tr/a/b/;', 'tr/', 'tr/// is not in the language yet (step 20)')
+r('substitution-alone', "perl runs it on $_.", 'for my $x ("a") {\n    my @l = map { s/a/b/r } ($x);\n}', 's/', 's/// is not in the language yet (step 20)')
+
 
 def write(first, table=None):
     n = first

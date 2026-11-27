@@ -1,0 +1,63 @@
+# python3 docs/briefs/step19-review/patterns.py 10000 19, 2026-11-27, after D238 (perl 5.42.0)
+10000 cases, seed 19: 4824 taken, 5176 refused
+  refused   1788  a quantifier on what can match the empty string
+  refused    818  a ? after {2}
+  refused    587  \1 inside the group it names
+  refused    543  a group that captures inside a repeated group
+  refused    531  a character past ASCII in a pattern under /i
+  refused    501  a '$' in a pattern that is not at its end, or before ')' or '|'
+  refused    117  \2 inside the group it names
+  refused     95  a range with one of perl's classes at an end
+  refused     36  '--' first in a class
+  refused     33  a '{' in a pattern that is no quantifier's
+  refused     27  \3 inside the group it names
+  refused     24  a quantifier with nothing before it
+  refused     22  a quantifier after a quantifier
+  refused     12  a backreference of two digits is octal to perl or another group
+  refused      5  a range backwards, c-
+
+  refused      3  a range backwards, é--
+  refused      3  a range backwards, c-a
+  refused      2  a range backwards, é-
+
+  refused      2  a range backwards, c--
+  refused      2  a range backwards, é-a
+  refused      2  a range backwards, a- 
+  refused      2  a range backwards, a-_
+  refused      2  a range backwards, é-_
+  refused      2  a range backwards, b-a
+  refused      2  \4 inside the group it names
+  refused      1  a range backwards, a-
+
+  refused      1  \6 inside the group it names
+  refused      1  a range backwards, é- 
+  refused      1  a range backwards, b-_
+  refused      1  a range backwards, b- 
+  refused      1  \5 inside the group it names
+  refused      1  a range backwards, c-b
+  refused      1  a range backwards, b--
+  refused      1  a range backwards, é-c
+  refused      1  a range backwards, a--
+  refused      1  a range backwards, _- 
+  refused      1  a range backwards, c- 
+  refused      1  a range backwards, _-
+
+  refused      1  a range backwards, é-b
+  refused      1  a range backwards, b-
+
+4824 cases run under both: 0 differ
+
+# The run before it, seed 3, 5000 cases, before D238: the two differences it found, T556 and T557
+5000 cases, seed 3: 2440 taken, 2560 refused
+
+
+DIFFERS ('(?:\\s.)??|[^--\\s]', 'ix', False, '-b')
+  perl  (0, '227L:1.\n227S:10\n', 'False [] range "--\\s" in regex; marked by <-- HERE in m/(?:\\s.)??|[^--\\s <-- HERE ]/ at /tmp/one0_227.pl line 4.\nFalse [] range "--\\s" in regex; marked by <-- HERE in m/(?:\\s.)??|[^--\\s <-- HERE ]/ at /tmp/one0_227.pl line 5.\nFalse [] range "--\\s" in regex; marked by <-- HERE in m/(?:\\s.)??|[^--\\s <-- HERE ]/ at /tmp/one0_227.pl line 5.\n')
+  curly (0, '227L:1.\n227S:10\n', '')
+DIFFERS (' {1,3}?[^\\w_\\s]|[^--\\n]', 'm', True, '-c1 b')
+  perl  (25, '', 'Invalid [] range "--\\n" in regex; marked by <-- HERE in m/ {1,3}?[^\\w_\\s]|[^--\\n <-- HERE ]/ at /tmp/one1_100.pl line 4.\n')
+  curly (0, '100L:c|1| |b.\n', '')
+DIFFERS ('(?:.{0,2}(1_.))[-- ]', 'is', False, 'b1')
+  perl  (25, '', 'Invalid [] range "-- " in regex; marked by <-- HERE in m/(?:.{0,2}(1_.))[--  <-- HERE ]/ at /tmp/one4_125.pl line 4.\n')
+  curly (1, '', "/tmp/one4_125.pl:4:68: '--' first in a class: perl reads a range from '-' there; write \\-\n")
+2440 cases run under both: 3 differ

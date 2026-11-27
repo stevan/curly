@@ -1,4 +1,4 @@
-# t/models/re.py 5103: the flags i, m, s and x (step 19)
+# t/models/rematch.py 5103: the flags i, m, s and x (step 19)
 use v5.42;
 use utf8;
 use open ":std", ":encoding(UTF-8)";

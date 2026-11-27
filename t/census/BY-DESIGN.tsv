@@ -15,6 +15,7 @@ pvm/adjacency-02_variables-01.pl	D114	a word alone in ${ ... } is the name of a 
 pvm/adjacency-05_scoping-01.pl	D16	'use feature' is not in the language
 pvm/adjacency-06_control-01.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 pvm/adjacency-08_references-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+pvm/adjacency-09_regex-01.pl	D227	m!...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}
 pvm/adjacency-12_packages-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/adjacency-13_opaque-01.pl	D17	'format' is not in the language
 pvm/aggregate-operators-08.pl	D17	expected a value, found 'each'
@@ -64,6 +65,11 @@ pvm/packages-02.pl	D19	'package' is not in the language
 pvm/packages-03.pl	D19	'package' is not in the language
 pvm/quote-like-terms-05.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
 pvm/range-03.pl	D80	a range where one value is wanted: '..' is another operator to perl there
+pvm/regex-delimiters-01.pl	D227	m!...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}
+pvm/regex-delimiters-02.pl	D227	m#...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}
+pvm/regex-matching-05.pl	D229	a '$' in a pattern that is not at its end, or before ')' or '|': perl may take it for a variable (D229, T550); write \$ for the character
+pvm/regex-matching-07.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pvm/regex-pattern-positions-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/strings-03.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/subroutines-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/subroutines-04.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -162,6 +168,7 @@ son-audit/a/aun113.pl	D17	$e is its loop's variable, and read-only: in perl, cha
 son-audit/a/aun115.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/a/aun116.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/a/aun12.pl	D19	'our' is not in the language
+son-audit/a/aun120.pl	D233	expected a value, found 'pos'
 son-audit/a/aun121.pl	D76	a later part of this list can change $s, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/a/aun122.pl	D76	a later part of this list can change $i, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/a/aun123.pl	D76	a later part of print's list can change $i, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -191,6 +198,7 @@ son-audit/a/aun15.pl	D19	'our' is not in the language
 son-audit/a/aun154.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/a/aun156.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/a/aun16.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/a/aun161.pl	D21	a sub may not be called AUTOLOAD: perl has a meaning of its own for the word
 son-audit/a/aun167.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aun16b.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/a/aun16d.pl	D21	a sub may not be called DESTROY: perl has a meaning of its own for the word
@@ -367,12 +375,17 @@ son-audit/f/a82.pl	D108	$$ before a name is cut (D108): an element through a ref
 son-audit/f/a83.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/a84.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/a85.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/f/b16.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/b17.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/b18.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/b19.pl	D80	a match under /g where one value is wanted: perl goes on from where the last one left off (pos), which is cut (D233, T543); take the matches as a list
 son-audit/f/b30.pl	D13	expected a value, found 'eval'
 son-audit/f/b31.pl	D13	expected a value, found 'eval'
 son-audit/f/b32.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/b33.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/b35.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/b39.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+son-audit/f/b40.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/f/b41.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/b42.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/f/b43.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
@@ -693,6 +706,7 @@ son-audit/f/m06.pl	D17	'chop' is not in the language
 son-audit/f/m07.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
 son-audit/f/m09.pl	D80	splice where one value is wanted: perl gives the last element it removed; assign it to an array
 son-audit/f/m10.pl	D80	reverse where one value is wanted: perl joins its arguments and reverses the characters there, which is another function
+son-audit/f/m22.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/f/m26.pl	D56	my $u here: a my begins a statement or a for, or stands in the test of an if or a while, where it is always reached
 son-audit/f/m27.pl	D80	reverse where one value is wanted: perl joins its arguments and reverses the characters there, which is another function
 son-audit/f/m30.pl	D17	expected a value, found 'chop'
@@ -755,7 +769,29 @@ son-audit/f/p09.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/f/p10.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/p11.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/p12.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/q01.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q02.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q03.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q04.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q05.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q06.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q07.pl	D228	$2, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q08.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q09.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q10.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q11.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q13.pl	D228	$`, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q14.pl	D233	expected a value, found 'pos'
+son-audit/f/q15.pl	D233	expected a value, found 'pos'
+son-audit/f/q16.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q17.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q18.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/q19.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q20.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q21.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/f/q22.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/q23.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/q24.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/s03.pl	D19	'our' is not in the language
 son-audit/f/s04.pl	D19	'our' is not in the language
 son-audit/f/s05.pl	D19	'our' is not in the language
@@ -982,7 +1018,10 @@ son-audit/p/ef26.pl	D19	'our' is not in the language
 son-audit/p/ef27.pl	D19	'our' is not in the language
 son-audit/p/ef28.pl	D19	'our' is not in the language
 son-audit/p/ef30.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/ef31.pl	D228	$0, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
 son-audit/p/ef6.pl	D17	expected a value, found 'each'
+son-audit/p/ef7.pl	D233	expected a value, found 'pos'
+son-audit/p/ef8.pl	D233	expected a value, found 'pos'
 son-audit/p/ev1.pl	D13	'eval' is not in the language
 son-audit/p/ev10.pl	D16	'use feature' is not in the language
 son-audit/p/ev11.pl	D13	expected a value, found 'eval'
@@ -1008,6 +1047,8 @@ son-audit/p/hs3.pl	D19	'our' is not in the language
 son-audit/p/hs7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/hs8.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/hs9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/im12.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/p/im13.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
 son-audit/p/im15.pl	D87	sort takes no brackets of its own: sort LIST, or sort { ... } LIST
 son-audit/p/im17.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/p/im19.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
@@ -1314,8 +1355,11 @@ son-audit/r/i17.pl	D19	'our' is not in the language
 son-audit/r/i18.pl	D19	'our' is not in the language
 son-audit/r/i19.pl	D19	'our' is not in the language
 son-audit/r/i20.pl	D19	'our' is not in the language
+son-audit/r/j01.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/r/j02.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/j05.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/r/j09.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
+son-audit/r/j11.pl	D80	a match under /g where one value is wanted: perl goes on from where the last one left off (pos), which is cut (D233, T543); take the matches as a list
 son-audit/r/j26.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/r/j27.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/r/j28.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
@@ -1867,6 +1911,7 @@ son-audit/y/yj45.pl	D19	'our' is not in the language
 son-audit/y/yj46.pl	D19	'our' is not in the language
 son-audit/y/yj47.pl	D19	'our' is not in the language
 son-audit/y/yj51.pl	D19	'local' is not in the language
+son-audit/y/yj58.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/y/yj59.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yj61.pl	D19	'package' is not in the language
 son-audit/y/yj62.pl	D13	'BEGIN' is not in the language
@@ -1900,6 +1945,26 @@ son-audit/y/yk21.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/y/yk22.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk23.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk24.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yl01.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl02.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl03.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl04.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl05.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl06.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl07.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+son-audit/y/yl08.pl	D233	expected a value, found 'pos'
+son-audit/y/yl10.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/y/yl11.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl19.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl20.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/y/yl21.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/y/yl29.pl	D228	$&, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl30.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl37.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl41.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl43.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl44.pl	D228	$&, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yl45.pl	D234	a pattern alone matches $_: write $_ =~ /.../, or the variable it is for (D234, D85)
 son-audit/y/ym02.pl	D87	sort takes no brackets of its own: sort LIST, or sort { ... } LIST
 son-audit/y/ym14.pl	D91	in a string an index is a whole number or a scalar variable (D91): take the index into a my first
 son-audit/y/ym20.pl	D17	expected a value, found 'each'
@@ -1941,6 +2006,7 @@ son-audit/y/yn52.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and be
 son-audit/y/yn53.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yn55.pl	D92	'[' hard after $h{k} in a string: another index, to perl; write $h{k}\[
 son-audit/y/yn57.pl	D17	'srand' is not in the language
+son-audit/y/yn61.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/y/yo18.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yo20.pl	D16	'use strict' is not in the language
 son-audit/y/yo39.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2083,6 +2149,7 @@ son-audit/y/yp96.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yp97.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yp98.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yp99.pl	D110	\ before an element: a reference to an element is cut (D110); take a reference to the array or the hash
+son-audit/y/yq05.pl	D228	$0, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
 son-audit/y/yq09.pl	D13	expected a value, found 'caller'
 son-audit/y/yq10.pl	D13	expected a value, found 'caller'
 son-audit/y/yq14.pl	D19	'our' is not in the language
@@ -2094,6 +2161,9 @@ son-audit/y/yq20.pl	D19	'our' is not in the language
 son-audit/y/yq21.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yq22.pl	D80	a list on the left of 'x' where one value is wanted: perl repeats its last value
 son-audit/y/yq23.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/yq28.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yq29.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
+son-audit/y/yq30.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
 son-audit/y/yq33.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yq34.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yq35.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -2177,6 +2247,9 @@ son-audit/z/mi45.pl	D99	in a string a key is a word or a scalar variable, hard a
 son-audit/z/mi46.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/z/mi47.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/z/mi49.pl	D54	else after unless: write it as an if
+son-audit/z/mi54.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+son-audit/z/mi55.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/z/mi57.pl	D233	expected a value, found 'pos'
 son-audit/z/mi61.pl	D91	in a string an index is a whole number or a scalar variable (D91): take the index into a my first
 son-audit/z/mi64.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/z/mi66.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
@@ -2326,6 +2399,8 @@ son-audit/z/ps81.pl	D13	'redo' is not in the language
 son-audit/z/ps82.pl	D13	'redo' is not in the language
 son-audit/z/ps83.pl	D13	'redo' is not in the language
 son-audit/z/ps87.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
+son-audit/z/ps88.pl	D80	a match under /g where one value is wanted: perl goes on from where the last one left off (pos), which is cut (D233, T543); take the matches as a list
+son-audit/z/ps89.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
 son-audit/z/qa01.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/qa04.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/qa05.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2677,6 +2752,7 @@ son-corpus/pp-c034.pl	D17	$_[ is an element of perl's own @_ or %_, which are no
 son-corpus/pp-c036.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-c037.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-c193.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/pp-c196.pl	D234	a pattern alone matches $_: write $_ =~ /.../, or the variable it is for (D234, D85)
 son-corpus/pp-c197.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-corpus/pp-c394.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-c395.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2735,6 +2811,7 @@ son-corpus/review2-probes-ci-q8.pl	D17	$_[ is an element of perl's own @_ or %_,
 son-corpus/review2-probes-ci-s3.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/review2-probes-ci-s4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-a2.pl	D19	'our' is not in the language
+son-corpus/review2-probes-cs-e5.pl	D228	$1, a variable a match sets, is not in the language: a match where a list is wanted gives what it captured, my ($x) = $s =~ /(...)/; (D228, T554)
 son-corpus/review2-probes-cs-r3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-s1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-s2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2819,6 +2896,7 @@ son-corpus/sw2-u6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not
 son-corpus/sw3-v12.pl	D102	a comma in the block of a map, a grep or a sort: put the list in brackets, map { ($_ => 1) } ...
 son-corpus/sw3-v15.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/sw3-v2.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/sw3-v4.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-corpus/sw3-v8.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-corpus/sw3-v9.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/tr-r4.pl	D17	@_ is not in the language: a sub has a signature (D17)

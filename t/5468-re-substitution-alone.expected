@@ -1,0 +1,2 @@
+t/5468-re-substitution-alone.pl:5:19: s/// is not in the language yet (step 20)
+exit: 1

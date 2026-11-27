@@ -120,7 +120,10 @@ programs, as it is built. In outline:
 - **Packages:** `package Name;` names a file's subs, and nothing
   more: no `bless`, no package variables (D19).
 - **Strings and regexes:** Unicode strings (D24); Perl 5's regexes, a
-  subset, compiled ahead of time (steps 19 and 20).
+  subset, compiled ahead of time into a program for a backtracking
+  matcher with perl's order of trying (steps 19 and 20; D226 to D238):
+  `\d \w \s` perl's own, `/i` ASCII's, captures only by the list a
+  match gives, no variable in a pattern, a limit on steps.
 - **Data:** arrays, hashes in insertion order (D27), nested through
   references, postfix dereference, slices.
 
@@ -352,7 +355,9 @@ step, roughly in the order it will matter:
    oracle marks every warning of perl's own.
 10. **Modules** (step 18): `package Name;` is decided (D19); imports,
    and how files are found, are not.
-11. **Regex captures** (step 19): `$1`, or only named and returned.
+11. **Regex captures** (step 19): settled, D228. Only the list a
+   match gives where a list is wanted; `$1` and its kin are not in,
+   and named captures and `%+` wait for step 20.
 12. **Bytes**, for binary files, as a type apart from strings (with
     step 21).
 13. **The syntax of a type** (step 25); **roles**, refereed by a

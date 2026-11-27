@@ -1,4 +1,4 @@
-# t/models/re.py 5102: /g where a list is wanted (step 19)
+# t/models/rematch.py 5102: /g where a list is wanted (step 19)
 use v5.42;
 use utf8;
 use open ":std", ":encoding(UTF-8)";

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""t/5100 to t/5103: pattern matching (step 19; D225 to D237).
+"""t/5100 to t/5103: pattern matching (step 19; D225 to D237). Named
+rematch.py, not re.py, so that no model beside it imports it for
+Python's own `re`.
 
 A matcher of its own, by the definition and nothing of the compiler's or
 the runtime's: a pattern is read into a tree, and the tree is matched by
@@ -34,14 +36,14 @@ where a list is wanted; 5102 /g; 5103 the flags i, m, s and x.
 
 Every command that writes a file, one a line (t/checks.py runs them all):
 
-    python3 t/models/re.py --program 5100 > t/5100-re-tests.pl
-    python3 t/models/re.py 5100 > t/5100-re-tests.expected
-    python3 t/models/re.py --program 5101 > t/5101-re-captures.pl
-    python3 t/models/re.py 5101 > t/5101-re-captures.expected
-    python3 t/models/re.py --program 5102 > t/5102-re-global.pl
-    python3 t/models/re.py 5102 > t/5102-re-global.expected
-    python3 t/models/re.py --program 5103 > t/5103-re-flags.pl
-    python3 t/models/re.py 5103 > t/5103-re-flags.expected
+    python3 t/models/rematch.py --program 5100 > t/5100-re-tests.pl
+    python3 t/models/rematch.py 5100 > t/5100-re-tests.expected
+    python3 t/models/rematch.py --program 5101 > t/5101-re-captures.pl
+    python3 t/models/rematch.py 5101 > t/5101-re-captures.expected
+    python3 t/models/rematch.py --program 5102 > t/5102-re-global.pl
+    python3 t/models/rematch.py 5102 > t/5102-re-global.expected
+    python3 t/models/rematch.py --program 5103 > t/5103-re-flags.pl
+    python3 t/models/rematch.py 5103 > t/5103-re-flags.expected
 """
 
 import random
@@ -421,7 +423,7 @@ def main(argv):
     test = int(argv[-1])
     lines, out = build(test)
     if program:
-        print(f'# t/models/re.py {test}: {HEAD[test]} (step 19)')
+        print(f'# t/models/rematch.py {test}: {HEAD[test]} (step 19)')
         print('use v5.42;')
         print('use utf8;')
         print('use open ":std", ":encoding(UTF-8)";')

@@ -914,7 +914,13 @@ export const lex = (src: string): Token[] => {
         } else if (c === '/' && !afterValue()) {
             // Where a value may begin, a slash begins a pattern (T90).
             pattern(start, false);
+        } else if (['s', 'tr', 'y'].includes(src.slice(i, wordEnd(i))) && !afterValue() && !src.startsWith('=>', past(wordEnd(i), true))
+            && !(tokens.at(-1)?.kind === 'word' && NAMES.get(tokens.at(-1)!.text)?.kind === 'sub')
+            && (src[wordEnd(i)] === '/' || BRACKETS[src[wordEnd(i)] ?? ''] !== undefined || '!#%&*+,-.:;=?^|~"\''.includes(src[wordEnd(i)] ?? 'a'))) {
+            // Step 20's: perl reads a substitution or a transliteration here.
+            refuse(`${src.slice(i, wordEnd(i))}/// is not in the language yet (step 20)`, start);
         } else if (c === 'm' && !afterValue() && wordEnd(i) === i + 1 && !(tokens.at(-1)?.kind === 'word' && NAMES.get(tokens.at(-1)!.text)?.kind === 'sub')
+            && !src.startsWith('=>', past(i + 1, true))
             && (src[i + 1] === '/' || BRACKETS[src[i + 1] ?? ''] !== undefined || '!#%&*+,-.:;=?^|~"\''.includes(src[i + 1] ?? 'a'))) {
             if (src[i + 1] !== '/' && BRACKETS[src[i + 1]!] === undefined) {
                 refuse(`m${src[i + 1]}...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}`, start);

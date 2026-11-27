@@ -7392,7 +7392,7 @@ match names nothing for D76 and is read once.
 
 #### Tests
 
-A model, `t/models/re.py`: a backtracking matcher of its own in
+A model, `t/models/rematch.py`: a backtracking matcher of its own in
 Python, over the subset, writing programs of matches with their
 expected output (5100 on); the oracle holds perl to it. Fault tests
 at each edge (5300 on): `/i` past ASCII, the step limit, undef and a
@@ -7410,6 +7410,115 @@ named captures stay later; the delimiters); `=~` and `!~` In.
 pattern (habit, often), `/i` faults past ASCII (accident, sometimes),
 a group inside a repeated group (accident, rarely), the step limit
 (a guess: accident, rarely). DESIGN's open item 11 is settled by D228.
+
+#### What the review found
+
+No fresh agent could be spawned in the session that built this step,
+so the review was the builder's own pass, kept apart from the build: a
+generator of random patterns and subjects, held to perl
+(`briefs/step19-review/patterns.py`, after 11a's and 13d's). Each
+pattern is drawn from a grammar a little wider than the subset, read by
+`regex.ts` itself to see whether it is taken, and every pattern taken
+is matched under perl and compiled, where a list is wanted, where one
+value is, and with `!~`, stdout and stderr compared. Its first runs
+found **two shapes where perl warns or dies and the compiler took the
+pattern**: `{n}?`, a useless greediness modifier (T556), and `--` first
+in a class, a range from `-` (T557). Both are refused (D238). Nothing
+printed what perl does not. After them, 10,000 patterns, 4,824 of them
+taken: **none differs** (`briefs/step19-review/outputs.txt`). The
+model, `t/models/rematch.py`, is a second matcher, written apart from the
+runtime's, and agrees with perl on all of its four programs. The build
+found two places where the proposal was stricter than perl's reading
+needs (T558, T559), and D238 gives them back.
+
+#### 19, as built
+
+**Built 2026-11-27, 19a to 19c together, by Fable 5.2 under Stevan's
+standing instruction.** D225 to D237 as proposed, and D238.
+
+- **The lexer** (`lexer.ts`): where a value may begin a `/` begins a
+  pattern, and so does `m` with a bracket hard against it (`m` with any
+  other delimiter is refused, D227); the token is `match`, with the
+  pattern as written, where it begins, and its flags. perl's end is
+  found first, a backslash taking the character after it, brackets of
+  the delimiter's kind nesting. After a match token an operator comes.
+  `$1`, `$&`, `` $` `` and `$'` are refused there, by name (D228).
+- **The parser**: `=~` and `!~` are in perlop's row; the right side is
+  a `match` token or a refusal, the left side one value with no `!`
+  before it (D234), and the pattern is compiled there. The node is
+  `match` (`subject`, `negate`, `regex`). A pattern alone is refused.
+- **`compiler/src/regex.ts`**: the pattern's parser, its refusals, and
+  its program: `CHAR`, `CHARI` (an ASCII letter under `/i`), `ANY`,
+  `ANYNL`, `CLASS` (a row of ranges and which of perl's classes, a
+  class under `/i` given each ASCII letter's other case), the anchors,
+  `SPLIT` (the alternative not taken first), `JMP`, `SAVE`,
+  `BACKREF`/`BACKREFI`, `MATCH`. A count is written out: `x{2,4}` is two
+  `x` and then two nested optional ones, `x*` a loop; with no quantifier
+  on what can be empty (D231) the loop always moves on, so it needs no
+  check of its own.
+- **The walks**: a match is its subject's for every walk (`parts`,
+  `children`, the resolver), names nothing of its own and folds to no
+  constant; `/g` where one value is wanted is refused in
+  `checkOneValue`; `shapes.ts` makes a match of two groups or more, or
+  with `/g`, list-shaped (D235).
+- **The generated C**: the program is a constant at the top of the
+  file, as a string literal is (`static const rt_regex reN`); where one
+  value is wanted `rt_match` or `rt_match_not`, a boolean; where a list
+  is, `rt_match_list` into the list being built.
+- **`runtime/regex.c`**, which rt.c includes: the machine, with a
+  stack of its own (malloc'd, freed before anything is made, and before
+  the step fault), captures put back as it backtracks, the step count
+  over the whole operation (D232); `/i` faults on a string past ASCII
+  before it starts (D230); the strings of the captures are made last,
+  one allocation each, straight into the list, which is in a slot.
+  **perl's tables for `\d`, `\w` and `\s`** (71, 796 and 10 ranges,
+  Unicode 16.0.0) are written into it by `briefs/step19-tables.py`,
+  which asks perl 5.42 about every character.
+
+**The builder's defaults**, each Stevan's to overturn: a backreference
+may be to a group in another alternative (it then matches nothing, as
+perl's does); a count of `{0}` is taken; the step limit counts every
+instruction the machine runs, ten million; `m` before `,`, `=` and the
+other characters perl takes for a delimiter is refused as a
+delimiter, where `$h{m}` and `m =>` are the word.
+
+**Tests**: 5100 to 5103 from `t/models/rematch.py` (a matcher of its own,
+over an alphabet whose classes it writes down: 880 matches); 5200 to
+5202 by hand with perl's answers; the faults 5300 to 5308 (`/i` past
+ASCII where one value and where a list is wanted, the step limit alone
+and in a `/g`, undef, a reference and a whole float on the left, D18's
+fault for a sub that gives back a match of two groups, an undef capture
+printed); 5400 to 5468 refusals from a table by hand
+(`briefs/step19-refusals.py`); `runtime/tests/regex.c`, the limit at
+its edge (ten million steps match, one more faults) and a match over a
+million characters.
+
+**The census** (`make census`, then sorted): of the 226 probes that
+waited for step 19, 11 are SAME, 1 LOUD, 72 refused by design and moved
+to `by-design/` (36 for D228, `$1`; 17 for D92, `$1` in a string; 7
+for D233, `pos`; the rest behind other decisions), 133 wait for step 20
+(`s///`, `split`, `tr`, now refused as the word by the lexer), and the
+rest for other steps or open: **1,312 SAME, 179 LOUD, 1,160 REFUSED
+(353 for a later step, 807 open), 4 UNJUDGED, of 2,655 run, 2,925 by
+design, no WRONG**. One probe left SAME on the first run
+(`son-audit/f/c60.pl`: `{m=>...}`, where `m` before `=>` had been taken
+for a pattern); the lexer was mended and 5202 holds it.
+
+**Broken on purpose** (`briefs/step19-mutations.py`, the matcher and
+every pass): 65 of 71 caught the first time; the six holes (`$` and
+`\A` under `/m`, `\n` in a pattern, `$` under `/m` read as `$`, a
+backreference under `/i`, a capture's count of characters) are closed
+by 5202. MUT2
+
+**Doubtful or left**: the evidence's grammar is small (an alphabet of
+a dozen characters, depth two), and a quantifier on what can be empty
+is about a third of what it draws, all refused; the `\d \w \s` tables
+are perl's at the time they were written, and a perl with another
+Unicode would need them written again (`claims19.py` holds T545 and
+T67 to the characters it names); `/i` faulting on any character past
+ASCII is blunt, and a narrower fault (only where a fold could differ)
+is possible; `$1` waits for a proposal; step 20 has `s///`, `split`,
+`tr`, `qr` and named captures.
 
 ### 21. Files and the outside
 

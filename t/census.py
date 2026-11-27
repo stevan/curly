@@ -180,6 +180,8 @@ REASONS = [
     (r"^'(s|tr|y|split)' is not in the language$", 'later', '20'),
     (r"^expected a value, found '(split|s|tr|y)'$", 'later', '20'),
     (r"^(s|tr|y)/// is not in the language yet \(step 20\)", 'later', '20'),
+    (r"^expected a value, found 'qr'$", 'later', '20'),
+    (r"^expected a value, found 'pos'$", 'design', 'D233'),
     (r"is not in the language yet \(D226\)$|is not in the language: of its forms, \(\?:\.\.\.\) is \(D226\)|in a pattern is not in the language yet \(D226\)|is not in the language yet: write \\1 to \\9 \(D226\)|\\N\{NAME\}, in a pattern are not in the language|the flag /\w.* is not in the language \(D226\)", 'later', '19'),
     (r"a variable a match sets, is not in the language", 'design', 'D228'),
     (r"perl may take it for (a variable|an array) \(D229|anything else is matched as a pattern made as the program runs|the case escapes, and \\Q", 'design', 'D229'),

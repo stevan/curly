@@ -11,7 +11,7 @@ strings, booleans, variables, control, subs, arrays and lists, `map`,
 `grep`, `sort`, interpolation, hashes, references to arrays, hashes and
 scalars, with elements, the whole container and the scalar through them, in code and in strings, subs with no name and closures, `die`, `try`, `catch` and `warn`, and `q`,
 `qq`, `qw`, heredocs, `sprintf`, `printf` and the rest of the string
-builtins. What is decided and not built is at the end.
+builtins; and step 19's pattern matching (`=~`, `!~`, captures, `/g`). What is decided and not built is at the end.
 
 ## How this file is kept
 
@@ -184,6 +184,11 @@ every one under both.
 | `my @a = (1, 2); my @s = map { sub { $_ } } @a; say defined($s[0]->()) ? "def" : "undef";` | `undef` | Refused |
 | `my $n = 2; my @s; for my $i (1 .. $n) { push @s, sub { $i } } say $s[1]->();` | `2` | Refused |
 | `my $f = sub { 1 }; &$f();` | (nothing) | Refused |
+| `if ("ab12" =~ /(\d+)/) { say $1; }` | `12` | Refused |
+| `my ($n) = "ab12" =~ /(\d+)/; say $n;` | `12` | Same |
+| `my @w = ("a bc" =~ /(\w+)/g); say scalar(@w), $w[1];` | `2bc` | Same |
+| `say "\x{212A}" =~ /k/i ? 1 : 0;` | `1` | Fault: `a match without regard to case of a string with a character past ASCII` |
+| `my $p = "b"; say "abc" =~ /$p/ ? 1 : 0;` | `1` | Refused |
 
 ## 1. Idioms you will miss
 
