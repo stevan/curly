@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build perl 5.42.0 with Stevan's roles into PREFIX (default
 # /opt/perl-5.42-roles): the referee for a program with a role in it
-# (D168, D173). README.md says what the patch is and where it came from.
+# (D181, D186). README.md says what the patch is and where it came from.
 #
 #   tools/perl-roles/build.sh [PREFIX]
 #

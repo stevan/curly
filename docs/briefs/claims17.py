@@ -4,7 +4,7 @@
 #
 #     python3 docs/briefs/claims.py T400 17-dispatch-shape
 #
-# A row with roles=True is a statement about the roles perl (D168, D173),
+# A row with roles=True is a statement about the roles perl (D181, D186),
 # and claims.py runs it under $CURLY_PERL_ROLES (default
 # /opt/perl-5.42-roles/bin/perl, which tools/perl-roles/build.sh makes).
 # The program is claim.pl: `use v5.42;` is line 1 and CLASS line 2, so a
@@ -100,6 +100,16 @@ STEP17 = [
     c('17-object', 'PLAN 17', 'class P { } my $p = P->new; my $q = P->new; my $r = $p; say $p == $r ? "same" : "diff", $p == $q ? "same" : "diff"; say ref $p, builtin::reftype($p), builtin::blessed($p); say $p ? "true" : "false";', out='samediff\nPOBJECTP\ntrue\n'),
     c('17-isa', 'PLAN 17', 'class A { } class B :isa(A) { } my $b = B->new; say $b isa A ? 1 : 0, $b isa B ? 1 : 0, A->new isa B ? 1 : 0; my $s = "A"; my $u; say $s isa A ? 1 : 0, $u isa A ? 1 : 0, (A->new isa Nope) ? 1 : 0;', out='110\n000\n'),
     c('17-say-object', 'PLAN 17', 'class P { } say P->new;', outre=r'P=OBJECT\(0x[0-9a-f]+\)\n'),
+    # ---- where 17a meets step 14 as built (PLAN 17, "Where 17a meets step 14")
+    c('17-clo-field-live', 'PLAN 17', 'class P { field $n = 1; method f { sub { $n } } method inc { $n++ } } my $p = P->new; my $f = $p->f; $p->inc; say $f->();', out='2\n'),
+    c('17-clo-field-store', 'PLAN 17', 'class P { field $n = 1; method f { sub { $n = 9 } } method n { $n } } my $p = P->new; $p->f->(); say $p->n;', out='9\n'),
+    c('17-clo-instances', 'PLAN 17', 'class P { field $n :param; method f { sub { $n } } } my $a = P->new(n => 1)->f; my $b = P->new(n => 2)->f; say $a->(), $b->();', out='12\n'),
+    c('17-clo-self', 'PLAN 17', 'class P { field $n :param :reader; method f { sub { $self->n } } } my $f = P->new(n => 4)->f; say $f->();', out='4\n'),
+    c('17-clo-array-field', 'PLAN 17', 'class P { field @a = (1); method f { sub { push @a, 2; scalar @a } } method c { scalar @a } } my $p = P->new; $p->f->(); say $p->c;', out='2\n'),
+    c('17-clo-default', 'PLAN 17', 'class P { field $n = 1; field $f = sub { $n }; method bump { $n = 5 } method call { $f->() } } my $p = P->new; $p->bump; say $p->call;', out='5\n'),
+    c('17-clo-adjust', 'PLAN 17', 'class P { field $n = 1; field $cb; ADJUST { $cb = sub { $n * 10 } } method bump { $n = 2 } method call { $cb->() } } my $p = P->new; $p->bump; say $p->call;', out='20\n'),
+    c('17-clo-identity', 'PLAN 17; D161', 'class P { method f { sub { 1 } } method g { sub { $self } } } my $p = P->new; say $p->f == $p->f ? "same" : "diff", $p->g == $p->g ? "same" : "diff";', out='samediff\n'),
+    c('17-amp-outside', 'PLAN 17; TRAPS T424', 'class P { method m { "m" } } my $p = P->new; say $p->&m;', exit=255, err=r'Undefined subroutine &main::m called'),
     # ---- roles, in the roles perl (TRAPS T420, T421; PLAN 17b)
     c('17b-role', 'PLAN 17', 'role R { method hi { "hi " . ref $self } } class C :does(R) { } say C->new->hi;', out='hi C\n', roles=True),
     c('17b-required', 'PLAN 17', 'role R { method name; method greet { "hello " . $self->name } } class C :does(R) { method name { "c" } } say C->new->greet;', out='hello c\n', roles=True),

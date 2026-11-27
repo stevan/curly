@@ -353,12 +353,12 @@ step, roughly in the order it will matter:
 12. **Bytes**, for binary files, as a type apart from strings (with
     step 21).
 13. **The syntax of a type** (step 25); **roles**, refereed by a
-    perl with Stevan's roles (D168), his branch ported to 5.42.0
-    (D173, `tools/perl-roles/`); the core of the object
-    system bootstrapped in the runtime (D169); representations and
-    the construction protocol (D167), and what referees them; how
-    step 17 is cut (D172, D174); the referee of representations (17c);
-    the metaobject protocol's API (D170, step 28); the shape of concurrency, and D13 revisited with it
+    perl with Stevan's roles (D181), his branch ported to 5.42.0
+    (D186, `tools/perl-roles/`); the core of the object
+    system bootstrapped in the runtime (D182); representations and
+    the construction protocol (D180), and what referees them; how
+    step 17 is cut (D185, D170); the referee of representations (17c);
+    the metaobject protocol's API (D183, step 28); the shape of concurrency, and D13 revisited with it
     (step 29).
 14. **The extension of a file that carries type annotations** (step
     25). A program is a `.pl` file until then.
