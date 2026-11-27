@@ -1,0 +1,2 @@
+t/2133-whole-push-onto-a-call.pl:7:6: push names an array, found 'f': push(@a, ...), or push($r->@*, ...)
+exit: 1

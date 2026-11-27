@@ -1,0 +1,3 @@
+1
+fault: not a reference to an array at t/2064-fault-whole-slice-store-through-the-other-kind.pl line 6.
+exit: 1

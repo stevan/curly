@@ -1,0 +1,3 @@
+1
+fault: an array was changed while a foreach is over it at t/2077-fault-whole-frozen-store.pl line 8.
+exit: 1

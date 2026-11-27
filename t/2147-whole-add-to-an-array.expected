@@ -1,0 +1,2 @@
+t/2147-whole-add-to-an-array.pl:5:8: '+=' on an array: an array is assigned with =
+exit: 1

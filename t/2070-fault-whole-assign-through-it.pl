@@ -1,0 +1,7 @@
+# kind: fault
+# model: t/models/whole.py
+use v5.42;
+say(1);
+my @m = (undef);
+$_->@* = (1) for @m;
+say(2);

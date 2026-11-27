@@ -1,0 +1,2 @@
+t/2125-whole-word-alone-undef.pl:4:10: a word alone in @{ ... } is the name of a variable, to perl (@{undef} is @undef): D114 refuses it; name a variable, @{ $r }
+exit: 1

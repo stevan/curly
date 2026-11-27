@@ -1,0 +1,2 @@
+t/2149-whole-slice-beside-another-target.pl:6:6: a target of a list assignment is a variable, an element, undef, or, last, an array or a hash
+exit: 1

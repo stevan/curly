@@ -1,0 +1,2 @@
+t/2136-whole-splice-without-brackets.pl:5:1: splice needs brackets: splice(@a, ...)
+exit: 1

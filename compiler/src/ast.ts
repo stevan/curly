@@ -39,7 +39,7 @@ export type Binary = { kind: 'binary'; op: string; left: Expr; right: Expr; pos:
 // against a scalar on the left of `=`, later).
 export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Step | Unary | Binary | Ternary | Apply | Invoke
     | ArrayVar | MyArray | Elem | LastIndex | List | Slice | ArrayOp | ListAssign | ListOp | Binder | Sort | HashOp
-    | Chain | Anon | Ref;
+    | Chain | Anon | Ref | Deref;
 
 // An element through a reference (step 13a; D107): `EXPR->[I]` and
 // `EXPR->{K}`, and either one after a subscript with the arrow left out,
@@ -47,9 +47,18 @@ export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Ste
 // scalar variable, an element (of a named array or hash, or another
 // chain), a call, brackets round one value, `[ ]` or `{ }`. With `hash`,
 // `index` is a key. `pos` is the head's.
-// (13b's whole container through a reference, `->@*` and the rest, will
-// be a node of its own, with a `head` as this has.)
 export type Chain = { kind: 'chain'; head: Expr; index: Expr; hash?: true; pos: Pos; bracketed?: true };
+
+// The whole container through a reference (step 13b; D108): `EXPR->@*`
+// and `@{ EXPR }`, an array; with `hash`, `EXPR->%*` and `%{ EXPR }`; with
+// `last`, `EXPR->$#*` and `$#{ EXPR }`, the array's last index. It stands
+// where `@a`, `%h` and `$#a` may; `head` gives the reference, as a
+// chain's does. `pos` is the head's for the postfix forms, the sigil's
+// for the braces.
+// A builtin that names an array or a hash, and a slice, have one in
+// `deref` when what they name is reached through a reference, and their
+// `name` is then the empty string.
+export type Deref = { kind: 'deref'; head: Expr; hash?: true; last?: true; pos: Pos; bracketed?: true };
 
 // `[ LIST ]`, a new array holding copies of the list's values, and with
 // `hash`, `{ LIST }`, a new hash made from it: a reference to the new
@@ -79,7 +88,7 @@ export type Elem = { kind: 'elem'; name: string; index: Expr; hash?: true; pos: 
 // `delete @name{keys}` has `keys`, and gives a list (step 12b).
 // `exists EXPR->{K}` and `delete EXPR->{K}` have `chain`, the element
 // through a reference, and no `name` (step 13a).
-export type HashOp = { kind: 'hashop'; op: 'keys' | 'values' | 'exists' | 'delete' | 'count'; name: string; key?: Expr; keys?: readonly Expr[]; chain?: Chain; pos: Pos; at: Pos; bracketed?: true };
+export type HashOp = { kind: 'hashop'; op: 'keys' | 'values' | 'exists' | 'delete' | 'count'; name: string; key?: Expr; keys?: readonly Expr[]; chain?: Chain; deref?: Deref; pos: Pos; at: Pos; bracketed?: true };
 export type LastIndex = { kind: 'lastindex'; name: string; pos: Pos; bracketed?: true };
 
 // A list in brackets: no items, or two and more, or one with a comma
@@ -90,12 +99,14 @@ export type List = { kind: 'list'; items: readonly Expr[]; my?: true; pos: Pos; 
 // A slice: `@name[indexes]`, of an array, or `(items)[indexes]`, of a
 // list. `pos` is the opening square bracket's.
 // With `hash`, `@name{keys}`, of the hash `%name`, `indexes` its keys (step 12b).
-export type Slice = { kind: 'slice'; name?: string; items?: readonly Expr[]; indexes: readonly Expr[]; hash?: true; pos: Pos; bracketed?: true };
+// Through a reference, `EXPR->@[...]` and `EXPR->@{...}` (step 13b), it
+// has `deref`, and `name` is the empty string.
+export type Slice = { kind: 'slice'; name?: string; items?: readonly Expr[]; indexes: readonly Expr[]; hash?: true; deref?: Deref; pos: Pos; bracketed?: true };
 
 // A builtin that names an array: `push @name, args`, `pop(@name)`,
 // `splice(@name, args)`, `scalar(@name)`. `pos` is the word's, `at` the
 // array's.
-export type ArrayOp = { kind: 'arrayop'; op: string; name: string; args: readonly Expr[]; pos: Pos; at: Pos; bracketed?: true };
+export type ArrayOp = { kind: 'arrayop'; op: string; name: string; args: readonly Expr[]; deref?: Deref; pos: Pos; at: Pos; bracketed?: true };
 
 // `join(SEP, LIST)` and `reverse(LIST)`, with brackets or without (step
 // 10a): the builtins that take a list and name no array.
@@ -124,7 +135,7 @@ export type Var = { kind: 'var'; name: string; pos: Pos; bracketed?: true };
 export type My = { kind: 'my'; name: string; pos: Pos; bracketed?: true };
 
 // `$x = E`, `$x += E`: `pos` is the operator's. Its value is the variable.
-export type Assign = { kind: 'assign'; op: string; target: Var | My | Elem | Chain | ArrayVar | MyArray; value: Expr; pos: Pos; bracketed?: true };
+export type Assign = { kind: 'assign'; op: string; target: Var | My | Elem | Chain | ArrayVar | MyArray | Deref; value: Expr; pos: Pos; bracketed?: true };
 
 // `++$x`, `$x++`, `--$x`, `$x--`: `before` says the operator comes first.
 export type Step = { kind: 'step'; op: string; before: boolean; target: Var | Elem | Chain; pos: Pos; bracketed?: true };

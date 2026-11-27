@@ -1,0 +1,2 @@
+t/2123-whole-word-alone-in-last-index.pl:5:7: a word alone in $#{ ... } is the name of a variable, to perl ($#{a} is $#a): D114 refuses it; name a variable, $#{ $r }
+exit: 1

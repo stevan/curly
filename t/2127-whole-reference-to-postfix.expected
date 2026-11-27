@@ -1,0 +1,2 @@
+t/2127-whole-reference-to-postfix.pl:5:12: \ before a dereference: perl makes a list of a reference to each element, which is cut (D110); the reference itself is the reference
+exit: 1

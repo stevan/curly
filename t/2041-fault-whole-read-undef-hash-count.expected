@@ -1,0 +1,3 @@
+1
+fault: undef where a reference is wanted at t/2041-fault-whole-read-undef-hash-count.pl line 6.
+exit: 1

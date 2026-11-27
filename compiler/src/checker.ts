@@ -3,7 +3,7 @@
 // nothing; a tree that comes through is a program.
 import { refuse } from './errors.ts';
 import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, prefixOp } from './names.ts';
-import type { Chain, Expr, Invoke, My, Pragma, Program, Stmt, Sub, Var } from './ast.ts';
+import type { Chain, Deref, Expr, Invoke, My, Pragma, Program, Stmt, Sub, Var } from './ast.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn } from './shapes.ts';
 import { checkFormat } from './format.ts';
@@ -39,12 +39,29 @@ const chainParts = (c: Chain): Expr[] => {
     return [...head, c.index];
 };
 
+// What the whole container through a reference works out on its way (step
+// 13b), as a chain's last link would: its head's parts.
+const derefParts = (d: Deref): Expr[] =>
+    d.head.kind === 'chain' ? chainParts(d.head) : d.head.kind === 'elem' ? [d.head.index] : d.head.kind === 'var' ? [] : [d.head];
+// The scalar variable a store through the whole container may make, if
+// it starts from one (T248, T249).
+const derefBase = (d: Deref): Expr => (d.head.kind === 'chain' ? chainBase(d.head) : d.head);
+// Whether a builtin through a reference makes what it goes through, as
+// perl does: `push`, `unshift` and `splice` (T248).
+const makesWhole = (e: Expr): boolean => e.kind === 'arrayop' && e.deref !== undefined && (e.op === 'push' || e.op === 'unshift' || e.op === 'splice');
+
 // The expressions an expression is made of, in the order they are worked
 // out.
 const parts = (e: Expr): readonly Expr[] =>
     e.kind === 'chain' ? [e.head, e.index]
+    : e.kind === 'deref' ? [e.head]
     : e.kind === 'anon' ? e.items
     : e.kind === 'hashop' && e.chain !== undefined ? [e.chain]
+    // (Through a reference, a builtin's or a slice's container: a `push`'s
+    // before what it adds, a slice's after its indexes, as perl has them.)
+    : e.kind === 'arrayop' && e.deref !== undefined ? [e.deref, ...e.args]
+    : e.kind === 'hashop' && e.deref !== undefined ? [...(e.keys ?? []), e.deref]
+    : e.kind === 'slice' && e.deref !== undefined ? [...e.indexes, e.deref]
     : e.kind === 'unary' ? [e.operand]
     : e.kind === 'binary' ? [e.left, e.right]
     : e.kind === 'ternary' ? [e.test, e.then, e.else]
@@ -111,7 +128,7 @@ const folds = (e: Expr): boolean =>
     e.kind === 'var' || e.kind === 'my' || e.kind === 'assign' || e.kind === 'step' || e.kind === 'invoke' || e.kind === 'interp' ? false
     // (A new container, and a reference, are made as the program runs:
     // perl does not warn of `if (my $r = [1])`.)
-    : e.kind === 'chain' || e.kind === 'anon' || e.kind === 'ref' ? false
+    : e.kind === 'chain' || e.kind === 'anon' || e.kind === 'ref' || e.kind === 'deref' ? false
     // (An array, an element, and what works on one are no constants.)
     : e.kind === 'array' || e.kind === 'myarray' || e.kind === 'elem' || e.kind === 'lastindex' || e.kind === 'arrayop' || e.kind === 'hashop' || e.kind === 'listassign' ? false
     : e.kind === 'slice' && e.name !== undefined ? false
@@ -133,6 +150,9 @@ const changes = (e: Expr, into = new Set<string>()): Set<string> => {
         const base = chainBase(e.target);
         if (base.kind === 'var') into.add(base.name);
     }
+    // And a store to the whole container through one (step 13b).
+    const whole = e.kind === 'assign' && e.target.kind === 'deref' ? e.target : makesWhole(e) ? (e as { deref: Deref }).deref : undefined;
+    if (whole !== undefined && derefBase(whole).kind === 'var') into.add((derefBase(whole) as Var).name);
     parts(e).forEach(p => changes(p, into));
     return into;
 };
@@ -151,7 +171,7 @@ const isRepeat = (e: Expr): boolean => e.kind === 'binary' && infixOp(e.op)?.lis
 // (A slice of a list with no values is none, whatever its indexes: T164.)
 const listy = (in_: Expr): boolean => {
     const e = plain(in_);
-    return e.kind === 'array' || e.kind === 'myarray' || e.kind === 'list' || isRange(e) || isRepeat(e)
+    return e.kind === 'array' || e.kind === 'myarray' || (e.kind === 'deref' && !e.last) || e.kind === 'list' || isRange(e) || isRepeat(e)
         || e.kind === 'slice'
         || (e.kind === 'arrayop' && e.op === 'splice')
         || (e.kind === 'listop' && e.op === 'reverse')
@@ -175,7 +195,19 @@ const addId = (w: World, into: Set<number>, id: number): void => {
 // D114): the variable it starts from, or the named array or hash whose
 // element it starts from, which a hop that is undef is made in; and what
 // references reach, when a hop after the first is made.
-const making = (w: World, c: Chain, into = new Set<number>()): Set<number> => {
+const making = (w: World, c: Chain | Deref, into = new Set<number>()): Set<number> => {
+    // The whole container through a reference (step 13b) is made as a
+    // chain's last link would be: in its head, or in what its head's chain
+    // reaches.
+    if (c.kind === 'deref') {
+        const head = c.head;
+        if (head.kind === 'var' || head.kind === 'elem') addId(w, into, w.names.of.get(head)!);
+        if (head.kind === 'chain') {
+            making(w, head, into);
+            into.add(REACH);
+        }
+        return into;
+    }
     const base = chainBase(c);
     if (base.kind === 'var' || base.kind === 'elem') addId(w, into, w.names.of.get(base)!);
     if (links(c) >= 2) into.add(REACH);
@@ -190,15 +222,20 @@ const making = (w: World, c: Chain, into = new Set<number>()): Set<number> => {
 // points at.
 const changesItself = (w: World, e: Expr, direct = false): number[] => {
     const id = (x: Expr): number => w.names.of.get(x)!;
-    if ((e.kind === 'assign' || e.kind === 'step') && e.target.kind === 'chain') return direct ? [] : [REACH, ...making(w, e.target)];
+    if ((e.kind === 'assign' || e.kind === 'step') && (e.target.kind === 'chain' || e.target.kind === 'deref')) return direct ? [] : [REACH, ...making(w, e.target)];
     if (e.kind === 'assign' || e.kind === 'step') return [id(e.target)];
+    // Through a reference (step 13b): what it reaches, and, for `push`,
+    // `unshift` and `splice`, what the container is made in.
+    if (e.kind === 'arrayop' && e.op !== 'scalar' && e.deref !== undefined) return direct ? [] : makesWhole(e) ? [REACH, ...making(w, e.deref)] : [REACH];
     if (e.kind === 'arrayop' && e.op !== 'scalar') return [id(e)];
-    if (e.kind === 'hashop' && e.op === 'delete' && e.chain !== undefined) return direct ? [] : [REACH];
+    if (e.kind === 'hashop' && e.op === 'delete' && (e.chain !== undefined || e.deref !== undefined)) return direct ? [] : [REACH];
     // A `delete` changes its hash: perl reads freed values where one
     // follows a part that names the hash (D102).
     if (e.kind === 'hashop' && e.op === 'delete') return [id(e)];
     if (e.kind === 'listassign') {
-        return e.targets.filter(t => t.kind !== 'constant').flatMap(t => (t.kind !== 'chain' ? [id(t)] : direct ? [] : [REACH, ...making(w, t)]));
+        return e.targets.filter(t => t.kind !== 'constant').flatMap(t => (t.kind === 'slice' && t.deref !== undefined ? (direct ? [] : [REACH, ...making(w, t.deref)])
+            : t.kind === 'deref' ? (direct ? [] : [REACH, ...making(w, t)])
+            : t.kind !== 'chain' ? [id(t)] : direct ? [] : [REACH, ...making(w, t)]));
     }
     return [];
 };
@@ -230,7 +267,17 @@ const named = (w: World, in_: Expr, scalars: boolean, into = new Set<number>()):
         if (base.kind === 'var' || base.kind === 'elem') id(base);
         else named(w, base, true, into);
     };
+    // The whole container through a reference names what its head does,
+    // as a chain's last link would (step 13b), and what references reach.
+    const whole = (d: Deref): void => {
+        into.add(REACH);
+        if (d.head.kind === 'var' || d.head.kind === 'elem') id(d.head);
+        else if (d.head.kind === 'chain') chain(d.head);
+        else named(w, d.head, true, into);
+    };
     if (e.kind === 'chain') chain(e);
+    else if (e.kind === 'deref') whole(e);
+    else if ((e.kind === 'slice' || (e.kind === 'hashop' && e.op === 'values')) && e.deref !== undefined) whole(e.deref);
     else if ((e.kind === 'assign' || (e.kind === 'step' && e.before)) && e.target.kind === 'chain') chain(e.target);
     else if (e.kind === 'elem' || e.kind === 'array' || e.kind === 'lastindex') id(e);
     else if (e.kind === 'slice' && e.name !== undefined) id(e);
@@ -280,10 +327,11 @@ const aliases = (w: World, in_: Expr, scalars: boolean, into = new Set<number>()
 
 // The hops of a store through `target` are made after `value` was taken:
 // refused where making one changes what the value is (T249).
-const checkMaking = (w: World, target: Chain, value: Expr, scalars: boolean): void => {
+const checkMaking = (w: World, target: Chain | Deref, value: Expr, scalars: boolean): void => {
     const is = aliases(w, value, scalars);
+    const base = target.kind === 'deref' ? derefBase(target) : chainBase(target);
     for (const id of making(w, target)) {
-        if (is.has(id)) refuse(`the store makes what ${chainBase(target).kind === 'var' && id !== REACH ? sigil(w, id) + ' holds' : 'it goes through'}, which the right side has already taken: perl takes it after it is made; take the value into a my first`, target.pos);
+        if (is.has(id)) refuse(`the store makes what ${base.kind === 'var' && id !== REACH ? sigil(w, id) + ' holds' : 'it goes through'}, which the right side has already taken: perl takes it after it is made; take the value into a my first`, target.pos);
     }
 };
 
@@ -333,18 +381,20 @@ const children = (e: Expr, ctx: Ctx): [Expr, Ctx][] => {
     case 'ternary': return [[e.test, 'scalar'], [e.then, ctx], [e.else, ctx]];
     case 'apply': return all(e.args, 'scalar');
     case 'invoke': return all(e.args, 'list');
-    case 'assign': return [[e.value, e.target.kind === 'array' || e.target.kind === 'myarray' ? 'list' : 'scalar'], [e.target, 'list']];
+    case 'assign': return [[e.value, e.target.kind === 'array' || e.target.kind === 'myarray' || e.target.kind === 'deref' ? 'list' : 'scalar'], [e.target, 'list']];
     case 'step': return [[e.target, 'scalar']];
     case 'elem': return [[e.index, 'scalar']];
     // Step 13a.
     case 'chain': return [[e.head, 'scalar'], [e.index, 'scalar']];
+    // Step 13b.
+    case 'deref': return [[e.head, 'scalar']];
     case 'anon': return all(e.items, 'list');
-    case 'hashop': return e.chain !== undefined ? [[e.chain, 'scalar']] : e.keys !== undefined ? all(e.keys, 'list') : e.key === undefined ? [] : [[e.key, 'scalar']];
+    case 'hashop': return e.chain !== undefined ? [[e.chain, 'scalar']] : [...(e.keys !== undefined ? all(e.keys, 'list') : e.key === undefined ? [] : [[e.key, 'scalar']] as [Expr, Ctx][]), ...(e.deref !== undefined ? [[e.deref, 'list']] as [Expr, Ctx][] : [])];
     // A string's pieces: an array there is its values, not its count.
     case 'interp': return all(e.parts, 'list');
     case 'list': return all(e.items, 'list');
-    case 'slice': return [...all(e.indexes, 'list'), ...all(e.items ?? [], 'list')];
-    case 'arrayop': return e.op === 'splice' ? [...all(e.args.slice(0, 2), 'scalar'), ...all(e.args.slice(2), 'list')] : all(e.args, 'list');
+    case 'slice': return [...all(e.indexes, 'list'), ...all(e.items ?? [], 'list'), ...all(e.deref !== undefined ? [e.deref] : [], 'list')];
+    case 'arrayop': return [...all(e.deref !== undefined ? [e.deref] : [], 'list'), ...(e.op === 'splice' ? [...all(e.args.slice(0, 2), 'scalar'), ...all(e.args.slice(2), 'list')] : all(e.args, 'list'))];
     // `join`'s separator is one value (T182).
     // A block's statements are checked as statements, by `checkExpr`.
     case 'binder': return [];
@@ -482,7 +532,8 @@ const tested = (in_: Expr): void => {
 // @a[0] better written as $a[0]` (T167), and `@h{a}` so (T221). Refused a
 // little more widely.
 const checkSliceOfOne = (e: Expr): void => {
-    if (e.kind !== 'slice' || e.name === undefined || e.indexes.length !== 1) return;
+    // (perl does not warn of one through a reference: step 13b.)
+    if (e.kind !== 'slice' || e.name === undefined || e.deref !== undefined || e.indexes.length !== 1) return;
     const one = e.indexes[0]!;
     if (listy(one) || one.kind === 'invoke' || one.bracketed) return;
     refuse(e.hash ? `@${e.name}{...} with one key: perl warns that it is better written $${e.name}{...}`
@@ -515,7 +566,7 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
     if ((e.kind === 'my' || e.kind === 'myarray' || (e.kind === 'list' && e.my)) && !my) {
         refuse(`${e.kind === 'my' ? `my $${e.name}` : e.kind === 'myarray' ? `my ${e.hash ? '%' : '@'}${e.name}` : 'my (...)'} here: a my begins a statement or a for, or stands in the test of an if or a while, where it is always reached`, e.pos);
     }
-    if ((e.kind === 'listassign' || (e.kind === 'assign' && (e.target.kind === 'array' || e.target.kind === 'myarray'))) && !root) {
+    if ((e.kind === 'listassign' || (e.kind === 'assign' && (e.target.kind === 'array' || e.target.kind === 'myarray' || e.target.kind === 'deref'))) && !root) {
         refuse('an assignment of a list is a statement: perl gives the count of its right side as its value (D78)', e.pos);
     }
     // A list that is only declarations is a statement's; anywhere else a
@@ -524,8 +575,8 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
     if (e.kind === 'list' && e.my) return;
     checkSliceOfOne(e);
     if (e.kind === 'hashop' && e.keys !== undefined) {
-        checkSliceOfOne({ kind: 'slice', name: e.name, hash: true, indexes: e.keys, pos: e.at });
-        checkOrder(w, 'delete', e.keys, true);
+        if (e.deref === undefined) checkSliceOfOne({ kind: 'slice', name: e.name, hash: true, indexes: e.keys, pos: e.at });
+        checkOrder(w, 'delete', [...e.keys, ...(e.deref !== undefined ? [e.deref] : [])], true);
     }
     // perl warns as it compiles of an index written as a string that is
     // no number, `$a["x"]`: `Argument "x" isn't numeric`. The shapes are
@@ -537,15 +588,17 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         }
     }
     const of = e.kind === 'apply' ? plain(e.args[0]!) : undefined;
-    if (e.kind === 'apply' && (e.name === 'length' || e.name === 'defined') && of?.kind === 'array') {
+    // (And of the whole container through a reference, T256.)
+    if (e.kind === 'apply' && (e.name === 'length' || e.name === 'defined') && (of?.kind === 'array' || (of?.kind === 'deref' && !of.last))) {
         refuse(`${e.name} of ${of.hash ? 'a hash' : 'an array'}: perl ${e.name === 'length' ? 'warns, and means the length of its count' : 'refuses it'}; scalar(${of.hash ? '%h' : '@a'}) is how many it holds`, e.pos);
     }
     // D76, for what this node works out in order.
     if (e.kind === 'binary' && !infixOp(e.op)?.when) checkOrder(w, `'${e.op}'`, [e.left, e.right], ctx === 'list' && isRepeat(e));
     if (e.kind === 'apply') checkOrder(w, e.name, e.args, false);
     if (e.kind === 'list') checkOrder(w, 'this list', e.items, true);
-    if (e.kind === 'slice') checkOrder(w, 'this slice', [...e.indexes, ...(e.items ?? [])], true);
-    if (e.kind === 'arrayop') checkOrder(w, e.op, e.args, true);
+    if (e.kind === 'slice') checkOrder(w, 'this slice', [...e.indexes, ...(e.items ?? []), ...(e.deref !== undefined ? [e.deref] : [])], true);
+    // (Through a reference the container comes first: step 13b.)
+    if (e.kind === 'arrayop') checkOrder(w, e.op, [...(e.deref !== undefined ? [e.deref] : []), ...e.args], true);
     // `join`'s separator is read when `join` runs, so it is the first
     // item of its list (T186, D87).
     if (e.kind === 'listop' && e.op === 'sprintf') checkFormat(e.args, 'sprintf', e.pos);
@@ -616,15 +669,27 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         }
         else checkOrder(w, `'${e.op}'`, [e.target, e.value], false);
     }
+    // The whole container through a reference (step 13b): the right side,
+    // then the head, the container made as it goes (T248, T249).
+    if (e.kind === 'assign' && e.target.kind === 'deref') {
+        checkOrder(w, `'${e.op}'`, [e.value, ...derefParts(e.target)], true);
+        checkMaking(w, e.target, e.value, true);
+    }
     if (e.kind === 'listassign') {
         // The right side, then every target's index, then the stores.
         // A target through a reference has its chain for its index, and
         // its hops are made then (step 13a; T249).
-        const indexes = e.targets.flatMap(t => (t.kind === 'elem' ? [t.index] : t.kind === 'slice' ? t.indexes : t.kind === 'chain' ? chainParts(t) : []));
+        // A slice or the whole container through a reference has its
+        // head's parts after its indexes, and is made then (step 13b).
+        const indexes = e.targets.flatMap(t => (t.kind === 'elem' ? [t.index] : t.kind === 'slice' ? [...t.indexes, ...(t.deref !== undefined ? derefParts(t.deref) : [])]
+            : t.kind === 'chain' ? chainParts(t) : t.kind === 'deref' ? derefParts(t) : []));
         checkOrder(w, 'this assignment', [e.value, ...indexes], true);
-        e.targets.forEach(t => { if (t.kind === 'chain') checkMaking(w, t, e.value, true); });
+        e.targets.forEach(t => {
+            if (t.kind === 'chain' || t.kind === 'deref') checkMaking(w, t, e.value, true);
+            if (t.kind === 'slice' && t.deref !== undefined) checkMaking(w, t.deref, e.value, true);
+        });
         e.targets.forEach((t, n) => {
-            const array = t.kind === 'array' || t.kind === 'myarray';
+            const array = t.kind === 'array' || t.kind === 'myarray' || (t.kind === 'deref' && !t.last);
             // A slice is the one target of its assignment (D100): beside
             // others perl takes it, and it waits to be asked for.
             if (t.kind === 'slice' && t.name !== undefined && e.targets.length === 1 && !e.my) {
@@ -651,12 +716,15 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
             if (part.kind === 'elem') checkExpr(w, part.index, false);
             if (part.kind === 'chain') checkExpr(w, part, false);
             if (part.kind === 'slice') part.indexes.forEach(x => checkExpr(w, x, false, 'list'));
+            if (part.kind === 'slice' && part.deref !== undefined) checkExpr(w, part.deref.head, false);
+            if (part.kind === 'deref') checkExpr(w, part.head, false);
             continue;
         }
         if (e.kind === 'assign' && part === e.target) {
             // (Where a `my` may stand is asked of a target too.)
             if (part.kind === 'elem') checkExpr(w, part.index, false);
             else if (part.kind === 'chain') checkExpr(w, part, false);
+            else if (part.kind === 'deref') checkExpr(w, part.head, false);
             else if (part.kind === 'my' || part.kind === 'myarray') checkExpr(w, part, my && reached, 'list');
             continue;
         }
@@ -715,7 +783,7 @@ const checkPart = (w: World, e: Expr, first: boolean): void => {
         refuse('this part of the for only has a value, and nothing is done with it: perl warns that it is useless', e.pos);
     }
     const my = e.kind === 'my' ? e : e.kind === 'assign' && e.target.kind === 'my' ? e.target : undefined;
-    if (e.kind === 'assign' && (e.target.kind === 'array' || e.target.kind === 'myarray')) refuse('an array is assigned in a statement of its own, not in a part of a for', e.pos);
+    if (e.kind === 'assign' && (e.target.kind === 'array' || e.target.kind === 'myarray' || e.target.kind === 'deref')) refuse('an array is assigned in a statement of its own, not in a part of a for', e.pos);
     if (my === undefined) return checkExpr(w, e, false);
     if (!first) refuse(`my $${my.name} in the third part of a for: a my is in the first part, and is one variable for the whole loop`, my.pos);
     if (e.kind !== 'assign') return;

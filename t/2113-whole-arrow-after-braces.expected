@@ -1,0 +1,2 @@
+t/2113-whole-arrow-after-braces.pl:5:9: an arrow after the braces of a dereference: to perl it is an array used as a reference, which dies (D108); write the arrow after the reference itself
+exit: 1

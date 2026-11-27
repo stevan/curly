@@ -1,0 +1,2 @@
+t/2124-whole-word-alone-across-lines.pl:5:13: a word alone in %{ ... } is the name of a variable, to perl (%{h} is %h): D114 refuses it; name a variable, %{ $r }
+exit: 1

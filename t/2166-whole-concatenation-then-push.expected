@@ -1,0 +1,2 @@
+t/2166-whole-concatenation-then-push.pl:5:19: a later piece of a concatenation changes $r, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own
+exit: 1

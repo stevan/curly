@@ -1,0 +1,2 @@
+t/2151-whole-assign-in-a-for-part.pl:5:13: an array is assigned in a statement of its own, not in a part of a for
+exit: 1

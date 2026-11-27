@@ -229,6 +229,12 @@ export const resolve = (program: Program): Resolution => {
             if (!quoted) chains.fill(true);
             return;
         case 'anon': return e.items.forEach(x => walk(x, declared));
+        // Step 13b: the whole container through a reference, which a loop
+        // over it freezes as it does an element's (T237, T251).
+        case 'deref':
+            walk(e.head, declared);
+            if (!quoted) chains.fill(true);
+            return;
         case 'ref':
             array(e.of, e.of.name, true);
             taken.add(of.get(e.of)!);
@@ -237,15 +243,18 @@ export const resolve = (program: Program): Resolution => {
             // Its indexes are worked out first (T163).
             e.indexes.forEach(x => walk(x, declared));
             e.items?.forEach(x => walk(x, declared));
+            if (e.deref !== undefined) return walk(e.deref, declared);
             return e.name === undefined ? undefined : array(e, e.name);
         case 'list': return e.items.forEach(x => walk(x, declared));
         case 'arrayop':
+            if (e.deref !== undefined) walk(e.deref, declared);
             e.args.forEach(x => walk(x, declared));
-            return array(e, e.name);
+            return e.deref === undefined ? array(e, e.name) : undefined;
         case 'hashop':
             if (e.chain !== undefined) return walk(e.chain, declared);
             if (e.key !== undefined) walk(e.key, declared);
             e.keys?.forEach(x => walk(x, declared));
+            if (e.deref !== undefined) return walk(e.deref, declared);
             return hash(e, e.name, e.op === 'keys' || e.op === 'count');
         case 'listop': return e.args.forEach(x => walk(x, declared));
         case 'sort': {

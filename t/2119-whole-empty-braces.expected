@@ -1,0 +1,2 @@
+t/2119-whole-empty-braces.pl:4:10: @{} has nothing in its braces: perl does not compile it
+exit: 1

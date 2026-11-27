@@ -1,0 +1,2 @@
+t/2150-whole-assign-to-an-array-as-a-value.pl:5:17: an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+exit: 1

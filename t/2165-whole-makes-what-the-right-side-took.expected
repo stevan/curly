@@ -1,0 +1,2 @@
+t/2165-whole-makes-what-the-right-side-took.pl:5:1: the store makes what $r holds, which the right side has already taken: perl takes it after it is made; take the value into a my first
+exit: 1

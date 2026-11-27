@@ -33,7 +33,7 @@
 // (D28: nothing is global). After every call the caller's line is stored
 // again (D34).
 import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
-import type { ArrayOp, Binder, Chain, Expr, If, Invoke, Program, Sort, Stmt, Sub } from './ast.ts';
+import type { ArrayOp, Binder, Chain, Deref, Expr, If, Invoke, Program, Sort, Stmt, Sub } from './ast.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn, shaped } from './shapes.ts';
@@ -120,7 +120,7 @@ const isRepeat = (e: Expr): boolean => e.kind === 'binary' && infixOp(e.op)?.lis
 // What is more values than one, or fewer, where a list is wanted.
 const listy = (in_: Expr): boolean => {
     const e = through(in_);
-    return e.kind === 'array' || e.kind === 'list' || isRange(e) || isRepeat(e)
+    return e.kind === 'array' || (e.kind === 'deref' && !e.last) || e.kind === 'list' || isRange(e) || isRepeat(e)
         || e.kind === 'slice'
         || (e.kind === 'arrayop' && e.op === 'splice')
         || (e.kind === 'listop' && e.op === 'reverse')
@@ -152,12 +152,18 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
     if (e.kind === 'array') {
         // A hash where a list is wanted: its keys and values by turns.
         b.lines.push(`${e.hash ? 'rt_list_add_pairs' : 'rt_list_add_all'}(cx, ${list}, ${variable(b, e)});`);
+    } else if (e.kind === 'deref' && !e.last) {
+        // The same through a reference (step 13b).
+        const c = genDeref(e, b, false);
+        b.lines.push(`${e.hash ? 'rt_list_add_pairs' : 'rt_list_add_all'}(cx, ${list}, ${c});`);
     } else if (e.kind === 'hashop' && e.keys !== undefined) {
         // `delete @h{...}`: the keys, and then each one's value as it goes.
         const keys = genList(e.keys, b);
-        b.lines.push(`rt_hash_delete_slice(cx, ${list}, ${variable(b, e)}, ${keys.c});`);
+        const c = box(b, e, false);
+        b.lines.push(`rt_hash_delete_slice(cx, ${list}, ${c}, ${keys.c});`);
     } else if (e.kind === 'hashop' && (e.op === 'keys' || e.op === 'values')) {
-        b.lines.push(`rt_list_add_${e.op}(cx, ${list}, ${variable(b, e)});`);
+        const c = e.op === 'keys' ? unfrozen(b, () => box(b, e, false)) : box(b, e, false);
+        b.lines.push(`rt_list_add_${e.op}(cx, ${list}, ${c});`);
     } else if (e.kind === 'list') {
         e.items.forEach(item => addItem(item, list, b, strict));
     } else if (e.kind === 'binary' && isRange(e)) {
@@ -168,9 +174,11 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
         // The indexes first, and then what they are indexes into (T163).
         const indexes = genList(e.indexes, b);
         if (e.name !== undefined && e.hash) {
-            b.lines.push(`rt_list_add_hslice(cx, ${list}, ${variable(b, e)}, ${indexes.c}, ${strict ? 1 : 0});`);
+            const c = box(b, e, false);
+            b.lines.push(`rt_list_add_hslice(cx, ${list}, ${c}, ${indexes.c}, ${strict ? 1 : 0});`);
         } else if (e.name !== undefined) {
-            b.lines.push(`rt_list_add_slice(cx, ${list}, ${variable(b, e)}, ${indexes.c}, ${strict ? 2 : 0});`);
+            const c = box(b, e, false);
+            b.lines.push(`rt_list_add_slice(cx, ${list}, ${c}, ${indexes.c}, ${strict ? 2 : 0});`);
         } else {
             const from = genList(e.items!, b);
             b.lines.push(`rt_list_add_slice(cx, ${list}, ${from.c}, ${indexes.c}, 1);`);
@@ -336,10 +344,13 @@ const sortedInPlace = (b: Code, target: Expr, value: Expr): Expr | undefined => 
 
 // `splice(@a, OFFSET, LENGTH, LIST)`: the numbers, then the list, then
 // the splice, what it removed added to `removed`.
+// Through a reference, the container first, made if it is undef, as perl
+// has it (step 13b; T248).
 const genSplice = (e: ArrayOp, b: Code, removed: string): void => {
+    const c = box(b, e, true);
     const [offset, length] = [e.args[0], e.args[1]].map(a => (a === undefined ? undefined : genExpr(a, b)));
     const put = genList(e.args.slice(2), b);
-    b.lines.push(`rt_splice(cx, ${removed}, ${variable(b, e)}, ${Math.min(e.args.length, 2)}, ${offset?.c ?? 'rt_undef()'}, ${length?.c ?? 'rt_undef()'}, ${put.c});`);
+    b.lines.push(`rt_splice(cx, ${removed}, ${c}, ${Math.min(e.args.length, 2)}, ${offset?.c ?? 'rt_undef()'}, ${length?.c ?? 'rt_undef()'}, ${put.c});`);
 };
 
 // A C local for where an element is, once it has been made: in `array`,
@@ -406,6 +417,28 @@ const genChain = (e: Chain, b: Code, store: boolean): { container: string; last:
         }
     }
     return { container, last: subs.at(-1)!.index };
+};
+
+// The whole container through a reference (step 13b): its head worked
+// out as a chain's is, and the container it points at, read through
+// (D107) or, with `store`, made where it is undef (T248), which a chain's
+// own last hop is. While a loop's own list is built, every container on
+// the way is kept, to be frozen (D114, T251).
+const genDeref = (d: Deref, b: Code, store: boolean): string => {
+    const whole: Chain = d.hash ? { kind: 'chain', head: d.head, index: d.head, hash: true, pos: d.pos } : { kind: 'chain', head: d.head, index: d.head, pos: d.pos };
+    return genChain(whole, b, store).container;
+};
+
+// The container a builtin or a slice names: a named array's or hash's
+// slot, or one through a reference, worked out where this is asked.
+const box = (b: Code, e: Expr & { deref?: Deref }, store: boolean): string => (e.deref === undefined ? variable(b, e) : genDeref(e.deref, b, store));
+
+// What is worked out with nothing kept to be frozen: `keys`, which are
+// copies, and a count (12b, step 13b).
+const unfrozen = <T>(b: Code, f: () => T): T => {
+    const kept = b.frozen;
+    b.frozen = undefined;
+    try { return f(); } finally { b.frozen = kept; }
 };
 
 // The C for an expression's value, once the statements appended to `b`
@@ -476,11 +509,20 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
             addItem(e, temp(b, 'rt_array_new(cx)').c, b, 0);
             return { c: 'rt_undef()', place: false };
         }
-        if (e.key === undefined) return temp(b, `rt_hash_count(cx, ${variable(b, e)})`);
+        if (e.key === undefined) {
+            const c = e.op === 'values' ? box(b, e, false) : unfrozen(b, () => box(b, e, false));
+            return temp(b, `rt_hash_count(cx, ${c})`);
+        }
         const key = genExpr(e.key, b);
         return temp(b, `rt_hash_${e.op}(cx, ${variable(b, e)}, ${key.c})`);
     }
     case 'lastindex': return temp(b, `rt_last_index(cx, ${variable(b, e)})`);
+    // Step 13b: where one value is wanted, the count or the last index of
+    // the container through a reference.
+    case 'deref': {
+        const c = genDeref(e, b, false);
+        return temp(b, `${e.last ? 'rt_last_index' : e.hash ? 'rt_hash_count' : 'rt_count'}(cx, ${c})`);
+    }
     // An element is read where it stands (D76).
     case 'elem': {
         const at = genExpr(e.index, b);
@@ -540,8 +582,10 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         const name = NAMES.get(e.op);
         if (name?.kind !== 'arrayop') throw new Error(`no runtime function for ${e.op}`);
         if (name.shape === 'push') {
+            // (Through a reference the container first, made if undef.)
+            const c = e.deref === undefined ? undefined : box(b, e, true);
             const values = genList(e.args, b);
-            return temp(b, `${name.rt}(cx, ${variable(b, e)}, ${values.c})`);
+            return temp(b, `${name.rt}(cx, ${c ?? variable(b, e)}, ${values.c})`);
         }
         if (name.shape === 'splice') {
             // As a statement: what it removed is not wanted.
@@ -549,7 +593,8 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
             genSplice(e, b, removed.c);
             return { c: 'rt_undef()', place: false };
         }
-        return temp(b, `${name.rt}(cx, ${variable(b, e)})`);
+        const c = box(b, e, false);
+        return temp(b, `${name.rt}(cx, ${c})`);
     }
     // The right side, then each target's index, then the stores, a value
     // for each target in turn, undef when they run out; an array takes
@@ -570,12 +615,21 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
                 containers[n] = container;
                 return kept(genExpr(last, b));
             }
-            return t.kind === 'elem' ? kept(genExpr(t.index, b)) : t.kind === 'slice' ? genList(t.indexes, b) : undefined;
+            // A slice or the whole container through a reference (step
+            // 13b) is made now too, a slice's after its indexes.
+            if (t.kind === 'slice') {
+                const at = genList(t.indexes, b);
+                containers[n] = box(b, t, true);
+                return at;
+            }
+            if (t.kind === 'deref') containers[n] = genDeref(t, b, true);
+            return t.kind === 'elem' ? kept(genExpr(t.index, b)) : undefined;
         });
         e.targets.forEach((t, n) => {
             if (t.kind === 'constant') return;
             if (t.kind === 'array' || t.kind === 'myarray') b.lines.push(`${t.hash ? 'rt_hash_rest' : 'rt_array_rest'}(cx, ${variable(b, t)}, ${values.c}, ${n});`);
-            else if (t.kind === 'slice') b.lines.push(`${t.hash ? 'rt_hslice_store' : 'rt_slice_store'}(cx, ${variable(b, t)}, ${indexes[n]!.c}, ${values.c});`);
+            else if (t.kind === 'deref') b.lines.push(`${t.hash ? 'rt_hash_rest' : 'rt_array_rest'}(cx, ${containers[n]}, ${values.c}, ${n});`);
+            else if (t.kind === 'slice') b.lines.push(`${t.hash ? 'rt_hslice_store' : 'rt_slice_store'}(cx, ${containers[n]}, ${indexes[n]!.c}, ${values.c});`);
             else if (t.kind === 'elem') b.lines.push(`${elem(t)}_store(cx, ${variable(b, t)}, ${indexes[n]!.c}, rt_list_item(cx, ${values.c}, ${n}));`);
             else if (t.kind === 'chain') b.lines.push(`${elem(t)}_store(cx, ${containers[n]}, ${indexes[n]!.c}, rt_list_item(cx, ${values.c}, ${n}));`);
             else b.lines.push(`${variable(b, t)} = rt_list_item(cx, ${values.c}, ${n});`);
@@ -594,6 +648,14 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
             b.inPlace = before;
             if (e.target.kind === 'myarray') genExpr(e.target, b);
             b.lines.push(`${e.target.hash ? 'rt_hash_assign' : 'rt_array_assign'}(cx, ${variable(b, e.target)}, ${values.c});`);
+            return { c: 'rt_undef()', place: false };
+        }
+        // Through a reference (step 13b): the list, then the container,
+        // made if it is undef (T248), then its values are the list's.
+        if (e.target.kind === 'deref') {
+            const values = genList([e.value], b);
+            const c = genDeref(e.target, b, true);
+            b.lines.push(`${e.target.hash ? 'rt_hash_assign' : 'rt_array_assign'}(cx, ${c}, ${values.c});`);
             return { c: 'rt_undef()', place: false };
         }
         if (e.target.kind === 'elem' || e.target.kind === 'chain') {

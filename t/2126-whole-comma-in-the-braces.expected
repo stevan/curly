@@ -1,0 +1,2 @@
+t/2126-whole-comma-in-the-braces.pl:6:13: expected '}', found ','
+exit: 1

@@ -1,0 +1,2 @@
+t/2131-whole-keys-of-an-array.pl:5:10: keys names a hash, found '$r': keys %h, or keys $r->%*
+exit: 1

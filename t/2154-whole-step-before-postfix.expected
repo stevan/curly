@@ -1,0 +1,2 @@
+t/2154-whole-step-before-postfix.pl:5:1: '++' is for a variable or an element: ++$x
+exit: 1

@@ -550,8 +550,7 @@ test('a word is a string on one line (T223, T224), and what a % may not begin', 
     // (A minus before anything else is a minus.)
     assert.equal(lex('$h{-1} $h{-$x} $h{-bar + 1}').length, 18);
     refused('say %_;', "%_ is perl's own, and not in the language", 1, 5);
-    refused('say %$r;', '%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)', 1, 5);
-    refused('say %{$r};', '%{ ... }: a hash through a reference is not in the language yet (step 13b)', 1, 5);
+    refused('say %$r;', '%$ before a name is cut (D108): a hash through a reference is written $r->%* or %{ $r }', 1, 5);
     refused('say %h{"a"};', '%h{...} is a slice of keys and values, and not in the language', 1, 5);
     refused('say %a[0];', '%a[...] is a slice of indexes and values, and not in the language', 1, 5);
     // A slice of a hash (step 12b): the array's token, and the braces a key's.
@@ -577,8 +576,30 @@ test('a brace where a value may begin is a new hash; where a statement may, a bl
     // After a new hash, as after any value, `x` repeats and `%` divides.
     assert.deepEqual(lex('my $x = [1] x 2; my $y = {} % 3;').filter(t => t.kind === 'op').map(t => t.text), ['=', 'x', '=', '%']);
     refused('$r->foo;', "'->' and a name: a method call, and classes are not in the language yet (step 17)", 1, 3);
-    refused('$r->@*;', '->@*: the whole container through a reference is not in the language yet (step 13b)', 1, 3);
     refused('$r->$*;', '->$*: a scalar through a reference is not in the language yet (step 13c)', 1, 3);
-    refused('say @$r;', '@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)', 1, 5);
+    refused('say @$r;', '@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }', 1, 5);
     refused('say $$r[0];', '$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)', 1, 5);
+});
+
+// Step 13b: the whole container through a reference, its tokens, and what
+// may not follow it or stand in its braces (D108, D114).
+test('the whole container through a reference: a postfix form is one token, braces a cast and a brace', () => {
+    const shown = (src: string) => lex(src).map(t => `${t.kind}${(t.kind === '{' || t.kind === '}') && t.deref ? '!' : ''} ${t.text}`);
+    assert.deepEqual(shown('$r->@* $r->%* $r->$#*'), ['var $r', 'op ->@*', 'var $r', 'op ->%*', 'var $r', 'op ->$#*', 'eof ']);
+    assert.deepEqual(shown('@{$r}; %{ $h }; $#{$r}').filter(t => t !== '; ;'), ['cast @', '{! {', 'var $r', '}! }', 'cast %', '{! {', 'var $h', '}! }', 'cast $#', '{! {', 'var $r', '}! }', 'eof ']);
+    assert.deepEqual(lex('$r->@[0] $h->@{a}').map(t => `${t.kind}${(t.kind === '{' || t.kind === '}') && t.subscript ? 'k' : ''} ${t.text}`),
+        ['var $r', 'op ->@', '[ [', 'int 0', '] ]', 'var $h', 'op ->@', '{k {', 'str a', '}k }', 'eof ']);
+    // After each a value has ended: `x` repeats and `%` divides.
+    assert.deepEqual(lex('$r->@* x 2; @{$r} % 2; $r->$#* - 1;').filter(t => t.kind === 'op').map(t => t.text), ['->@*', 'x', '%', '->$#*', '-']);
+    refused('say @{$r}[0];', 'a subscript after the braces of a dereference is cut (D108): write $r->[...], $r->{...}, or the slice $r->@[...], $r->@{...}', 1, 9);
+    refused('say @{$r}\n {a};', 'a subscript after the braces of a dereference is cut (D108): write $r->[...], $r->{...}, or the slice $r->@[...], $r->@{...}', 1, 9);
+    refused('say @{$r}->[0];', "an arrow after the braces of a dereference: to perl it is an array used as a reference, which dies (D108); write the arrow after the reference itself", 1, 9);
+    refused('say $r->@* [0];', 'a subscript after ->@*: perl does not compile it, or dies; take the element through the reference itself, $r->[...]', 1, 7);
+    refused('say $r->%*->{a};', 'a subscript after ->%*: perl does not compile it, or dies; take the element through the reference itself, $r->[...]', 1, 7);
+    refused('say @{};', '@{} has nothing in its braces: perl does not compile it', 1, 6);
+    refused('say %{ {} };', "'{' first in the braces of %{ ... }: perl takes it for a block, and does not compile it; write %{ +{ ... } }", 1, 6);
+    refused('say $#{ a };', 'a word alone in $#{ ... } is the name of a variable, to perl ($#{a} is $#a): D114 refuses it; name a variable, $#{ $r }', 1, 7);
+    refused('say @{true\n};', 'a word alone in @{ ... } is the name of a variable, to perl (@{true} is @true): D114 refuses it; name a variable, @{ $r }', 1, 6);
+    // A word that is not alone is a call, or a word operator.
+    assert.equal(lex('@{ f() } @{ not $x }').length, 12);
 });

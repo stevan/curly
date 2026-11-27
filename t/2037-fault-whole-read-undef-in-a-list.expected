@@ -1,0 +1,3 @@
+1
+fault: undef where a reference is wanted at t/2037-fault-whole-read-undef-in-a-list.pl line 6.
+exit: 1

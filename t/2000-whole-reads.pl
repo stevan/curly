@@ -1,0 +1,201 @@
+# model: t/models/whole.py
+use v5.42;
+sub show($v) {
+    return "u" unless defined $v;
+    return "[" . join(",", map { show($_) } $v->@*) . "]" if ref($v) eq "ARRAY";
+    return "{" . join(",", map { $_ . ":" . show($v->{$_}) } sort keys $v->%*) . "}" if ref($v) eq "HASH";
+    return $v;
+}
+sub pair() {
+    return [7, 8];
+}
+{
+    my $r = [1, [2, 3], {k => "v", n => [4, undef]}, [], "end"];
+    say(scalar($r->@*));
+    say($#{$r});
+    say(join(",", map { show($_) } @{$r}));
+    say(join(",", map { show($_) } $r->@[0, -1]));
+    my @s6 = $r->@[0, 5];
+    say(scalar(@s6), defined($s6[1]) ? "d" : "u");
+    say($r->@* ? "some" : "none", @{$r} + 1);
+    say(scalar(@{$r->[1]}));
+    say($r->[1]->$#*);
+    say(join(",", map { show($_) } $r->[1]->@*));
+    say(join(",", map { show($_) } $r->[1]->@[0, -1]));
+    my @s13 = $r->[1]->@[0, 2];
+    say(scalar(@s13), defined($s13[1]) ? "d" : "u");
+    say(@{$r->[1]} ? "some" : "none", $r->[1]->@* + 1);
+    say(scalar($r->[2]->%*));
+    say(join(",", sort keys %{ $r->[2] }));
+    say(join(",", sort map { show($_) } values $r->[2]->%*));
+    say(scalar(keys $r->[2]->%*), scalar(values %{ $r->[2] }));
+    say(join(",", map { show($_) } $r->[2]->@{"k", "n"}));
+    my @k21 = $r->[2]->@{"k", "nope"};
+    say(scalar(@k21), defined($k21[1]) ? "d" : "u");
+    say(join(",", sort map { show($_) } $r->[2]->%*));
+    say(scalar(@{$r->[2]->{n}}));
+    say($r->[2]{n}->$#*);
+    say(join(",", map { show($_) } $r->[2]->{n}->@*));
+    say(join(",", map { show($_) } $r->[2]{n}->@[0, -1]));
+    my @s28 = $r->[2]->{n}->@[0, 2];
+    say(scalar(@s28), defined($s28[1]) ? "d" : "u");
+    say(@{$r->[2]{n}} ? "some" : "none", $r->[2]->{n}->@* + 1);
+    say(scalar($r->[3]->@*));
+    say($#{$r->[3]});
+    say(join(",", map { show($_) } @{$r->[3]}));
+    say($r->[3]->@* ? "some" : "none");
+}
+{
+    my $r = {a => {b => {c => 5}}, list => [[6, 7], [8]], e => {}, z => 0};
+    say(scalar($r->%*));
+    say(join(",", sort keys %{ $r }));
+    say(join(",", sort map { show($_) } values $r->%*));
+    say(scalar(keys $r->%*), scalar(values %{ $r }));
+    say(join(",", map { show($_) } $r->@{"a", "e"}));
+    my @k43 = $r->@{"a", "nope"};
+    say(scalar(@k43), defined($k43[1]) ? "d" : "u");
+    say(join(",", sort map { show($_) } $r->%*));
+    say(scalar(%{ $r->{a} }));
+    say(join(",", sort keys $r->{a}->%*));
+    say(join(",", sort map { show($_) } values %{ $r->{a} }));
+    say(scalar(keys %{ $r->{a} }), scalar(values $r->{a}->%*));
+    say(join(",", map { show($_) } $r->{a}->@{"b"}));
+    my @k51 = $r->{a}->@{"b", "nope"};
+    say(scalar(@k51), defined($k51[1]) ? "d" : "u");
+    say(join(",", sort map { show($_) } %{ $r->{a} }));
+    say(scalar($r->{a}{b}->%*));
+    say(join(",", sort keys %{ $r->{a}->{b} }));
+    say(join(",", sort map { show($_) } values $r->{a}{b}->%*));
+    say(scalar(keys $r->{a}->{b}->%*), scalar(values %{ $r->{a}{b} }));
+    say(join(",", map { show($_) } $r->{a}->{b}->@{"c"}));
+    my @k59 = $r->{a}{b}->@{"c", "nope"};
+    say(scalar(@k59), defined($k59[1]) ? "d" : "u");
+    say(join(",", sort map { show($_) } $r->{a}->{b}->%*));
+    say(scalar(%{ $r->{e} }));
+    say(join(",", sort keys $r->{e}->%*));
+    say(join(",", sort map { show($_) } values %{ $r->{e} }));
+    say(scalar(keys %{ $r->{e} }), scalar(values $r->{e}->%*));
+    say(join(",", sort map { show($_) } %{ $r->{e} }));
+    say(scalar($r->{list}->@*));
+    say($#{$r->{list}});
+    say(join(",", map { show($_) } @{$r->{list}}));
+    say(join(",", map { show($_) } $r->{list}->@[0, -1]));
+    my @s71 = $r->{list}->@[0, 2];
+    say(scalar(@s71), defined($s71[1]) ? "d" : "u");
+    say($r->{list}->@* ? "some" : "none", @{$r->{list}} + 1);
+    say(scalar(@{$r->{list}->[0]}));
+    say($r->{list}[0]->$#*);
+    say(join(",", map { show($_) } $r->{list}->[0]->@*));
+    say(join(",", map { show($_) } $r->{list}[0]->@[0, -1]));
+    my @s78 = $r->{list}->[0]->@[0, 2];
+    say(scalar(@s78), defined($s78[1]) ? "d" : "u");
+    say(@{$r->{list}[0]} ? "some" : "none", $r->{list}->[0]->@* + 1);
+    say(scalar($r->{list}[1]->@*));
+    say($#{$r->{list}->[1]});
+    say(join(",", map { show($_) } @{$r->{list}[1]}));
+    say(join(",", map { show($_) } $r->{list}->[1]->@[0, -1]));
+    my @s85 = $r->{list}[1]->@[0, 1];
+    say(scalar(@s85), defined($s85[1]) ? "d" : "u");
+    say($r->{list}->[1]->@* ? "some" : "none", @{$r->{list}[1]} + 1);
+}
+{
+    my $r = [[[[9, 10]]]];
+    say(scalar($r->@*));
+    say($#{$r});
+    say(join(",", map { show($_) } @{$r}));
+    say(join(",", map { show($_) } $r->@[0, -1]));
+    my @s95 = $r->@[0, 1];
+    say(scalar(@s95), defined($s95[1]) ? "d" : "u");
+    say($r->@* ? "some" : "none", @{$r} + 1);
+    say(scalar(@{$r->[0]}));
+    say($r->[0]->$#*);
+    say(join(",", map { show($_) } $r->[0]->@*));
+    say(join(",", map { show($_) } $r->[0]->@[0, -1]));
+    my @s102 = $r->[0]->@[0, 1];
+    say(scalar(@s102), defined($s102[1]) ? "d" : "u");
+    say(@{$r->[0]} ? "some" : "none", $r->[0]->@* + 1);
+    say(scalar($r->[0]->[0]->@*));
+    say($#{$r->[0][0]});
+    say(join(",", map { show($_) } @{$r->[0]->[0]}));
+    say(join(",", map { show($_) } $r->[0][0]->@[0, -1]));
+    my @s109 = $r->[0]->[0]->@[0, 1];
+    say(scalar(@s109), defined($s109[1]) ? "d" : "u");
+    say($r->[0][0]->@* ? "some" : "none", @{$r->[0]->[0]} + 1);
+    say(scalar(@{$r->[0][0][0]}));
+    say($r->[0]->[0]->[0]->$#*);
+    say(join(",", map { show($_) } $r->[0][0][0]->@*));
+    say(join(",", map { show($_) } $r->[0]->[0]->[0]->@[0, -1]));
+    my @s116 = $r->[0][0][0]->@[0, 2];
+    say(scalar(@s116), defined($s116[1]) ? "d" : "u");
+    say(@{$r->[0]->[0]->[0]} ? "some" : "none", $r->[0][0][0]->@* + 1);
+}
+{
+    my $r = {x => [{y => [11, 12, 13]}]};
+    say(scalar($r->%*));
+    say(join(",", sort keys %{ $r }));
+    say(join(",", sort map { show($_) } values $r->%*));
+    say(scalar(keys $r->%*), scalar(values %{ $r }));
+    say(join(",", map { show($_) } $r->@{"x"}));
+    my @k127 = $r->@{"x", "nope"};
+    say(scalar(@k127), defined($k127[1]) ? "d" : "u");
+    say(join(",", sort map { show($_) } $r->%*));
+    say(scalar(@{$r->{x}}));
+    say($r->{x}->$#*);
+    say(join(",", map { show($_) } $r->{x}->@*));
+    say(join(",", map { show($_) } $r->{x}->@[0, -1]));
+    my @s134 = $r->{x}->@[0, 1];
+    say(scalar(@s134), defined($s134[1]) ? "d" : "u");
+    say(@{$r->{x}} ? "some" : "none", $r->{x}->@* + 1);
+    say(scalar($r->{x}[0]->%*));
+    say(join(",", sort keys %{ $r->{x}->[0] }));
+    say(join(",", sort map { show($_) } values $r->{x}[0]->%*));
+    say(scalar(keys $r->{x}->[0]->%*), scalar(values %{ $r->{x}[0] }));
+    say(join(",", map { show($_) } $r->{x}->[0]->@{"y"}));
+    my @k142 = $r->{x}[0]->@{"y", "nope"};
+    say(scalar(@k142), defined($k142[1]) ? "d" : "u");
+    say(join(",", sort map { show($_) } $r->{x}->[0]->%*));
+    say(scalar(@{$r->{x}[0]{y}}));
+    say($r->{x}->[0]->{y}->$#*);
+    say(join(",", map { show($_) } $r->{x}[0]{y}->@*));
+    say(join(",", map { show($_) } $r->{x}->[0]->{y}->@[0, -1]));
+    my @s149 = $r->{x}[0]{y}->@[0, 3];
+    say(scalar(@s149), defined($s149[1]) ? "d" : "u");
+    say(@{$r->{x}->[0]->{y}} ? "some" : "none", $r->{x}[0]{y}->@* + 1);
+}
+{
+    my @a = ([1, 2], {k => [3]});
+    my %h = (x => [4, 5, 6], y => {z => 7});
+    say(scalar($a[0]->@*), scalar(@{$a[1]{k}}), $a[0]->$#*, $#{$h{x}});
+    say(join(",", $a[1]{k}->@*, @{$h{x}}, sort keys %{$h{y}}));
+    say(join(",", $h{x}->@[2, 0]));
+}
+{
+    my $c = 1;
+    my $x = [1];
+    my $y = [2, 3];
+    say(join(",", pair()->@*), scalar(@{ pair() }), pair()->$#*);
+    say(join(",", [4, 5]->@*), scalar(@{ [6] }), $#{ [1, 2, 3] }, join(",", sort keys %{ +{q => 1, p => 2} }));
+    say(join(",", @{ $c ? $y : $x }), scalar(($x)->@*), join(",", @{ $x }));
+    say(join(",", +{a => [9]}->{a}->@*), join(",", [[1, 2]]->[0]->@[1, 0]));
+}
+{
+    my $r = [5, 6, 7];
+    my $h = {a => 1, b => 2};
+    my $e = [];
+    say($r->@* + 0, $r->@* * 2, $r->$#* - 1, $r->@* == 3 ? "three" : "not", @{$e} || "empty");
+    say("n=" . $r->@*, " k=" . keys $h->%*, " h=" . %{$h});
+    my $n = $r->@*;
+    my $m = %{$h};
+    my $l = $#{$e};
+    say($n, $m, $l);
+    my $g = grep { $_ > 5 } $r->@*;
+    my $twice = map { ($_, $_) } $r->@*;
+    say($g, $twice);
+    my ($first, @rest) = $r->@*;
+    my @copy = @{$r};
+    my %hc = $h->%*;
+    $copy[0] = 9;
+    say($first, "|", join(",", @rest), "|", $r->[0], $copy[0], "|", join(",", map { "$_$hc{$_}" } sort keys %hc));
+    say(join(",", reverse $r->@*), "|", join("-", @{$r}), "|", join(",", sort { $b <=> $a } $r->@*));
+    say(join(",", sort $h->%*));
+}

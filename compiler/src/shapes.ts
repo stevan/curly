@@ -32,6 +32,8 @@ export const shaped = (in_: Expr, gives: Gives): boolean => {
     const e = behind(in_);
     switch (e.kind) {
     case 'array': return true;
+    // The whole container through a reference (step 13b), as `@a` and `%h`.
+    case 'deref': return e.last !== true;
     case 'list': return e.items.length > 1 || (e.items.length === 1 && shaped(e.items[0]!, gives));
     case 'slice': return e.name !== undefined || e.indexes.length !== 1 || shaped(e.indexes[0]!, gives) || handsOn(e.indexes[0]!, gives);
     case 'arrayop': return e.op === 'splice';

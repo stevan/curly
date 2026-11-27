@@ -721,8 +721,8 @@ test('what a hash may not be written as', () => {
     refused('say exists $a[0];', "exists takes an element of a hash, found '$a': exists $h{...}", 1, 12);
     refused('say delete $x;', "delete takes an element of a hash, found '$x': delete $h{...}", 1, 12);
     refused('say exists(%h);', "exists takes an element of a hash, found '%h': exists $h{...}", 1, 12);
-    refused('say keys @a;', "keys names a hash, found '@a': keys %h", 1, 10);
-    refused('say values($h{a});', "values names a hash, found '$h': values %h", 1, 12);
+    refused('say keys @a;', "keys names a hash, found '@a': keys %h, or keys $r->%*", 1, 10);
+    refused('say values($h{a});', "values names a hash, found '$h': values %h, or values $r->%*", 1, 12);
     refused('say $h{};', '$h{} has no key: perl does not compile it', 1, 7);
     refused('say $h{1, 2};', "a comma in a hash's key: perl joins the values into one key", 1, 9);
     refused('say $h{a => 1};', "a comma in a hash's key: perl joins the values into one key", 1, 10);

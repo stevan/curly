@@ -1,0 +1,3 @@
+1
+fault: an odd number of values for a hash at t/2072-fault-whole-odd-hash-assigned.pl line 6.
+exit: 1

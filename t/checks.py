@@ -297,6 +297,11 @@ def clip(data, n=300):
 # and the eight seeds. TRAPS.md, "The checks themselves", has the list,
 # by the step that brings each construct.
 ORDERED = re.compile(r'\b(?:keys|values|each)\b|->%\*|%(?=[A-Za-z_${])')
+# What a reference is read through, `$r` and its subscripts, and a hash as
+# a program names one: `%h`, `%{ ... }` (one level of braces in it) and
+# `HEAD->%*` (step 13b).
+HEAD = r'\$\w+(?:(?:->)?(?:\[[^\[\]]*\]|\{[^{}]*\}))*'
+HASH = r'(?:%\w+|%\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}|' + HEAD + r'->%\*)'
 THROUGH = ('map', 'grep', 'reverse')
 OWNERS = ('my', 'state', 'keys', 'values', 'each', 'exists', 'delete')
 
@@ -418,12 +423,20 @@ def counted(code, m):
     only how many there are is asked, or where it is copied or declared:
     no order shows (step 12's review, C2)."""
     before, rest = code[:m.start()], code[m.start():]
-    name = r'%[\w]+' if m.group(0)[0] == '%' else r'(?:keys|values)\s*\(?\s*%\w+\s*\)?'
+    # A hash through a reference, `%{ ... }` or `$h->%*`, is read as a
+    # named one is (step 13b); the postfix form from its head.
+    hash = HASH
+    if m.group(0) == '->%*':
+        head = re.search(HEAD + r'$', before)
+        if head is None:
+            return False
+        before, rest = code[:head.start()], code[head.start():]
+    name = hash if m.group(0)[0] in '%-' else r'(?:keys|values)\s*\(?\s*' + hash + r'\s*\)?'
     # The whole test of an if, an unless, a while or an until.
     if re.search(r'\b(?:if|unless|while|until)\s*\(\s*!?\s*$', before) and re.match(name + r'\s*\)', rest):
         return True
     # Assigned to a scalar, as its count; or to another hash, as a copy.
-    target = r'\$\w+' if m.group(0)[0] != '%' else r'[$%]\w+'
+    target = r'\$\w+' if m.group(0)[0] not in '%-' else r'[$%]\w+'
     if re.search(r'(?:^|[;{}\s])(?:my\s+)?' + target + r'\s*=\s*$', before) and re.match(name + r'\s*;', rest):
         return True
     # Compared with a number.
@@ -472,7 +485,7 @@ def counted(code, m):
     # Handed to a sub of the file's whose last parameter is a hash: copied
     # into it, whatever the order.
     call = re.search(r'\b(\w+)\([^()]*$', before)
-    if m.group(0)[0] == '%' and call and re.search(r'\bsub\s+' + call.group(1) + r'\s*\([^{;]*%\w*\s*\)\s*\{', code):
+    if m.group(0)[0] in '%-' and call and re.search(r'\bsub\s+' + call.group(1) + r'\s*\([^{;]*%\w*\s*\)\s*\{', code):
         return True
     # Tested, by `? :` or behind a `!`: whether it has any.
     if re.match(name + r'\s*\?', rest) or re.search(r'!\s*$', before):
@@ -499,25 +512,28 @@ def hash_order_shown(path):
         what = m.group(0)
         whole = what[0] in '%-'
         line = code.count('\n', 0, m.start()) + 1
-        if what[0] == '%' and m.start() > 0 and code[m.start() - 1] == '\\':
+        # `$h->%*` is read from its variable (step 13b).
+        head = re.search(HEAD + r'$', code[:m.start()]) if what == '->%*' else None
+        start = head.start() if head else m.start()
+        if what[0] == '%' and start > 0 and code[start - 1] == '\\':
             # `\%h` is a reference: the order shows where it is used.
             continue
         # A word that is a key, alone in braces or before `=>`, is a string.
-        if what[0] not in '%-' and (re.match(r'\s*=>', code[m.end():]) or (re.match(r'[ \t]*\}', code[m.end():]) and re.search(r'\{[ \t]*$', code[:m.start()]))):
+        if what[0] not in '%-' and (re.match(r'\s*=>', code[m.end():]) or (re.match(r'[ \t]*\}', code[m.end():]) and re.search(r'\{[ \t]*$', code[:start]))):
             continue
         if counted(code, m):
             continue
         # A variable called `$keys` or `@values` is a name.
-        if what[0] != '%' and m.start() > 0 and code[m.start() - 1] in '$@':
+        if what[0] != '%' and start > 0 and code[start - 1] in '$@':
             continue
-        word, at = word_before(code, m.start())
+        word, at = word_before(code, start)
         if word == 'scalar' and what != 'each':
             continue
         # `(keys %h)[0]`: one of them, picked before any sort.
-        if re.match(r'(?:keys|values)?\s*\(?\s*%?\w*\s*\)?\s*\)\s*\[', code[m.start():]) and re.search(r'\(\s*$', code[:m.start()]):
+        if re.match(r'(?:keys|values)?\s*\(?\s*%?\w*\s*\)?\s*\)\s*\[', code[start:]) and re.search(r'\(\s*$', code[:start]):
             found.append(f'line {line}: {what} sliced before any sort, without sort')
             continue
-        block = block_before(code, m.start())
+        block = block_before(code, start)
         while word in THROUGH:
             if block is not None and EFFECT.search(block):
                 found.append(f'line {line}: a {word} block that does more than work a value out, between {what} and any sort: without sort')
@@ -533,7 +549,11 @@ def hash_order_shown(path):
             continue
         if whole and word in OWNERS:
             continue
-        if what[0] == '%' and re.match(r'%[\w$]+\s*=(?![=~>])', code[m.start():]):
+        if what[0] == '%' and re.match(r'%[\w$]+\s*=(?![=~>])', code[start:]):
+            continue
+        # Assigned to, through a reference too, or the last target of a
+        # list assignment: filled, whatever the order (step 13b).
+        if whole and (re.match(HASH + r'\s*=(?![=~>])', code[start:]) or (re.match(HASH + r'\s*\)\s*=(?![=~>])', code[start:]) and re.search(r'\([^()]*$', code[:start]))):
             continue
         found.append(f'line {line}: {"a whole hash" if whole else what} without sort')
     return found
