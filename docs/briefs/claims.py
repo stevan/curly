@@ -1172,5 +1172,12 @@ CLAIMS += [
     c('15-defined-or', 'PLAN 15', 'sub boom() { die "x\\n" } my %i; try { $i{k} //= boom() } catch ($e) { } my @e; try { $e[2] ||= boom() } catch ($e) { } say exists $i{k} ? "made" : "not", scalar(@e);', out='made3\n'),
 ]
 
+# ---- found on Stevan's Mac (TRAPS T351): a reference as a count is its
+# address, which no test may ask perl to build
+CLAIMS += [
+    c('T351', 'TRAPS', 'my $r = [1]; say(0 + $r > 1_000_000 ? "big" : "small"); my $x = "" x $r; say length $x; my @l = ($r .. 1); say scalar @l;', out='big\n0\n0\n'),
+    c('T351-mac', 'TRAPS', 'my $x = "" x 5000000000; my @m = (5000000000 .. 1); say length($x), scalar(@m);', out='00\n'),
+]
+
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

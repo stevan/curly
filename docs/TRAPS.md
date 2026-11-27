@@ -649,6 +649,14 @@ Each row is in `briefs/claims.py`.
 | T344 | `my $r; push $r->@*, defined($r) ? "made" : "not";`; the same with `$s->@* = (...)` and `$t->@[0] = (...)` | `made not not`: `push` makes the array before its list is worked out; an assignment, to the whole or a slice, works its right side out first | 13b | Agree, in that order |
 | T345 | `sort $r->@*`, and `sort $r ->@*` | `1,2,3` each: an arrow after the scalar is no comparator's name | 13b | `sort $r->@*` is in, the arrow hard against the variable; with a blank it stays refused, as `sort $r` is |
 
+## Found on Stevan's Mac
+
+Each row is in `briefs/claims.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T351 | `my $r = [1]; say("a" x $r);` and `my @l = (1 .. $r);` in a fault test; against `my $x = "" x 5000000000;` and `my @l = (5000000000 .. 1);` | perl takes a reference's address for the count: on Linux about 94 trillion, and perl dies at once; on a Mac a few billion, and perl builds and prints gigabytes, which the oracle stops at 16 MB. An empty string repeated and a range that runs down are nothing, whatever the count (`0`, `0`) | 13a | No test asks perl for work the size of an address (D46, T131's kin): 1872 repeats an empty string and 1874 runs its range down. Every fault test that gives perl a reference for a number was read as if the address were 5,000,000,000: the rest cost perl nothing |
+
 ## Found by the review of step 14
 
 | | Program | perl prints | Step | Way out |

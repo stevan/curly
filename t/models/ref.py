@@ -797,13 +797,16 @@ fault('step-through-it-in-a-map', ['my @m = (undef);', 'my @n = map { $_->[0]++ 
 # A new hash's odd list (T244).
 fault('odd-new-hash', ['my $h = {a => 1, "b"};'], ODD)
 fault('odd-new-hash-assigned', ['my %h = {a => 1};'], ODD)
-# A reference where a number or a string is wanted (D112).
+# A reference where a number or a string is wanted (D112). Where perl
+# uses one as a count it uses its address, which on a Mac is a few billion:
+# so no count here asks perl for that much work, an empty string repeated
+# and a range that runs down being nothing whatever the count (D46, T351).
 NUMS = [('add', 'my $x = $r + 1;'), ('add-right', 'my $x = 1 + $r;'), ('subtract', 'my $x = $r - 1;'), ('multiply', 'my $x = $r * 2;'),
         ('divide', 'my $x = $r / 2;'), ('modulus', 'my $x = $r % 2;'), ('power', 'my $x = $r ** 2;'), ('negate', 'my $x = -$r;'),
         ('increment', '$r++;'), ('decrement', '--$r;'), ('add-to', '$r += 1;'), ('less', 'say($r < 1 ? 1 : 0);'),
         ('compare', 'say($r <=> $r);'), ('equal-to-a-number', 'say($r == 0 ? 1 : 0);'), ('number-equal-to', 'say(0 == $r ? 1 : 0);'),
         ('not-equal-to-undef', 'my $u = 1;\nsay($r != $u ? 1 : 0);'), ('index', 'my @a = (1);\nsay($a[$r]);'), ('chr', 'say(chr($r));'),
-        ('repeat-count', 'say("a" x $r);'), ('substr-position', 'say(substr("abc", $r));'), ('range', 'my @l = (1 .. $r);'),
+        ('repeat-count', 'my $x = "" x $r;'), ('substr-position', 'say(substr("abc", $r));'), ('range', 'my @l = ($r .. 1);'),
         ('range-loop', 'for my $i ($r .. 2) {\n}'), ('sort-block', 'my @s = sort { $r } (1, 2);')]
 STRS = [('say', 'say($r);'), ('print', 'print($r);'), ('in-a-list', 'say("a", $r);'), ('concat', 'my $x = $r . "";'),
         ('concat-to', 'my $s = "";\n$s .= $r;'), ('interpolated', 'my $x = "$r";'), ('equal', 'say($r eq $r ? 1 : 0);'),

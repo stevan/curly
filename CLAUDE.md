@@ -271,7 +271,7 @@ about perl as a program, 806 of them now, and all hold under 5.42.0,
 run plain as the oracle runs it. [`docs/TRAPS.md`](docs/TRAPS.md)
 keeps the programs, T1 to T230, by step (T119 to T124 found proposing
 step 6, T132 to T142 proposing step 8, T143 to T148 by its review, T125 to T130 by the review of step 5, T131 building step 6).
-**T131 is the one to remember**: where the language faults perl may
+**T351, found on Stevan's Mac**: a reference used as a count is its address to perl, a few billion on a Mac, so a fault test's `"a" x $r` or `1 .. $r` had perl build gigabytes there (1872 and 1874 ask for nothing now; every such test was read as if the address were 5,000,000,000). **T131 is the one to remember**: where the language faults perl may
 carry on, so a loop that only the fault would end never ends under
 perl; a test of that kind filled 19 GB of disk. A fault test's loop
 is counted by something the fault doesn't touch, and `t/run.sh` and
