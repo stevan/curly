@@ -1,0 +1,2 @@
+t/2507-qref-key-after-braces.pl:5:11: '{' hard after @{$r} in a string: a subscript after the whole array through a reference is refused (D114; perl reads on after braces, and after a postfix form it is text); write @{$r}\{
+exit: 1

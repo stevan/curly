@@ -1,0 +1,2 @@
+t/2522-qref-hash-slice.pl:5:8: '->@{' hard after $q in a string: a slice of a hash through a reference, which is not in a string (D99, D111): join it first; or write $q\->@{
+exit: 1

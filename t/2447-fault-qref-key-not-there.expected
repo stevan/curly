@@ -1,0 +1,3 @@
+1
+fault: undef where a string is wanted at t/2447-fault-qref-key-not-there.pl line 6.
+exit: 1

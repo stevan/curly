@@ -4,7 +4,7 @@
 // (which `use`, which integers) are the checker's.
 import { refuse } from './errors.ts';
 import { AND_ROW, COMMA_ROW, NAMED_UNARY_ROW, NAMES, NAME_MAX_LENGTH, OPERATORS, PERL_KEYWORDS, PERL_WORDS, PRAGMAS, PRECEDENCE, TERNARY_ROW, infixOp, isLabel, isVersionString, prefixOp, stepOp } from './names.ts';
-import type { Index, Token } from './lexer.ts';
+import type { Index, Key, Piece, Token } from './lexer.ts';
 import type { Arm, Chain, Deref, Elem, Expr, HashOp, Label, Param, Pos, Program, Stmt } from './ast.ts';
 
 // A token as a diagnostic names it. A string is shown if it is short.
@@ -681,13 +681,21 @@ export const parse = (tokens: readonly Token[]): Program => {
                 const whole: Expr = { kind: 'int', text: x.text, value: BigInt(x.text), pos: x.pos };
                 return x.negative ? { kind: 'unary', op: '-', operand: whole, pos: x.pos } : whole;
             };
-            const parts = t.pieces.map((p): Expr =>
+            const key = (k: Key, at: Pos): Expr => (k.kind === 'var' ? { kind: 'var', name: k.name, pos: k.pos } : { kind: 'str', text: k.text, value: k.text, pos: at });
+            // (Step 13d: a reference's pieces are the nodes they are
+            // outside a string, a chain's head within.)
+            const piece = (p: Piece): Expr =>
                 p.kind === 'text' ? { kind: 'str', text: '', value: p.value, pos: t.pos }
                 : p.kind === 'elem' ? { kind: 'elem', name: p.name, index: index(p.index), pos: p.pos }
-                : p.kind === 'helem' ? { kind: 'elem', name: p.name, hash: true, pos: p.pos,
-                    index: p.key.kind === 'var' ? { kind: 'var', name: p.key.name, pos: p.key.pos } : { kind: 'str', text: p.key.text, value: p.key.text, pos: p.pos } }
+                : p.kind === 'helem' ? { kind: 'elem', name: p.name, hash: true, pos: p.pos, index: key(p.key, p.pos) }
                 : p.kind === 'slice' ? { kind: 'slice', name: p.name, indexes: p.indexes.map(index), pos: p.pos }
-                : { kind: p.kind, name: p.name, pos: p.pos });
+                : p.kind === 'chain' ? (p.key !== undefined ? { kind: 'chain', head: piece(p.head), index: key(p.key, p.pos), hash: true, pos: p.pos }
+                    : { kind: 'chain', head: piece(p.head), index: index(p.index!), pos: p.pos })
+                : p.kind === 'deref' ? (p.last ? { kind: 'deref', head: piece(p.head), last: true, pos: p.pos } : { kind: 'deref', head: piece(p.head), pos: p.pos })
+                : p.kind === 'sderef' ? { kind: 'sderef', head: piece(p.head), pos: p.pos }
+                : p.kind === 'dslice' ? { kind: 'slice', name: '', deref: { kind: 'deref', head: piece(p.head), pos: p.pos }, indexes: p.indexes.map(index), pos: p.pos }
+                : { kind: p.kind, name: p.name, pos: p.pos };
+            const parts = t.pieces.map(piece);
             return { kind: 'interp', text: t.text, parts, pos: t.pos };
         }
         if (t.kind === 'str') {

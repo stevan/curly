@@ -9,6 +9,7 @@ chalk/c3t5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the
 chalk/fk2.pl	D19	'our' is not in the language
 chalk/hc1.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 chalk/hc2.pl	D19	'our' is not in the language
+chalk/hc3.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 pvm/adjacency-01_literals-01.pl	D38	1. ends with a point: write 1.0
 pvm/adjacency-02_variables-01.pl	D114	a word alone in ${ ... } is the name of a variable, to perl (${x} is $x): D114 refuses it; name a variable, ${ $r }
 pvm/adjacency-05_scoping-01.pl	D16	'use feature' is not in the language
@@ -79,6 +80,7 @@ pvm/symbol-table-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are n
 pvm/symbol-table-02.pl	D110	\ before '*': \ takes a named array or a named hash, \@a or \%h (D110)
 pvm/symbol-table-04.pl	D19	'our' is not in the language
 pvm/symbol-table-05.pl	D19	'our' is not in the language
+pvm/taking-references-01.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 pvm/taking-references-02.pl	D110	\ before a list: perl makes a list of a reference to each, which is cut (D110)
 pvm/taking-references-03.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 pvm/taking-references-04.pl	D16	'use feature' is not in the language
@@ -200,12 +202,16 @@ son-audit/a/aun17f.pl	D19	'our' is not in the language
 son-audit/a/aun18.pl	D19	'our' is not in the language
 son-audit/a/aun19.pl	D19	'our' is not in the language
 son-audit/a/aun2.pl	D19	'our' is not in the language
+son-audit/a/aun20.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/a/aun21.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aun22.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aun23.pl	D19	'our' is not in the language
+son-audit/a/aun28.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/a/aun3.pl	D19	'our' is not in the language
 son-audit/a/aun30.pl	D19	'our' is not in the language
 son-audit/a/aun31.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+son-audit/a/aun35.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/a/aun36.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/a/aun4.pl	D19	'our' is not in the language
 son-audit/a/aun40.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/a/aun41.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -303,6 +309,10 @@ son-audit/f/a04.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/f/a05.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/a06.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/a07.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/f/a08.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/f/a09.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/f/a10.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/f/a11.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/f/a16.pl	D19	'our' is not in the language
 son-audit/f/a17.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/a18.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -508,7 +518,9 @@ son-audit/f/e61.pl	D92	'$' in a double-quoted string begins a variable, and no n
 son-audit/f/e62.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/e63.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/e65.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
+son-audit/f/g05.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/f/g09.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/g27.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/f/g30.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/f/g31.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/g32.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -520,6 +532,7 @@ son-audit/f/g39.pl	D108	@$ before a name is cut (D108): an array through a refer
 son-audit/f/g40.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/g41.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/g42.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/f/g43.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/f/g44.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/f/g45.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/g46.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -573,6 +586,7 @@ son-audit/f/j08.pl	D19	'our' is not in the language
 son-audit/f/j09.pl	D19	'our' is not in the language
 son-audit/f/j11.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
 son-audit/f/j12.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/f/j13.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/f/j14.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/f/j15.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/f/j19.pl	D19	'our' is not in the language
@@ -743,7 +757,10 @@ son-audit/f/s32.pl	D57	a later piece of a concatenation calls n, which can chang
 son-audit/f/s34.pl	D76	a later part of join can change $s, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/f/s35.pl	D57	a later piece of a concatenation calls n, which can change @a, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the call a statement of its own
 son-audit/f/s43.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/f/s45.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/f/s48.pl	D19	'our' is not in the language
+son-audit/f/s49.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+son-audit/f/s50.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/f/s51.pl	D19	'our' is not in the language
 son-audit/f/s52.pl	D19	'our' is not in the language
 son-audit/f/s53.pl	D19	'our' is not in the language
@@ -756,6 +773,7 @@ son-audit/f/s59.pl	D19	'our' is not in the language
 son-audit/f/s60.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/w05.pl	D19	'our' is not in the language
 son-audit/f/w06.pl	D19	'our' is not in the language
+son-audit/f/w08.pl	D19	'our' is not in the language
 son-audit/f/w09.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/w10.pl	D19	'our' is not in the language
 son-audit/f/w12.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -979,6 +997,7 @@ son-audit/p/im5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/p/im7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im9.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
+son-audit/p/la2.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/p/la3.pl	D19	'our' is not in the language
 son-audit/p/la4.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/p/la7.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -1062,14 +1081,18 @@ son-audit/p/tp7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/p/tp8.pl	D19	'our' is not in the language
 son-audit/p/tp9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/w1lib5.pl	D19	'::' hard after $main in a string: perl reads a variable of another package; write ${main}:: or $main\::
+son-audit/p/wa1.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/p/wa2.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/p/wa23.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/p/wa24.pl	D19	'our' is not in the language
 son-audit/p/wa25.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/wa3.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
+son-audit/p/wa8.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/q/nv1.pl	D19	'our' is not in the language
 son-audit/q/nv10.pl	D19	'our' is not in the language
 son-audit/q/nv11.pl	D19	'our' is not in the language
 son-audit/q/nv12.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/q/nv13.pl	D19	'our' is not in the language
 son-audit/q/nv14.pl	D19	'our' is not in the language
 son-audit/q/nv2.pl	D19	'our' is not in the language
 son-audit/q/nv3.pl	D19	'our' is not in the language
@@ -1218,12 +1241,14 @@ son-audit/r/g04.pl	D19	'our' is not in the language
 son-audit/r/g05.pl	D19	'our' is not in the language
 son-audit/r/g06.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/r/g07.pl	D19	'our' is not in the language
+son-audit/r/g08.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/r/g09.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/g10.pl	D19	'our' is not in the language
 son-audit/r/g11.pl	D76	a later part of join can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/r/g12.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/g13.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/r/g15.pl	D19	'our' is not in the language
+son-audit/r/g16.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/r/g17.pl	D19	'our' is not in the language
 son-audit/r/g18.pl	D19	'our' is not in the language
 son-audit/r/g19.pl	D19	'our' is not in the language
@@ -1259,6 +1284,7 @@ son-audit/r/j05.pl	D108	$$ before a name is cut (D108): an element through a ref
 son-audit/r/j09.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/r/j26.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/r/j27.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/r/j28.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/r/j29.pl	D92	'[' hard after $a[0] in a string: another index, to perl; write $a[0]\[
 son-audit/r/j31.pl	D13	'wantarray' is not in the language
 son-audit/r/j35.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -1277,6 +1303,7 @@ son-audit/r/j49.pl	D108	$$ before a name is cut (D108): an element through a ref
 son-audit/r/k08.pl	D19	'our' is not in the language
 son-audit/r/k10.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/k11.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
+son-audit/r/l10.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/r/l17.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/l20.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/r/m01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1368,6 +1395,7 @@ son-audit/y/unverified/yf111.pl	D17	expected a value, found 'each'
 son-audit/y/unverified/yf51.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/unverified/yi30.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/unverified/yi34.pl	D13	expected a value, found 'eval'
+son-audit/y/unverified/yj56.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/unverified/yp158.pl	D19	'our' is not in the language
 son-audit/y/unverified/yp191.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/unverified/yp21.pl	D19	'our' is not in the language
@@ -1483,6 +1511,7 @@ son-audit/y/yc112.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yc114.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc116.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc118.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yc119.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/yc120.pl	D76	a later part of this slice can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc121.pl	D109	a later part of '+' can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc122.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1515,6 +1544,7 @@ son-audit/y/yc153.pl	D76	a later part of this list can change @a, which an earli
 son-audit/y/yc154.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc155.pl	D76	a later part of print's list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc156.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/yc157.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/yc158.pl	D76	a later part of join can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc159.pl	D76	a later part of push can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc161.pl	D76	a later part of sprintf can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -1522,6 +1552,7 @@ son-audit/y/yc162.pl	D76	a later part of this list can change @a, which an earli
 son-audit/y/yc163.pl	D76	a later part of the loop's list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc164.pl	D76	a later part of reverse can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc165.pl	D87	sort takes no brackets of its own: sort LIST, or sort { ... } LIST
+son-audit/y/yc166.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yc167.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc168.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc169.pl	D19	'our' is not in the language
@@ -1547,6 +1578,7 @@ son-audit/y/yc60.pl	D57	a later piece of a concatenation changes $x, which an ea
 son-audit/y/yc61.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc62.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc63.pl	D76	a later part of print's list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yc64.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/yc65.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc66.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc67.pl	D57	a later piece of a concatenation changes %h, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own
@@ -1586,6 +1618,7 @@ son-audit/y/ye21.pl	D19	'our' is not in the language
 son-audit/y/ye22.pl	D19	'our' is not in the language
 son-audit/y/ye23.pl	D19	'our' is not in the language
 son-audit/y/ye24.pl	D19	'our' is not in the language
+son-audit/y/ye25.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/ye26.pl	D19	'our' is not in the language
 son-audit/y/ye27.pl	D19	'our' is not in the language
 son-audit/y/ye28.pl	D19	'our' is not in the language
@@ -1662,6 +1695,7 @@ son-audit/y/yg47.pl	D125	an argument by its number, %3$s..., which is not in the
 son-audit/y/yg49.pl	D125	%v, which is not in the language (a version string's format; T276), in sprintf's format
 son-audit/y/yg51.pl	D38	017 starts with a zero: perl reads that as octal, which the language writes 0o17
 son-audit/y/yg58.pl	D130	chomp is a statement here, and has no value: perl gives how many characters it took (D130)
+son-audit/y/yg66.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yg67.pl	D99	'{' hard after @h in a string: a slice of a hash, to perl, which is not in a string (D99): join it first; or write @{h}{ or @h\{
 son-audit/y/yg76.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
 son-audit/y/yg77.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
@@ -1672,6 +1706,8 @@ son-audit/y/yh01.pl	D13	'wantarray' is not in the language
 son-audit/y/yh02.pl	D13	expected a value, found 'wantarray'
 son-audit/y/yh03.pl	D13	'wantarray' is not in the language
 son-audit/y/yh04.pl	D13	'wantarray' is not in the language
+son-audit/y/yh05.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
+son-audit/y/yh06.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/yh07.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yh08.pl	D13	'wantarray' is not in the language
 son-audit/y/yh09.pl	D13	'wantarray' is not in the language
@@ -1798,6 +1834,7 @@ son-audit/y/yj67.pl	D13	'END' is not in the language
 son-audit/y/yj69.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }
 son-audit/y/yj70.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/y/yj72.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/y/yj73.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/y/yj74.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yj75.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yj77.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -1824,6 +1861,7 @@ son-audit/y/ym20.pl	D17	expected a value, found 'each'
 son-audit/y/ym22.pl	D38	01 starts with a zero: perl reads that as octal, which the language writes 0o17
 son-audit/y/ym23.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/ym24.pl	D108	a subscript after the braces of a dereference is cut (D108): write $r->[...], $r->{...}, or the slice $r->@[...], $r->@{...}
+son-audit/y/ym25.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/ym31.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/y/ym33.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/ym34.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -1855,8 +1893,10 @@ son-audit/y/yn29.pl	D13	'eval' is not in the language
 son-audit/y/yn41.pl	D21	print is a statement, and has no value
 son-audit/y/yn44.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/y/yn52.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
+son-audit/y/yn53.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yn55.pl	D92	'[' hard after $h{k} in a string: another index, to perl; write $h{k}\[
 son-audit/y/yn57.pl	D17	'srand' is not in the language
+son-audit/y/yo18.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yo20.pl	D16	'use strict' is not in the language
 son-audit/y/yo39.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yp100.pl	D76	a later part of this list can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -1914,6 +1954,7 @@ son-audit/y/yp169.pl	D108	$$ before a name is cut (D108): an element through a r
 son-audit/y/yp170.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yp171.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yp172.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/y/yp174.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/y/yp175.pl	D19	'our' is not in the language
 son-audit/y/yp176.pl	D19	'our' is not in the language
 son-audit/y/yp177.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -1974,6 +2015,7 @@ son-audit/y/yp74.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/y/yp75.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yp76.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yp77.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/y/yp78.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/y/yp79.pl	D109	a later part of '+' can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yp80.pl	D109	a later part of '+' can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yp81.pl	D109	a later part of '+' can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -2012,6 +2054,8 @@ son-audit/z/cp05.pl	D17	$_ is read-only: in perl, changing it changes the list's
 son-audit/z/cp06.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/cp07.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/cp08.pl	D92	'[' hard after $c[0] in a string: another index, to perl; write $c[0]\[
+son-audit/z/cp16.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+son-audit/z/cp17.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* or %{ $r }
 son-audit/z/cp18.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/cp21.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/z/cp22.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
@@ -2034,6 +2078,7 @@ son-audit/z/cp85.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/z/cp87.pl	D19	'local' is not in the language
 son-audit/z/fl01.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/z/fl03.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/z/fl04.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/z/fl05.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/fl06.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/z/fl07.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -2076,7 +2121,11 @@ son-audit/z/mi34.pl	D91	in a string an index is a whole number or a scalar varia
 son-audit/z/mi39.pl	D13	'wantarray' is not in the language
 son-audit/z/mi40.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/z/mi42.pl	D13	expected a value, found 'wantarray'
+son-audit/z/mi43.pl	D111	${\ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
+son-audit/z/mi44.pl	D111	${\ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/z/mi45.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
+son-audit/z/mi46.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/z/mi47.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/z/mi49.pl	D54	else after unless: write it as an if
 son-audit/z/mi61.pl	D91	in a string an index is a whole number or a scalar variable (D91): take the index into a my first
 son-audit/z/mi64.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
@@ -2089,6 +2138,8 @@ son-audit/z/mi88.pl	D99	in a string a key is a word or a scalar variable, hard a
 son-audit/z/nd01.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/nd02.pl	D102	a comma in the block of a map, a grep or a sort: put the list in brackets, map { ($_ => 1) } ...
 son-audit/z/nd03.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
+son-audit/z/nd05.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
+son-audit/z/nd06.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/z/nd10.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
 son-audit/z/nd15.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/pa01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2131,6 +2182,7 @@ son-audit/z/pa46.pl	D17	$_ is read-only: in perl, changing it changes the list's
 son-audit/z/pa47.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/pa48.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/pa50.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/z/pa51.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/z/pa52.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/pa53.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/pa55.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -2253,6 +2305,7 @@ son-audit/z/qb08.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/z/qb09.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/qb10.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/qb11.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/z/qb12.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/z/qb14.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/qb15.pl	D19	'local' is not in the language
 son-audit/z/qc02.pl	D19	'our' is not in the language
@@ -2282,6 +2335,7 @@ son-audit/z/qd40.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/qd42.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/qd44.pl	D19	'our' is not in the language
 son-audit/z/qd45.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/z/qd46.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/z/qd47.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/qd48.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/qd49.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -2309,7 +2363,11 @@ son-audit/z/rf01.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/z/rf02.pl	D110	\$_: a reference to $_ is cut (D110): to perl it is the list's own element; take the value into a my first
 son-audit/z/rf03.pl	D110	\ before a list: perl makes a list of a reference to each, which is cut (D110)
 son-audit/z/rf04.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/z/rf05.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/z/rf06.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/z/rf07.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/z/rf08.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/z/rf09.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/z/rf10.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/rf11.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/rf12.pl	D110	\ before an element: a reference to an element is cut (D110); take a reference to the array or the hash
@@ -2319,6 +2377,7 @@ son-audit/z/rf15.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/z/rf17.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }
 son-audit/z/rf18.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/rf19.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/z/rf24.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/z/rf25.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/rf26.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/rf27.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -2344,6 +2403,7 @@ son-audit/z/un14.pl	D19	'our' is not in the language
 son-audit/z/un15.pl	D19	'our' is not in the language
 son-audit/z/un16.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/z/un18.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/z/un21.pl	D111	in a string what stands in braces after a sigil is a scalar variable, with subscripts or without (D111): take the reference into a my first
 son-audit/z/un22.pl	D16	'use feature' is not in the language
 son-audit/z/un23.pl	D16	'use feature' is not in the language
 son-audit/z/un24.pl	D16	'use feature' is not in the language

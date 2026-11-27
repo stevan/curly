@@ -1,0 +1,2 @@
+t/2528-qref-index-octal.pl:5:11: 01 in an index in a string: a leading zero makes it octal, to perl; write the number without it
+exit: 1

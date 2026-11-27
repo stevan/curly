@@ -1,2 +1,2 @@
-t/1373-interpolate-scalar-dereference.pl:5:6: $$ in a string takes a reference, and a reference in a string is not in the language yet (step 13d)
+t/1373-interpolate-scalar-dereference.pl:5:6: $$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 exit: 1

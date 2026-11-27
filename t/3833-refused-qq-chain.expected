@@ -1,2 +1,1 @@
-t/3833-refused-qq-chain.pl:5:10: '->[' hard after $r in a string: a dereference, to perl, and a dereference in a string is not in the language yet (step 13d); write $r\->[
-exit: 1
+1

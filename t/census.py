@@ -142,8 +142,12 @@ REASONS = [
     (r"\(D108\)", 'design', 'D108'),
     (r"^a subscript after ->", 'design', 'D108'),
     (r"D114 refuses it|^'\{' first in the braces of", 'design', 'D114'),
-    # ---- later, by the step (step 13c's row went with it)
-    (r"\(step 13d\)", 'later', '13d'),
+    # ---- step 13d's (D92, D111, D114); its own row, `(step 13d)`, went with it
+    (r"\(D111\)", 'design', 'D111'),
+    (r"\(D114; perl reads on after braces", 'design', 'D114'),
+    (r"^'\{' hard after .* in a string: perl reads on, and does not compile it", 'design', 'D92'),
+    (r"^'->.' hard after .* in a string: a dereference of what that gives, to perl, which is no reference", 'design', 'D92'),
+    # ---- later, by the step (step 13c's and 13d's rows went with them)
     (r"\(step 14\)", 'later', '14'),
     (r"\(step 17\)", 'later', '17'),
     (r"^a sub with no name, as a value", 'later', '14'),
@@ -424,7 +428,8 @@ def self_test():
         ("this can change a scalar that a reference reaches, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop", 'design D109'),
         ("a word alone in @{ ... } is the name of a variable, to perl (@{true} is @true): D114 refuses it; name a variable, @{ $r }", 'design D114'),
         ("an arrow after the braces of a dereference: to perl it is an array used as a reference, which dies (D108); write the arrow after the reference itself", 'design D108'),
-        ("'[' hard after $a[0] in a string: another index, to perl, and an element through a reference in a string is not in the language yet (step 13d); write $a[0]\\[", 'later 13d'),
+        ("'[' hard after $r->@* in a string: a subscript after the whole array through a reference is refused (D114; perl reads on after braces, and after a postfix form it is text); write $r->@*\\[", 'design D114'),
+        ("@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it", 'design D111'),
         ("'[' hard after $#a in a string: another index, to perl; write $#a\\[", 'design D92'),
         ("a later part of say's list can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first", 'design D109'),
         ("expected ';', found '{'", 'open'),

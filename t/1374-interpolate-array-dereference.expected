@@ -1,2 +1,2 @@
-t/1374-interpolate-array-dereference.pl:5:6: @$ in a string takes a reference, and a reference in a string is not in the language yet (step 13d)
+t/1374-interpolate-array-dereference.pl:5:6: @$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 exit: 1

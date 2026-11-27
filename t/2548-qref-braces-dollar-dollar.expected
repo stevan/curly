@@ -1,0 +1,2 @@
+t/2548-qref-braces-dollar-dollar.pl:6:8: in a string what stands in braces after a sigil is a scalar variable, with subscripts or without (D111): take the reference into a my first
+exit: 1

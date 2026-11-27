@@ -1,0 +1,2 @@
+t/2525-qref-arrow-at-alone.pl:5:8: '->@' hard after $r in a string: perl reads on, into a dereference or a variable after the arrow, and the language takes ->@*, ->$#*, ->$* and ->@[...] there (D111); write $r\->@
+exit: 1

@@ -1,0 +1,2 @@
+t/2552-qref-t230-through.pl:6:12: the index changes $r, which the concatenation on the right reads: perl joins its pieces as it stores, after the index is worked out; take the string into a my first
+exit: 1

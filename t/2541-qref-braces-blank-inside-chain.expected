@@ -1,0 +1,2 @@
+t/2541-qref-braces-blank-inside-chain.pl:5:16: in a string what stands in @{ ... } is a scalar variable, with subscripts or without (D111): take the reference into a my first
+exit: 1

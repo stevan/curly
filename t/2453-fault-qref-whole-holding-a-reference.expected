@@ -1,0 +1,3 @@
+1
+fault: a reference where a string is wanted at t/2453-fault-qref-whole-holding-a-reference.pl line 6.
+exit: 1

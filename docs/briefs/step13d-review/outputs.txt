@@ -1,0 +1,85 @@
+# python3 docs/briefs/step13d-review/strings.py valid, with SAMPLE=30000 (every string taken is run), 2026-11-27
+valid: 25534 strings, the compiler takes 15029 and refuses 10505
+  10 of 76 batches
+  20 of 76 batches
+  30 of 76 batches
+  40 of 76 batches
+  50 of 76 batches
+  60 of 76 batches
+  70 of 76 batches
+  2535 print what perl prints; 0 fault where perl prints in silence; 12078 perl warns of or dies at, 416 perl prints an address for: 1016 of these two compiled alone, 1016 fault
+  refused: 10505; of 3000 asked, perl runs 224 in silence
+    stricter, 5: '->@' hard after N[N] in a string
+    stricter, 4: '
+    stricter, 4: '->$' hard after N{k}->[N] in a string
+    stricter, 4: '->@' hard after N->{a}[N] in a string
+    stricter, 4: '->@' hard after N->[N] in a string
+    stricter, 3: '->$' hard after N[N] in a string
+    stricter, 3: '->@' hard after N[N]->[N] in a string
+    stricter, 3: '->@' hard after N[N][N] in a string
+    stricter, 3: '->@' hard after N{k}->[N] in a string
+    stricter, 3: N in an index in a string
+    stricter, 3: '->@' hard after N->{a}->[N] in a string
+    stricter, 3: '->$' hard after N->[N][N] in a string
+    stricter, 2: '->$' hard after N[N]->{k} in a string
+    stricter, 2: '->$' hard after N[N]{N} in a string
+    stricter, 2: '->$' hard after N[-N] in a string
+nothing differs
+
+# python3 docs/briefs/step13d-review/strings.py exhaustive braces random, SAMPLE=12000, 2026-11-27
+  of the 39168 taken, 12000 picked at random are run
+exhaustive: 116675 strings, the compiler takes 12000 and refuses 77507
+  10 of 60 batches
+  20 of 60 batches
+  30 of 60 batches
+  40 of 60 batches
+  50 of 60 batches
+  60 of 60 batches
+  689 print what perl prints; 54 fault where perl prints in silence; 10520 perl warns of or dies at, 737 perl prints an address for: 1200 of these two compiled alone, 1200 fault
+    LOUD 54: undef where a reference is wanted   e.g. <$a[0]->[9]->$#*->>
+  refused: 77507; of 3000 asked, perl runs 202 in silence
+    stricter, 38: '@' in a double-quoted string begins an array, and no name is hard against it
+    stricter, 11: '$' in a double-quoted string begins a variable, and no name is hard against it
+    stricter, 9: '->[' hard after N->$#* in a string
+    stricter, 8: '->@' hard after N->$#* in a string
+    stricter, 6: '->[' hard after N->@* in a string
+    stricter, 6: '->{' hard after N->@* in a string
+    stricter, 6: '->[' hard after N->$* in a string
+    stricter, 6: '->{' hard after N->$* in a string
+    stricter, 5: '[' hard after N[N]->@* in a string
+    stricter, 5: '[' hard after N->$#* in a string
+    stricter, 4: '->{' hard after N->$#* in a string
+    stricter, 4: '->@' hard after N->@* in a string
+    stricter, 4: '[' hard after N->@* in a string
+    stricter, 4: '->@' hard after N{k}->$#* in a string
+    stricter, 4: '->{' hard after N{k}->@* in a string
+  of the 88635 taken, 12000 picked at random are run
+braces: 217992 strings, the compiler takes 12000 and refuses 129357
+  10 of 60 batches
+  20 of 60 batches
+  30 of 60 batches
+  40 of 60 batches
+  50 of 60 batches
+  60 of 60 batches
+  74 print what perl prints; 414 fault where perl prints in silence; 11507 perl warns of or dies at, 5 perl prints an address for: 605 of these two compiled alone, 605 fault
+    LOUD 414: undef where a reference is wanted   e.g. <$#{  $r->[9]->{a}}>
+  refused: 129357; of 3000 asked, perl runs 5 in silence
+    stricter, 1: '{' hard after ${  N->{b}} in a string
+    stricter, 1: '[' hard after ${ N->[N]->{a} } in a string
+    stricter, 1: '[' hard after ${N{a}->{b}} in a string
+    stricter, 1: '[' hard after @{  N{a}->{b}} in a string
+    stricter, 1: '[' hard after @{ N[N] } in a string
+random: 30000 strings, the compiler takes 6904 and refuses 23096
+  10 of 35 batches
+  20 of 35 batches
+  30 of 35 batches
+  4782 print what perl prints; 0 fault where perl prints in silence; 80 perl warns of or dies at, 2042 perl prints an address for: 680 of these two compiled alone, 680 fault
+  refused: 23096; of 3000 asked, perl runs 151 in silence
+    stricter, 88: '@' in a double-quoted string begins an array, and no name is hard against it
+    stricter, 40: '$' in a double-quoted string begins a variable, and no name is hard against it
+    stricter, 16: after '$#' in a string comes an array's name, or one in braces
+    stricter, 2: '->@' hard after N in a string
+    stricter, 2: '->$' hard after N in a string
+    stricter, 2: @$ in a string
+    stricter, 1: $#$ in a string
+nothing differs
