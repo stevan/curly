@@ -989,6 +989,9 @@ CLAIMS += STEP13D
 # And step 14's, docs/briefs/claims14.py.
 from claims14 import STEP14  # noqa: E402
 CLAIMS += STEP14
+# And step 24's, docs/briefs/claims24.py: the examples' bends.
+from claims24 import STEP24  # noqa: E402
+CLAIMS += STEP24
 
 def run(perl, prelude, code, flags):
     with tempfile.TemporaryDirectory() as d:

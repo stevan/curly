@@ -7233,6 +7233,38 @@ file by file, as REFUSED (and for what) or compiled. It is the subset
 this language started from (D4), and the list of reasons is the
 truest account of how far apart the two have grown.
 
+**How the examples are held** (2026-11-27, the examples that no longer
+wait). Each is `examples/NAME.pl` with `examples/NAME.expected` beside
+it, which `t/run.sh` and `t/checks.py` already read as they read
+`t/`: a `same` test like any other, its `.expected` written from perl
+by the oracle and held to it under the eight seeds, and run under the
+knobs. A file of `examples/` has a name and no number, so that it reads
+as a program and not as a test; a header comment names where it came
+from. The golden numbers 5800 to 5999 are kept for a reduced test of a
+WRONG the examples find (none was found).
+
+**Built, the first part** (2026-11-27): 54 programs, 30 to 160 lines,
+3,900 in all: the table's Opal ports (factorial, Fibonacci, gcd, even
+and odd, 99 bottles, Ackermann, Hanoi, Collatz, binomial, sum of
+digits) grown into programs, and 44 of the author's own in the style a
+Perl programmer writes (sorting and searching, n-queens, sudoku,
+matrices, closures as stacks, queues, iterators and an event bus, a
+bank and a shop with `die` and `try`, a pretty printer, Huffman,
+Dijkstra, union-find, a topological sort, a Brainfuck interpreter, a
+stack machine with an assembler, and more). **Every one prints what
+perl prints; none is WRONG.** **`examples/BENDS.md`** records each
+bend (D8) by decision: the Perl, the message, what was written, and a
+judgement of how much a Perl programmer will resent it, with five
+refusals it recommends loosening; what perl does in each is a row of
+`docs/briefs/claims24.py`. The largest costs are not decisions but
+steps still to come: `split` and regexes (19 programs) and `int` (16);
+of the decisions, D108 (28 programs, mechanically) and `scalar`
+without brackets (11, by no decision). The language caught three
+mistakes of the author's that perl ran on (two undefs, D48; an
+overflow perl printed as a fraction of doubles, D35). Crayon's 25
+programs could not be read on this machine and are not ported;
+Chalk's `lib/` measurement is not done.
+
 ### 25, 26. Gradual types
 
 Referee: perl, through the erasure. Size: large, twice.
@@ -7456,12 +7488,13 @@ steps 21 and 22.
 
 | Example | From | Needs | Status |
 |---|---|---|---|
-| Factorial, Fibonacci, gcd, even and odd | Opal `tests/` | step 8 | waits |
-| 99 bottles | Opal `tests/` | steps 6, 16 | waits |
-| Ackermann, Hanoi, Collatz, binomial | Opal `author/TESTING.md` | step 8 | waits; none may go 100 calls deep until step 8 says how that is tested |
-| Sum of digits | Opal `author/TESTING.md` | steps 8, 22 (`int`) | waits |
+| 44 programs of the examples' own, and `examples/BENDS.md` | written for step 24 | steps 8 to 16 | built (2026-11-27): each `examples/NAME.pl`, a `same` test held to perl |
+| Factorial, Fibonacci, gcd, even and odd | Opal `tests/` | step 8 | built: `examples/factorial.pl`, `fibonacci.pl`, `gcd.pl`, `even-odd.pl`; gcd's `($a, $b)` bent (D55) |
+| 99 bottles | Opal `tests/` | steps 6, 16 | built: `examples/bottles.pl`, as Opal wrote it and as a Perl programmer would |
+| Ackermann, Hanoi, Collatz, binomial | Opal `author/TESTING.md` | step 8 | built: `examples/ackermann.pl`, `hanoi.pl`, `collatz.pl`, `binomial.pl`; the deep ones carry `no warnings 'recursion';` (D67), all under D68's limit |
+| Sum of digits | Opal `author/TESTING.md` | steps 8, 22 (`int`) | built, bent: `examples/sum-digits.pl` takes the digit off before dividing, for want of `int` |
 | Opal's `t/*.t` with a TAP library in the language | Opal `t/`, `lib/Test.opal.pm` | steps 14, 18 | waits; the library leans on dynamic scope and must change (D8) |
 | `Chalk::Grammar::Symbol`, `Rule` | Chalk `lib/Chalk/Grammar/` | step 17 | waits |
-| About 25 small programs: subs, classes, references, `try` | Crayon `docs/superpowers/plans/2026-03-31-crayon-interpreter.md` | steps 8 to 17 | waits; their expected values were written by hand and some are wrong, so perl writes them (D7); four must bend (`show 42`, `:writer`, roles, a subclass reading a parent's field) |
+| About 25 small programs: subs, classes, references, `try` | Crayon `docs/superpowers/plans/2026-03-31-crayon-interpreter.md` | steps 8 to 17 | waits; their expected values were written by hand and some are wrong, so perl writes them (D7); four must bend (`show 42`, `:writer`, roles, a subclass reading a parent's field). Not on the machine of 2026-11-27, and not ported; 44 programs of the examples' own cover their subs, references and `try` |
 | The graded corpus, tier by tier | perl5-son `t/corpus/mdtest/pvm/` | step 11 | waits on D11 |
 | Streams, the functional classes, datatypes, concurrency: 98 modules, about 4,000 lines | `stevan/grey-static`, `lib/grey/static/` (`stream/`, `time/stream/`, `io/stream/`, `functional/`, `datatypes/`, `concurrency/`) | steps 12 to 17, 18, 22 | waits; the plan of it is under Proposals. Surveyed by pattern, 2026-11-26, a sub with no signature allowed (D105): 59 modules as written, 4 with small edits, 13 held only by `use overload`, 22 by something cut (`@_` in 7, `Time::HiRes` in 5, `Scalar::Util` in 5, which `use v5.42` imports already). The loader, `error`, `source`, `mop`, `logging` and `tty` are not wanted (Stevan) |
