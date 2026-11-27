@@ -282,6 +282,9 @@ class Gen:
         return self.elem(d, k)
 
     def index(self, d):
+        if d > 0 and self.p(0.08):
+            # an index that does something: a step, an assignment, a call
+            return self.ch([lambda: self.side(0, 'num'), lambda: self.call(0, 'num')])()
         if self.p(0.6):
             return self.ch(['0', '1', '2', '-1', '3'])
         sc = self.vars('$', {'int'})
