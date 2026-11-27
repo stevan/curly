@@ -80,6 +80,9 @@ class Gen:
         self.depth_loops = 0
         self.frozen = set()
         self.recent = []
+        # a dense program: no loops or subs, statement after statement of
+        # values read and changed in one go
+        self.dense = self.r.random() < 0.3
 
     # ---- helpers
     def p(self, x):
@@ -118,7 +121,7 @@ class Gen:
         variable read and changed in one statement is what the walks of
         order (D14, D57, D76, D80) are about."""
         again = [x for x in xs if x in self.recent]
-        x = self.ch(again) if again and self.p(0.55) else self.ch(xs)
+        x = self.ch(again) if again and self.p(0.75 if self.dense else 0.55) else self.ch(xs)
         self.recent.append(x)
         return x
 
@@ -200,6 +203,8 @@ class Gen:
             want = self.ch(['num', 'num', 'str', 'str', 'bool', 'ref', 'any'])
         if want == 'any':
             want = self.ch(['num', 'str', 'bool'])
+        if self.dense and d > 0 and want in ('num', 'str') and self.p(0.2):
+            return self.side(d - 1, want)
         if d <= 0 or self.p(0.25):
             return self.leaf(want)
         f = getattr(self, 'e_' + want)
@@ -610,7 +615,9 @@ class Gen:
         self.sortvars = True
         try:
             blk_ = self.ch(['$a <=> $b', '$b <=> $a', '$a cmp $b', '$b cmp $a', 'length($a) <=> length($b) || $a cmp $b',
-                            f'{self.expr(1, "num")} <=> {self.expr(1, "num")}', '0', '$a <=> $b or $a cmp $b'])
+                            f'{self.expr(1, "num")} <=> {self.expr(1, "num")}', '0', '$a <=> $b or $a cmp $b',
+                            '0.5', '($a <=> $b) * 0.9', '"1"', '$b - $a', 'length($a) - length($b)', '-($a cmp $b)', '($a <=> $b) - 0.5',
+                            f'{self.call(1, "num")} <=> 1 || $a cmp $b'])
         finally:
             self.sortvars = False
         return f'(sort {{ {blk_} }} {inner})'
@@ -723,7 +730,7 @@ class Gen:
         sc = [v for v in self.vars('$', {'int', 'num', 'str', 'nstr', 'bool'}, writable=True) if not self.scope.all()[v].get('const')]
         arr = self.vars('@')
         hs = self.vars('%')
-        k = self.r.randrange(14)
+        k = self.r.randrange(20)
         x = self.ch(sc) if sc else None
         e = lambda w='num': self.expr(1, w)
         if k == 0 and x:
@@ -784,6 +791,33 @@ class Gen:
                             f'say(sprintf("%s|%d|%.3g|%5.1f", {x}, length({x}), 2.5, 7));'])
         if k == 13 and x:
             return f'try {{ {x} = {e()}; die("d:" . {x} . "\\n"); }} catch ($er) {{ print($er); {x} = {e()}; }}'
+        if k == 14:
+            body = '\n'.join(self.ch(['line', 'two  words', '', 'x']) + (self.interp()[1:-1] if self.p(0.6) else '') for _ in range(self.r.randint(1, 3)))
+            q = self.ch(['"END"', 'END', "'END'"])
+            if q == "'END'":
+                body = body.replace('$', '').replace('@', '')
+            return f'print(<<~{q});\n{body}\nEND'
+        if k == 15:
+            return f'warn("w", {e(self.ch(["num", "str"]))}, "\\n");'
+        if k == 16:
+            c = self.fresh('$v')
+            self.declare(c, kind='int')
+            n = self.ch(['0', '2', '5'])
+            return self.ch([f'my {c} = 0; {c}++ while {c} < {n}; say({c});', f'my {c} = 9; {c}-- until {c} <= {n}; say({c});'])
+        if k == 17:
+            f = self.fresh('$f')
+            self.declare(f, kind='code', const=True, min=1, max=1)
+            return f'my {f} = sub ($n) {{ return $n <= 1 ? {e()} : $n . __SUB__->($n - 1); }}; say({f}->({self.ch(["0", "3", "5"])}));'
+        if k == 18 and hs:
+            h = self.ch(hs)
+            g = self.fresh('%h')
+            self.declare(g)
+            return f'my {g} = (%{h[1:]}, {self.ch(WORDS)} => {e()}); say(join(",", map {{ $_ . "=" . (ref(${g[1:]}{{$_}}) ? "r" : ${g[1:]}{{$_}} // "u") }} sort keys {g}), " ", scalar(%{g[1:]}));'
+        if k == 19 and self.vars('$', {'href', 'aref'}):
+            r = self.ch(self.vars('$', {'href', 'aref'}))
+            if self.scope.all()[r]['kind'] == 'href':
+                return f'say(join(",", sort keys {r}->%*), " ", scalar(%{{{r}}}), " ", join(",", map {{ ref($_) ? "r" : $_ // "u" }} @{{{r}}}{{"k", "a"}}));'
+            return f'say(scalar({r}->@*), " ", $#{{{r}}}, " ", join(",", map {{ ref($_) ? "r" : $_ // "u" }} {r}->@[0, -1]));'
         return None
 
     def modifier(self, st, d):
@@ -1166,6 +1200,9 @@ class Gen:
         for p in params[1]:
             self.declare(p[0], kind=p[1] if p[1] else None)
         body = self.block(3, self.r.randint(1, 4))
+        if self.p(0.3):
+            # a die that goes through whoever called: a map, a sort, a loop
+            body['stmts'].insert(self.r.randint(0, len(body['stmts'])), [self.die_stmt(1)])
         # an ending: return a value, a list, nothing, or a last expression
         k = self.r.random()
         lst = False
@@ -1192,7 +1229,7 @@ class Gen:
 
     def program(self):
         top = blk()
-        nsubs = self.r.randint(0, 4)
+        nsubs = self.r.randint(0, 4) if not self.dense else self.r.randint(0, 1)
         # the file's variables first, so that subs may see them
         ndecl = self.r.randint(2, 5)
         for _ in range(ndecl):
@@ -1202,8 +1239,8 @@ class Gen:
             self.in_sub = f'fn{LETTERS[i]}'
             subs.append(self.sub_def(i))
         self.in_sub = None
-        for _ in range(self.r.randint(4, 14)):
-            s = self.stmt(3, top=True)
+        for _ in range(self.r.randint(4, 14) if not self.dense else self.r.randint(25, 45)):
+            s = self.stmt(3, top=True) if not self.dense else [self.simple_stmt(3)]
             if s:
                 top['stmts'].append(s)
             if self.p(0.3):

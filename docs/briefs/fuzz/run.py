@@ -35,17 +35,18 @@ import census
 import checks
 
 REPAIRS = 40
-LOUD_REPAIRS = 6
+LOUD_REPAIRS = 12
 PERL = os.environ.get('CURLY_PERL', 'perl')
 OURS_LIMIT = 20
 PERL_LIMIT = 5
 SEEDS = ['1', '2']
-ADDR = re.compile(rb'0x[0-9a-f]{6,}')
+ADDR = re.compile(rb'(?<=[A-Z]\()0x[0-9a-f]+(?=\))')
 
 
 def norm(msg):
     """A message with its names and numbers made general, to count by."""
-    m = re.sub(r"'[^']*'", "'_'", msg)
+    m = re.sub(r' at \S+ line \d+\.\s*$', ' at line N', msg)
+    m = re.sub(r"'[^']*'", "'_'", m)
     m = re.sub(r'[$@%]\w+', 'V', m)
     m = re.sub(r'\b\d+\b', 'N', m)
     m = re.sub(r'\bfn[a-z]\b', 'F', m)
