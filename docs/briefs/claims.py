@@ -983,6 +983,9 @@ CLAIMS += STEP16
 # And step 13d's, docs/briefs/claims13d.py.
 from claims13d import STEP13D  # noqa: E402
 CLAIMS += STEP13D
+# And step 14's, docs/briefs/claims14.py.
+from claims14 import STEP14  # noqa: E402
+CLAIMS += STEP14
 
 def run(perl, prelude, code, flags):
     with tempfile.TemporaryDirectory() as d:

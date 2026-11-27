@@ -2305,3 +2305,71 @@ is enough, and this is the one place it shows today. Rejected:
 keeping an errno of the runtime's own (a model of perl's every call
 that sets it); faulting at the underflow itself (a fault where
 nothing could show it).
+
+## Step 14: closures
+
+**D160 to D165. Step 14, closures: each question answered with its
+recommendation.** *(User, 2026-11-26, of step 13 and standing since:
+"do not ask me questions, I will only agree with your recommendations
+anyway." The recommendations are Fable 5.2's, 2026-11-27; each is his
+to overturn. `PLAN.md`, step 14, has the text, the evidence and what
+was rejected; `TRAPS.md`, T360 to T369, the programs.)*
+**D160. One step, closures and calls through a reference; `state`
+and `my sub` are not built.** No probe of the census uses `my sub`
+and three use `state`; each has rules of its own (`state` is one
+variable per closure value, and a `my sub` cannot call itself by
+name, T369). They stay Later, to be proposed when something wants
+them. Rejected: all four now.
+**D161. A captured scalar lives in a cell, a captured array or hash
+is held by its block, and a closure's value is its code and that
+row.** A `sub` gives a new value each time it is reached if it uses
+any variable declared outside it, the file's too, and inside an
+anonymous sub within it; otherwise one value for the whole run, which
+is what perl's `==` shows (T363). Rejected: copying values in (WRONG
+at once, T360); a fault on `==` between two sub references (perl's
+answer is fixed, so it is followed, D14).
+**D162. A closure over a `foreach` variable takes a copy, and what
+the loop froze stays frozen for good from the moment the closure is
+made** (T11, T361): to perl the variable is the element, so the sub
+would see a later store; with every store a fault, the copy cannot be
+told from it. `$_`, `$a` and `$b` are not seen inside an anonymous
+sub (T362). Rejected: refusing it (`my $y = $x;` first still works,
+and freezes nothing); perl's alias (an element would have to be a
+cell); freezing until the closure is collected (the moment would
+depend on the collector).
+**D163. A call through a reference is, to every walk, a call of any
+sub a reference can be to**: every anonymous sub, and every named sub
+that has a `\&name` somewhere. Its changes are the union of theirs,
+and it may give a list if any of them may (D18). Rejected: following
+the values (no types yet); refusing such a call inside an expression.
+**D164. Calling what is not a sub's reference is a fault**, by
+D107's two messages: `undef where a reference is wanted`, and `not a
+reference to a sub` (T366).
+**D165. Refused: `&$f(...)`, `&{$f}(...)` and `->&*` (D21); `sort $f
+LIST` (step 10's rule); `last` and `next` to a loop outside the
+anonymous sub** (perl leaves the caller's loop and warns, T365); a
+prototype or an attribute; `wantarray` and `@_` (D17, D18); a named
+sub in a block (T31).
+
+**D166. What is done about the review of step 14.** *(Builder's
+defaults, Fable 5.2, 2026-11-27, under the same standing
+instruction; `PLAN.md`, step 14, "What the review found"; T370 to
+T376.)* A call through a reference works out its arguments, then the
+whole of what stands before the arrow, then checks it is a sub's
+reference, then calls; in every walk what stands before the arrow is
+the last part of its call, and the value called is kept in a slot for
+the whole call (T370). The capture of a loop's variable is refused
+when the loop's list names any scalar variable anywhere, or reads
+through a reference to a scalar (T371). A captured loop variable is
+still read-only, in every sub written in the loop (T372). `\&name` is
+refused before `->`, `(`, `[` or `{` (T373). The arrow may be left
+out only after a subscript, or after the brackets of a call through a
+reference (T374). `__SUB__` is refused outside an anonymous sub, and
+in a `map`, `grep` or `sort` block inside one it is that sub. "Uses a
+variable from outside" counts the uses inside nested anonymous subs
+(T375). A parameter is a cell before its defaults run when a
+default's closure uses it. `my $f = sub { $f->() };` is refused with
+a message that says `my $f; $f = sub { ... };` or `__SUB__` (T376).
+The fault for a list where one value is wanted names an anonymous
+sub as `an anonymous sub`. Rejected: working out the sub before its
+arguments (WRONG, T370).

@@ -431,6 +431,14 @@ full when its step is, and its rows join the sections above then.
   value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle
   (step 21). 16a to 16c (D121 to D131) are built, and their rows are in
   the sections above.
+- **Closures** (step 14; D160 to D166): anonymous subs, closures,
+  `->( )`, `\&name`, `__SUB__`. An array stays frozen for good once a
+  closure has taken its loop's variable (D162); `$_` is not seen in an
+  anonymous sub; a call through a reference is a call of any sub a
+  reference can be to, for every rule about what a call changes
+  (D163); calling what is not a sub's reference is a fault (D164);
+  `&$f()`, `last` out of an anonymous sub and the rest of D165 are
+  refused; `state` and `my sub` are not built (D160).
 - **Objects** (step 17; D19). `class` as 5.42 has it. Roles are
   wanted, and perl has none: an exception to D2 (D5).
 - **Regexes** (steps 19, 20). Perl's syntax and matching order, a
