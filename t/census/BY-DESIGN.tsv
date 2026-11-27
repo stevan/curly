@@ -2,6 +2,7 @@
 # the decision, and what the compiler said when the probe was moved. If the language takes back
 # what refuses one, move it to t/census/run/ and take its line out.
 # probe	decision	refusal
+chalk-more/t/bootstrap/ir/data/anon-sub-as-value.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 chalk/c3t2.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 chalk/c3t3.pl	D17	'srand' is not in the language
 chalk/c3t4.pl	D17	'srand' is not in the language
@@ -10,6 +11,135 @@ chalk/fk2.pl	D19	'our' is not in the language
 chalk/hc1.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 chalk/hc2.pl	D19	'our' is not in the language
 chalk/hc3.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+perlonjava/unit/array.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }
+perlonjava/unit/core_global_sqrt_override.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+perlonjava/unit/defer_implicit_return_cleanup.pl	D16	'use feature' is not in the language
+perlonjava/unit/defined_dynamic_code.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+perlonjava/unit/hash_interpolation_warning.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/hash_literal_anonymous_ref_cleanup.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* or %{ $r }
+perlonjava/unit/large_sub_interpreter_fallback.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+perlonjava/unit/map_source_mutation_snapshot.pl	D16	'use strict' is not in the language
+perlonjava/unit/numification_parser.pl	D38	0x1.999ap is not a number in the language
+perlonjava/unit/pod.pl	D16	'use strict' is not in the language
+perlonjava/unit/regex/extended_class_no_multifold.pl	D38	00df is not a number in the language
+perlonjava/unit/regex/joni_possessive_literal_region.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }
+perlonjava/unit/regex/vertical_whitespace_escape.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/source_parenthesized_increment_lvalue.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/special_control_globals_stash.pl	D102	a comma in the block of a map, a grep or a sort: put the list in brackets, map { ($_ => 1) } ...
+perlonjava/unit/string_interpolation_at_caret.pl	D92	'@' in a double-quoted string begins an array, and no name is hard against it: write \@ for the character
+perlonjava/unit/substr_live_extent_modes.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/utf8_downgrade_references.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }
+pod/perlcall-005.pl	D17	@_ is not in the language: a sub has a signature (D17)
+pod/perldata-021.pl	D15	${name[...]} in a string: perl warns that it is ambiguous; write $name[...]
+pod/perldata-027.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pod/perldata-055.pl	D16	'use warnings' is not in the language
+pod/perldeprecation-013.pl	D123	a heredoc's terminator is a word, a letter or '_' first: <<"END"
+pod/perldeprecation-015.pl	D123	a heredoc's terminator is a word, a letter or '_' first: <<"END"
+pod/perlebcdic-043.pl	D19	'utf8' is not in the language; a call of a sub of the program's has brackets: utf8(...)
+pod/perlembed-121.pl	D17	@_ is not in the language: a sub has a signature (D17)
+pod/perlform-021.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlform-022.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlfunc-281.pl	D19	'package' is not in the language
+pod/perlfunc-283.pl	D19	'package' is not in the language
+pod/perlfunc-400.pl	D85	reverse of nothing
+pod/perlfunc-442.pl	D87	backwards first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
+pod/perlfunc-455.pl	D87	badlexi first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
+pod/perlfunc-456.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pod/perlfunc-461.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pod/perlfunc-467.pl	D17	@_ is not in the language: a sub has a signature (D17)
+pod/perlfunc-491.pl	D125	an argument by its number, %2$d..., which is not in the language (T276), in printf's format
+pod/perlfunc-508.pl	D125	%6.*2, which is no conversion: perl prints it as it is and warns (T270), in printf's format
+pod/perlfunc-522.pl	D125	an argument by its number, %2$d..., which is not in the language (T276), in printf's format
+pod/perlfunc-556.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+pod/perlfunc-557.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+pod/perlfunc-615.pl	D33	a line that starts '#!' is not in the language: perl can take switches from it
+pod/perlintro-029.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
+pod/perlmod-027.pl	D13	'END' is not in the language
+pod/perlmod-029.pl	D13	'BEGIN' is not in the language
+pod/perlop-016.pl	D56	'++' is for a variable: ++$x
+pod/perlop-174.pl	D61	a label is on a loop: after LOOP: comes while, until or for
+pod/perlop-238.pl	D123	a blank after '<<': a heredoc's terminator is a word hard against it, <<"END"
+pod/perlop-248.pl	D123	a blank after '<<': a heredoc's terminator is a word hard against it, <<"END"
+pod/perlre-117.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlre-131.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlre-161.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlref-011.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+pod/perlsub-053.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+pod/perlsub-082.pl	D19	'local' is not in the language
+pod/perlsub-123.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+pod/perlsub-125.pl	D110	\ before '*': \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+pod/perlsub-158.pl	D13	'BEGIN' is not in the language
+pod/perlsub-161.pl	D13	'BEGIN' is not in the language
+pod/perlsyn-093.pl	D16	'use feature' is not in the language
+pod/perluniintro-034.pl	D19	'utf8' is not in the language; a call of a sub of the program's has brackets: utf8(...)
+pod/perlvar-009.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pod/perlvar-070.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pvm-more/internal/chart/testdata/defect-yield/01a0dc72-2609.pl	D38	v5 runs into ')': perl reads a version only before a blank or ';'
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-001.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-002.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-004.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-005.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-006.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-007.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-008.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-010.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-011.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-012.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-013.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-014.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-016.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-017.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-018.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-025.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-026.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-028.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-029.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-030.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-OpListKeywordExpr-OpKeywordPrintExpr-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-OpListKeywordExpr-OpKeywordPrintfExpr-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-OpListKeywordExpr-OpKeywordSayExpr-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-001.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-003.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-004.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-005.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-006.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-008.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-010.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-011.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-012.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-013.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-014.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-015.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-016.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-017.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-018.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-021.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-024.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-030.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-033.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-036.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-037.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-038.pl	D121	a backslash in qw(...): perl keeps it, or takes it away before a bracket (T261); write the list in quotes
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-039.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-040.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-041.pl	D121	a backslash in qw(...): perl keeps it, or takes it away before a bracket (T261); write the list in quotes
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-042.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-044.pl	D121	a backslash in qw(...): perl keeps it, or takes it away before a bracket (T261); write the list in quotes
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-046.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-047.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-048.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-049.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-050.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-051.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-052.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-053.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-054.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-075.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-078.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-084.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-087.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-090.pl	D16	'use feature' is not in the language
 pvm/adjacency-01_literals-01.pl	D38	1. ends with a point: write 1.0
 pvm/adjacency-02_variables-01.pl	D114	a word alone in ${ ... } is the name of a variable, to perl (${x} is $x): D114 refuses it; name a variable, ${ $r }
 pvm/adjacency-05_scoping-01.pl	D16	'use feature' is not in the language
@@ -3479,3 +3609,12 @@ son-corpus/wr-w6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-corpus/wr-w7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/wr-w8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/wr-w9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-more/docs/samples/closure-cells-loop.pl	D38	5.42.0 is not a number in the language
+son-more/docs/samples/closure-cells.pl	D38	5.42.0 is not a number in the language
+son-more/t/corpus/arithmetic.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-more/t/corpus/closures.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-more/t/corpus/local_element.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-more/t/corpus/logical_ops.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-more/t/corpus/repeat_and_anon.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-more/t/corpus/string_compare.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-more/t/corpus/wantarray_ctx.pl	D13	expected a value, found 'wantarray'

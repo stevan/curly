@@ -1,0 +1,4 @@
+use v5.42;
+print unpack("h*", pack("s2", 1, 2)), "\n";
+# '10002000' on e.g. Intel x86 or Alpha 21064 in little-endian mode
+# '00100020' on e.g. Motorola 68040

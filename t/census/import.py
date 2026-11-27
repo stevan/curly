@@ -81,15 +81,24 @@ def main(argv):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         open(path, 'w', encoding='utf-8').write(text)
         wrote += 1
+    # import_more.py's places, kept: its header lines and its probes.
+    kept_head, kept_rows = [], []
+    if os.path.exists(os.path.join(HERE, 'SOURCES.tsv')):
+        for line in open(os.path.join(HERE, 'SOURCES.tsv'), encoding='utf-8'):
+            if line.startswith('# more:'):
+                kept_head.append(line)
+            elif not line.startswith('#') and line.split('/')[0] not in ('son-corpus', 'son-audit', 'chalk', 'pvm'):
+                kept_rows.append(line)
     with open(os.path.join(HERE, 'SOURCES.tsv'), 'w', encoding='utf-8') as f:
         f.write('# Where each probe came from (t/census/import.py writes this file).\n')
         f.write('# perl5-son and Chalk: no licence file; used by perigrin\'s agreement (D11).\n')
         f.write('# pvm: Artistic License 2.0, copyright 2025 Chris Prather.\n')
         for name, rev in revisions.items():
             f.write(f'# {name} at {rev}\n')
+        f.writelines(kept_head)
         f.write('# probe\tplaces\n')
-        for key, (name, _) in sorted(probes.items(), key=lambda kv: kv[1][0]):
-            f.write(name + '\t' + ' '.join(places[key]) + '\n')
+        rows = [name + '\t' + ' '.join(places[key]) + '\n' for key, (name, _) in probes.items()]
+        f.writelines(sorted(rows + kept_rows))
     print(f'{len(probes)} probes from {sum(len(p) for p in places.values())} programs; {sum(stopped)} that perl stops at; {wrote} files written')
 
 if __name__ == '__main__':

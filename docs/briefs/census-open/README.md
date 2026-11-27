@@ -21,7 +21,8 @@ What came of it:
 - **59 are truly open**, five causes, every one of them a construct the
   language could take in: they are the ranked list below (`c`), and one
   that needs Stevan (`d`).
-- **The census now**: 1,300 SAME, 178 LOUD, 621 REFUSED (562 for a later
+- **The census after the reading, before the new corpus** (the last
+  section has both): 1,300 SAME, 178 LOUD, 621 REFUSED (562 for a later
   step, **59 open**), 4 UNJUDGED, of 2,103 run; 3,477 by design; no
   WRONG; no probe left SAME.
 - **The 178 LOUD**: every fault is one a decision intends. None is
@@ -205,3 +206,63 @@ $a[$i] = ... }`, which perl runs well, and the language faults because
 `$#a` names the array (9b, "the loop that changes an array as it goes
 takes the count into a `my` first"). Intended, and the largest group of
 faults a Perl programmer will meet.
+
+## The new corpus (`t/census/import_more.py`)
+
+Read from: perl 5.42.0's `pod/*.pod` (the tarball, sha256 e093ef18...;
+every verbatim block, and every run of them, but the perl5*delta
+histories), pvm's other `.pl` files (its parser's test data, outside
+`conformance/mdtest`, which import.py has), PerlOnJava's unit tests as
+pvm carries them (a `.t` with no Test:: module as it is; one using only
+`ok`, `is`, `isnt`, `pass`, `fail`, `plan`, `done_testing`, rewritten
+statement by statement to `say` of what it tests), and perl5-son's and
+Chalk's `.pl` files outside the trees import.py reads (same revisions as
+import.py's). A program is kept only when it is a probe: with `use
+v5.42;` in front, perl runs it plain, stdin empty, exit 0, nothing on
+stderr, something on stdout, the same under the census's eight seeds;
+and its text touches no file, environment, clock, process or network,
+loads no module but a pragma, and is 200 lines at most. A pod's example
+whose only complaint under strict is undeclared globals gets a `my` of
+each (the pods are written without strict); nothing else in a pod is
+changed. The rest is dropped, not put in `not-perl/`: these sources are
+not probes, and most of what they hold is not a program.
+
+8,589 programs read, 689 distinct and allowed, **304 probes imported**:
+pod 162, pvm-more 70, perlonjava 45, son-more 21, chalk-more 6. Their
+verdicts, apart from the old corpus's:
+
+| source | SAME | LOUD | REFUSED later | REFUSED open | by design |
+|---|---|---|---|---|---|
+| pod | 52 | 1 | 61 | 3 | 45 |
+| pvm-more | 1 | 0 | 3 | 0 | 66 |
+| perlonjava | 0 | 1 | 23 | 3 | 18 |
+| son-more | 5 | 1 | 6 | 0 | 9 |
+| chalk-more | 5 | 0 | 0 | 0 | 1 |
+| **all** | **63** | **3** | **93** | **6** | **139** |
+
+**No WRONG.** The 3 LOUD are documented faults (`"inf"` read as a number,
+D40; a character past ASCII printed with no `use open`, D39; a list
+returned where one value is wanted, D18). Of the 93 waiting, 63 are
+regexes (step 19), 13 `pack` and friends, the rest 21, 17, 16d, 22. By
+design: `qw` with a backslash or comma (D121) 39, a pragma (D16) 31, D17
+15, and a tail. The 6 open: `$#values = 7` (the ranked list's item 2),
+`vec` twice and `pos` (SURFACE.md cuts both, with no decision), a
+flip-flop `...` (cut, no decision), `foreach my ($k, $v)` (Later, not
+proposed). New rows of the reason table cover what the new corpus
+brought that a decision already says (D121, D123, D19, D85, D92, D15,
+D38, and `$?`, `$^V`, `$^N`, `\N{...}`, `blessed` by their steps).
+
+The census with both: **1,363 SAME, 181 LOUD, 720 REFUSED (655 later,
+65 open), 4 UNJUDGED, of 2,268 run; 3,616 by design; 206 that perl stops
+at; no WRONG.** The old corpus alone is as above (1,300, 178, 621 with
+59 open, 4).
+
+The pods gave less than hoped: perldsc and perllol gave nothing, their
+examples printing their output inside the same verbatim block, or using
+globals with `local`, or reading files. A Test::More rewrite beyond
+these words was not tried: the files that use more are about modules,
+threads and `B::Deparse`, and would be refused whole.
+
+The corpus's licence is to be settled with the repository's, as
+`runtime/sort.c`'s is (D82): the pods are under perl's terms, PerlOnJava
+under its own (perl's terms), and SOURCES.tsv says so.
