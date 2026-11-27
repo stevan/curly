@@ -6243,7 +6243,7 @@ Traps: T52, T56.
 a key part of the object system, and not left for the metaobject
 protocol, so this step's proposal takes them up beside `class`
 instead of leaving them to step 27. What is decided is D160 to D165
-(2026-11-27, below); the rest is the proposal's. Read four of
+(2026-11-27, below); the rest is the proposal's. Read five of
 Stevan's repositories first, all public (a session clones them with
 `add_repo`):
 
@@ -6276,6 +6276,36 @@ Stevan's repositories first, all public (a session clones them with
   read-only. Its tests build instances on a scalar, an array, a
   reference, a code reference and a regex as well as a hash
   (`t/030-instance/`, `t/040-immutable/010-repr-types.t`).
+- `stevan/Cor` (added 2026-11-27): "Initial prototype of Cor Object
+  System for Perl", 2020, a compiler from a class syntax to Perl that
+  targets the two above, so **the one place the lowering this step
+  needs has been done**: from `class`, `role`, `has` and `method` to
+  the construction protocol and composed roles. It parses with
+  `PPR` (perl's grammar as regexes, widened for slots) into an AST
+  and writes a `.pmc` beside each `.pm`, which perl loads in its
+  place. The syntax: `module Name;` before the units of a file; `class
+  Name VERSION isa A does R, S { }` and `role Name does R { }`; `has
+  $x = DEFAULT;`, `has $.x` (given to the constructor) and `has $!x`
+  (refused there), with a type before the name parsed and not yet
+  used; `method m;` required, `method m :ro($x);` and the traits `ro`,
+  `rw`, `wo`, `reader`, `writer`, `accessor`, `predicate`, `clearer`,
+  `method m : private (...)`; `const NAME = EXPR;`; a slot read in a
+  method by its own name. What it writes (`t/010-compiler.t` has a
+  whole class, expected): a package with `@ISA`, `UNIVERSAL::Object`
+  when no parent is named; `%HAS`, each slot's initializer a sub, a
+  parent's slots copied in; a `BUILDARGS` made from the slots, which
+  dies `Illegal Arg` for a private one; `@DOES` and
+  `MOP::Util::compose_roles` at `BEGIN`; `$self` added to every
+  signature; every slot in a method body rewritten to
+  `$self->{q[$x]}`, so its instances are hashes; a private method a
+  lexical code reference. **Its state**: `master` (2020-06-10) is the
+  newest and fullest; the branches `slittle/compiled-methods`,
+  `slittle/private-methods` and `slittle/use-statements` (March 2020)
+  are older states, all merged into it, with nothing of their own.
+  The first commits were the same design under other names (`Static`,
+  then `Builder`, then the AST). What is unfinished is types: parsed
+  into `TypeReference`s, which the compiler does not read. Its tests
+  were read, not run.
 
 **What Stevan decided of them** (2026-11-27, D160 to D165). Both are
 Perl-specific implementations, to adapt and not copy: most of

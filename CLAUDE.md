@@ -472,9 +472,11 @@ operand: 41,594 operations, perl having more than one answer for
 on the Mac: `**` with a fractional operand is the C library's `pow`.
 **Roles come up at step 17, not 27**: Stevan wants them a key part of
 the object system, and step 17's proposal takes them up; `PLAN.md`,
-step 17, names the four repositories to read first
+step 17, names the five repositories to read first
 (`stevan/p5-roles-algebra`, `stevan/p5-core-role-tests`, and since
-2026-11-27 `stevan/p5-MOP` and `stevan/p5-UNIVERSAL-Object`), and
+2026-11-27 `stevan/p5-MOP`, `stevan/p5-UNIVERSAL-Object` and
+`stevan/Cor`, a 2020 compiler from a class syntax to the two before
+it, `master` its newest state and its branches older ones merged), and
 **D160 to D165, Stevan's (2026-11-27)**: both adapted, not copied;
 an instance of more representations than a hash, with a construction
 protocol a class can hook (D160); **roles refereed by a perl with his

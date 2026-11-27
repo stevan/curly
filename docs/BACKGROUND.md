@@ -269,7 +269,7 @@ which is one more reason there is no `docs/plans/` here.
 
 ## To read when classes are proposed
 
-Four of Stevan's repositories (`PLAN.md`, step 17, has the note, what
+Five of Stevan's repositories (`PLAN.md`, step 17, has the note, what
 each holds and what Stevan wants of them). For roles, which are to be
 in the object system from the start: `stevan/p5-roles-algebra`, an
 algebra of role composition for `feature 'class'` with tests of it
@@ -280,8 +280,11 @@ object system: `stevan/p5-MOP`, a metaobject protocol in which a
 class does the role `Role` and both are subclasses of `Object`; and
 `stevan/p5-UNIVERSAL-Object`, a protocol for constructing an
 instance, with hooks at each part and instances that are a scalar, an
-array or a hash. Both are to be adapted, not copied. Not read closely
-yet: nothing here is borrowed from them so far.
+array or a hash. Both are to be adapted, not copied. And
+`stevan/Cor`, a 2020 compiler from a class syntax (`class`, `role`,
+`has`, `method`) to Perl that targets those two: the lowering step 17
+needs, done once before. Not read closely yet: nothing here is
+borrowed from them so far.
 
 ## Parked, with the reason, so each stops coming up
 
