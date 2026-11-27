@@ -1220,6 +1220,7 @@ CLAIMS += [
     c('17-not-hash', 'PLAN 17', CLASS + 'class P { field $x = 1; } my $o = P->new; my $v = $o->{x};', exit=255, err=r'^Not a HASH reference at '),
     c('17-bless', 'PLAN 17', CLASS + 'class P { } my $o = P->new; bless $o, "Q";', exit=255, err=r"^Can't bless an object reference at "),
     c('17-new', 'PLAN 17', CLASS + 'class P { sub new { return "mine" } } say P->new;', out='mine\n', err=r'Subroutine new redefined'),
+    c('17-method-count', 'PLAN 17', CLASS + 'class P { method m($x) { $x } } try { P->new->m() } catch ($e) { print $e } try { P->new->m(1, 2) } catch ($e) { print $e }', out="Too few arguments for subroutine 'P::m' (got 0; expected 1) at claim.pl line 3.\nToo many arguments for subroutine 'P::m' (got 2; expected 1) at claim.pl line 3.\n"),
 ]
 
 if __name__ == '__main__':

@@ -2336,8 +2336,7 @@ it; every other program is perl 5.42's alone (D10). Found the same
 day: the branch is blead's (5.43.10), and its commits do not apply to
 5.42.0 as they are, sixteen hunks of source to port by hand and the
 generated files to make again; whether to port it or build the branch
-as it is, is open (`PLAN.md`, step 17, "The referee for roles",
-which recommends the port). Rejected, by being overtaken: the
+as it is was open, and D166 ported it. Rejected, by being overtaken: the
 algebra's own tests as the model, which step 17's note had asked;
 with a perl that has roles, programs are run.
 
@@ -2381,3 +2380,14 @@ makes sense.")* A first cut is in `PLAN.md`, step 17: classes as perl
 5.42 has them on the bootstrapped core, roles, and representations.
 Rejected: one step, whose size, "large", was written before roles,
 the core and representations were in it.
+
+**D166. The roles perl is Stevan's branch ported to perl 5.42.0**:
+a patch in the repository, `tools/perl-roles/roles-5.42.0.patch`,
+applied to 5.42.0's source by `patch -p1` or by `patchperl` through a
+plugin beside it. *(User, 2026-11-27: "port it", picking the
+recommendation of D161's open question.)* Every construct of a role
+program that is not a role is then refereed by 5.42.0's code, but for
+what blead's class layer brings with the roles (`PLAN.md`, step 17,
+"The port, as built"). Rejected: building the branch as it is, which
+is blead's (5.43.10) and would referee everything else in a role
+program by a perl that is not 5.42.

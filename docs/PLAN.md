@@ -6225,18 +6225,58 @@ of them 41 files, 7,100 lines in and 2,500 out. Applied to perl
   `Module::CoreList` are blead's version and are dropped.
 
 So "a patch could be extracted and `patchperl` used" holds, but the
-patch is a port to 5.42.0, not an extraction, and it is the first
-job of 17b. **Recommended: the port**, a file in the repository
-applied to 5.42.0's source by the setup script as the oracle is
-built, and trusted once the branch's own `t/role/` tests and perl's
-`t/class/` pass under it. The alternative, the branch built as it
-is, costs nothing now and is the quickest mock-up, but it would
-referee a role program's every other construct by a perl that is not
-5.42 (`toke.c` alone differs by 3,154 lines), which is the one thing
-D10 keeps the oracle from being. **Open until Stevan picks.** Either
-way the roles perl is a second oracle named by an environment
-variable of its own, asked only of a program with a role in it, and
-not run by `make test` until a sub-step makes it so.
+patch is a port to 5.42.0, not an extraction. The port was
+recommended over building the branch as it is, which would referee a
+role program's every other construct by a perl that is not 5.42
+(`toke.c` alone differs by 3,154 lines), and **Stevan picked it**
+(D166).
+
+**The port, as built** (2026-11-27; `tools/perl-roles/`, whose
+`README.md` has the whole account). **The hunks were the small part
+of it.** The roles code stands on blead's own rework of classes since
+5.42.0: a method's `$self` processed as a signature parameter, its
+accessors built through the signature functions, `SAVEt_PADSV`, no
+pad SV for a field. So the patch is four layers on 5.42.0's source:
+blead's class layer (31 of the 32 commits from v5.42.0 to the branch's
+base that touch `class.c`, `pad.c` or their headers, six of them
+tree-wide cleanups taken for those files alone, and `cb60726e`
+skipped, which respells 5.42's `Unrecognised parameters` message);
+three commits of blead's signature functions, for those files alone
+and **without `OP_MULTIPARAM`** (`3c2e3561`, which runs every
+signature by new code: Curly holds signatures to 5.42 closely); the
+eleven roles commits, without the one that follows a macro blead
+renamed and the one that bumps `Module::CoreList`; and the port's own
+mending (`role` in 5.42's grammar, `force_word` as 5.42 calls it,
+two hunks of blead's that the roles commit itself carried put back
+as 5.42.0 has them, `B::Deparse`'s version left alone, two tests
+that fail on the branch too: an `is_deeply` no `t/test.pl` has, and
+`role` and `does` missing from `Deparse-core.t`'s list). The generated files are
+made again by `regen.pl`, `regen_perly.pl` (bison 3.8.2) and
+`regen/keywords.pl`. **The patch is `tools/perl-roles/roles-5.42.0.patch`**,
+58 files, applied by `patch -p1` to the 5.42.0 tarball, by
+`tools/perl-roles/build.sh` (which checks the perl it installed has
+roles) or by `patchperl` through the plugin beside it; the two make
+the same tree.
+
+**Checked**: the branch's `t/role/` (10 files, 233 tests) and perl's
+`t/class/` pass; perl's own suite, run whole, (its result on the final patch is a later commit's); and every
+statement `claims.py` makes about perl 5.42, 1,101 of them, holds
+under the roles perl but three: `17-role` and `17-does`, which are
+roles, and `17-method-count`, below. **Where it
+is not 5.42.0**: what blead's class layer fixed (an array field
+initialised from an empty list, refaliasing a field, thread cloning,
+a reader after a strict error) and one message, the argument count
+of a `method` with a signature, which counts `$self` (`got 1;
+expected 2` where 5.42.0 says `got 0; expected 1`; claim
+`17-method-count`). Curly faults a wrong count, and a fault is not
+caught (D13), so no program can print it.
+
+The roles perl is a second oracle, named by `CURLY_PERL_ROLES` when a
+sub-step uses it, asked only of a program with a role in it, and not
+run by `make test` until 17b makes it so. It is not built by the
+environment's setup script yet: `build.sh` takes about three minutes
+on four cores, and a session that needs it builds it or has the
+script grow by it.
 
 **A first cut of the split** (D165; the proposal may change it):
 
@@ -6244,7 +6284,7 @@ not run by `make test` until a sub-step makes it so.
   with the bootstrap in the runtime from the start (D162), since
   every class is an instance of `Class`. Referee: perl 5.42.
 - **17b, roles**: `role`, `:does`, composition by the algebra.
-  Referee: the roles perl (D161). Its first job is that perl.
+  Referee: the roles perl (D161, D166), built (`tools/perl-roles/`).
 - **17c, representations and the construction protocol** (D160).
   Referee: to be proposed.
 

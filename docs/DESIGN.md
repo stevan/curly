@@ -331,8 +331,8 @@ step, roughly in the order it will matter:
 12. **Bytes**, for binary files, as a type apart from strings (with
     step 21).
 13. **The syntax of a type** (step 25); **roles**, refereed by a
-    perl with Stevan's roles (D161), and whether that perl is his
-    branch ported to 5.42.0 or built as it is; the core of the object
+    perl with Stevan's roles (D161), his branch ported to 5.42.0
+    (D166, `tools/perl-roles/`); the core of the object
     system bootstrapped in the runtime (D162); representations and
     the construction protocol (D160), and what referees them; how
     step 17 is cut (D165); the metaobject protocol's API (D163, step

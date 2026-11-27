@@ -455,7 +455,7 @@ project is run, how the compiler and the runtime are built, and
 decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
-D64, D71, D86, D90, D94, D96, D97, D98, D140, D141, D149.
+D64, D71, D86, D90, D94, D96, D97, D98, D140, D141, D149, D166.
 
 ## What this leaves out
 
