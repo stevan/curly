@@ -1,3 +1,0 @@
-1
-fault: a hash was changed while a foreach is over it at t/2086-fault-whole-frozen-hash-values.pl line 8.
-exit: 1

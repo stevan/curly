@@ -637,6 +637,18 @@ programs were run to write the proposal. Each row is in
 | T259 | `my $r = [0]; my $t = "t"; my ($x, $z) = ("a", "b"); $t .= ($r->[0] = $x . $z); say $t, "\|", $r->[0];`; the same with `$a[0]` and `$h{k}` for the target | `tab\|ab`: the element is assigned, through a reference or not; T129's lost assignment is a variable's alone | 13a | Agree: a chain is no target T129's rule refuses (its rule for an element is stricter than perl, and stays) |
 | T340 | `say {a => 1}->{a};` and `say {"a", 2}->{a};` | `1` and `2`: perl takes these braces for a hash, not the block of a file handle | 13a | Refused all the same (D113): which perl guesses is by what follows the brace, and `+{ ... }` says it |
 
+## Found building step 13b
+
+Each row is in `briefs/claims.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T341 | `my $q = [3]; $q->[3] = 1; $q->@* = sort { ($a // 0) <=> ($b // 0) } $q->@*;`; `@a = sort { ... } $ra->@*` with `$ra = \@a`; `$rb->@* = sort { ... } @b` with `$rb = \@b` | `u,u,1,3`, `u,u,1,3`, `u,1,2`: nothing is dropped, where `@d = sort { ... } @d` drops what was never stored (T187) | 13b | Agree: only a named array sorted into itself is sorted in place; through a reference it is a copy |
+| T342 | `my @l = ($r->@*, ($r = [9])->[0]);`; `push $r->@*, ($r = [9]);`; `my @m = map { $r = [7]; $_ } @{$r};` | A segmentation fault, each: perl crashes (T251's and T258's kin) | 13b | Refused by D76 and D77 with D109: a later part, or the block, may not assign what the whole container was read through. No test asks perl |
+| T343 | `say @{$r} [0];`, and `[1]` on the next line; `say %{$h}{"a"};`; `say @{$r}->[0];` | `1`, `2`, `a1`: perl reads a subscript after the braces past a blank and a line's end; the arrow dies, `Can't use an array as a reference` | 13b | Refuse a subscript or an arrow after the braces, wherever it stands (D108) |
+| T344 | `my $r; push $r->@*, defined($r) ? "made" : "not";`; the same with `$s->@* = (...)` and `$t->@[0] = (...)` | `made not not`: `push` makes the array before its list is worked out; an assignment, to the whole or a slice, works its right side out first | 13b | Agree, in that order |
+| T345 | `sort $r->@*`, and `sort $r ->@*` | `1,2,3` each: an arrow after the scalar is no comparator's name | 13b | `sort $r->@*` is in, the arrow hard against the variable; with a blank it stays refused, as `sort $r` is |
+
 ## Found by the review of step 14
 
 | | Program | perl prints | Step | Way out |

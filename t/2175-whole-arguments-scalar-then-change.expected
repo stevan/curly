@@ -1,0 +1,2 @@
+t/2175-whole-arguments-scalar-then-change.pl:9:23: a later part of the arguments of f can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
+exit: 1

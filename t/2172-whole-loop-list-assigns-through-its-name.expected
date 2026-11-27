@@ -1,0 +1,2 @@
+t/2172-whole-loop-list-assigns-through-its-name.pl:7:18: this can change $r, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop
+exit: 1

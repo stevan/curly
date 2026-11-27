@@ -82,6 +82,17 @@ r('makes-what-the-right-side-took', "perl runs it, and says nothing.", 'my $r;\n
 r('concatenation-then-push', "perl runs it, and says nothing.", R + 'my $s = $r->[0] . push($r->@*, 3);', 'push', 'a later piece of a concatenation changes $r, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own')
 r('concatenation-then-a-sub', "perl runs it, and says nothing.", R + 'sub grow() {\n    push $r->@*, 3;\n    return 1;\n}\nmy $s = $r->[0] . grow();', 'grow();', 'a later piece of a concatenation calls grow, which can change what references reach, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the call a statement of its own')
 
+# ---- six more, which the breakages of the step showed no test reached
+# (briefs/step13b-mutations.py)
+r('subscript-after-a-postfix-slice', "perl does not compile it: syntax error near '][' .", 'my $r = [[1, 2]];\nsay $r->@[0][1];', '[1]', 'a subscript after a slice: perl takes it for an element of what the slice gives; take the slice into an array first')
+r('list-then-push-by-name', "perl runs it: '1 2 3' (the list holds the array's own elements).", 'my @a = (1, 2);\nmy $r = \\@a;\nmy @l = ($r->@*, push(@a, 3));', 'push', LATER.format('this list', 'what references reach'))
+r('loop-assigns-through-its-name', "perl runs it, and says nothing.", R + 'for my $x ($r->@*) {\n    $r->@* = (1);\n    last;\n}', '= (1)', "this can change $r, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop")
+r('values-then-delete-slice', "perl runs it: '3'.", H + 'my @l = (values $h->%*, delete $h->@{"a"});', 'delete', LATER.format('this list', 'what references reach'))
+r('loop-list-assigns-through-its-name', "perl runs it: '2'.", R + 'for my $x ($r->@*) {\n    my $y;\n    ($y, $r->@*) = (1, 2);\n    last;\n}', '= (1, 2)', "this can change $r, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop")
+r('octal-in-the-braces', "perl runs it: '15'.", 'my @c = @{ [017] };', '017', '017 starts with a zero: perl reads that as octal, which the language writes 0o17')
+r('list-then-push-makes-its-head', "perl runs it: 'd' (the list holds $h itself, which the push made a hash).", 'my $h;\nmy @l = ($h, push($h->{m}->@*, 1));\nsay defined $l[0] ? "d" : "u";', 'push', LATER.format('this list', '$h'))
+r('arguments-scalar-then-change', "perl runs it: '5 2 5'.", 'sub f(@a) {\n    return "@a";\n}\nmy $x = 1;\nmy $r = [2];\nsay f($x, $r->@*, ($x = 5));', '= 5', LATER.format('the arguments of f', '$x'))
+
 def write(first, table=None):
     n = first
     for name, why, body, at, message, nth in (T if table is None else table):

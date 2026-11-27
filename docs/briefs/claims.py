@@ -1021,6 +1021,32 @@ def judge(said, status, out, err):
         wrong.append(f'exit status is {status}, not {want}')
     return wrong, out, err
 
+# ---- step 13b, the whole container through a reference (PLAN 13, "13b, as
+# built"; TRAPS T341 to T345)
+CLAIMS += [
+    c('T341', 'TRAPS; PLAN 13b', r"""my $q = [3]; $q->[3] = 1; $q->@* = sort { ($a // 0) <=> ($b // 0) } $q->@*; say join(",", map { $_ // "u" } $q->@*); my @a = (3); $a[3] = 1; my $ra = \@a; @a = sort { ($a // 0) <=> ($b // 0) } $ra->@*; say join(",", map { $_ // "u" } @a); my @b = (2); $b[2] = 1; my $rb = \@b; $rb->@* = sort { ($a // 0) <=> ($b // 0) } @b; say join(",", map { $_ // "u" } @b); my @d = (3); $d[3] = 1; @d = sort { ($a // 0) <=> ($b // 0) } @d; say join(",", map { $_ // "u" } @d);""", out='u,u,1,3\nu,u,1,3\nu,1,2\n1,3\n'),
+    c('T342', 'TRAPS; PLAN 13b', r"""my $r = [1, 2]; my @l = ($r->@*, ($r = [9])->[0]); say scalar(@l);""", out='', exit='nonzero'),
+    c('T342-push', 'TRAPS; PLAN 13b', r"""my $r = [1, 2]; push $r->@*, ($r = [9]); say scalar($r->@*);""", out='', exit='nonzero'),
+    c('T342-map', 'TRAPS; PLAN 13b', r"""my $r = [1, 2]; my @m = map { $r = [7]; $_ } @{$r}; say scalar(@m);""", out='', exit='nonzero'),
+    c('T343', 'TRAPS; PLAN 13b', r"""my $r = [1, 2]; my $h = {a => 1}; say @{$r} [0]; say @{$r}
+[1]; say %{$h}{"a"};""", out='1\n2\na1\n'),
+    c('T343-arrow', 'TRAPS; PLAN 13b', r"""my $r = [1, 2]; say @{$r}->[0];""", out='', exit=255, err="Can't use an array as a reference"),
+    c('T344', 'TRAPS; PLAN 13b', r"""my $r; push $r->@*, defined($r) ? "made" : "not"; my $s; $s->@* = (defined($s) ? "made" : "not"); my $t; my $i = 0; $t->@[$i] = (defined($t) ? "made" : "not"); say "$r->[0] $s->[0] $t->[0]";""", out='made not not\n'),
+    c('T345', 'TRAPS; PLAN 13b', r"""my $r = [3, 1, 2]; say join(",", sort $r->@*); say join(",", sort $r ->@*); my @s = sort $r; say scalar(@s);""", out='1,2,3\n1,2,3\n1\n'),
+    c('13b-makes', 'PLAN 13b', r"""my ($a1, $a2, $a3, $a4, $a5, $a6, $a7) ; push $a1->@*, 1; unshift $a2->@*, 1; splice($a3->@*, 0, 0, 1); $a4->@* = (1); $a5->%* = (a => 1); $a6->@[0] = (1); $a7->@{"a"} = (1); say join(",", map { ref } $a1, $a2, $a3, $a4, $a5, $a6, $a7);""", out='ARRAY,ARRAY,ARRAY,ARRAY,HASH,ARRAY,HASH\n'),
+    c('13b-reads-make', 'PLAN 13b', r"""my ($b1, $b2, $b3, $b4, $b5, $b6) ; my $x = pop $b1->@*; $x = shift $b2->@*; $x = $b3->$#*; my @k = keys $b4->%*; for my $v ($b5->@*) { } my @s = $b6->@[0]; say join(",", map { ref } $b1, $b2, $b3, $b4, $b5, $b6);""", out='ARRAY,ARRAY,ARRAY,HASH,ARRAY,ARRAY\n'),
+    c('13b-reads-die', 'PLAN 13b', r"""my $r; my @x = $r->@*;""", out='', exit=255, err="Can't use an undefined value as an ARRAY reference"),
+    c('13b-count-dies', 'PLAN 13b', r"""my $r; say "x" if $r->%*;""", out='', exit=255, err="Can't use an undefined value as a HASH reference"),
+    c('13b-wrong-kind', 'PLAN 13b', r"""my $r = {}; push $r->@*, 1;""", out='', exit=255, err='Not an ARRAY reference'),
+    c('13b-slice-of-one', 'PLAN 13b', r"""my $r = [1, 2]; my $h = {a => 1}; my @x = ($r->@[0], $h->@{a}); say "@x";""", out='1 1\n'),
+    c('13b-defined', 'PLAN 13b', r"""my $r = [1]; say defined $r->@*;""", compiles=False, err=r"defined\(@array\)"),
+    c('13b-not-compiled', 'PLAN 13b', r"""my $r = [1]; say $r->@*[0];""", compiles=False, err='syntax error'),
+    c('13b-word-alone', 'PLAN 13b', r"""my @true = (1, 2); my @name = (3); my @a; say scalar(@{true}), scalar(@{ name }), $#{a};""", out='21-1\n'),
+    c('13b-brace-first', 'PLAN 13b', r"""my @k = keys %{ {} };""", compiles=False, err='Unmatched right curly bracket'),
+    c('13b-count-in-places', 'PLAN 13b', r"""my $l = [5, 6, 7]; my %by; $by{$l->@*} = 1; say keys %by; say $l->@* x 2; say "n" . $l->$#*;""", out='3\n33\nn2\n'),
+    c('13b-copy-shallow', 'PLAN 13b', r"""my $grid = [[1], [2]]; my @rows = $grid->@*; push $rows[0]->@*, 9; say join(",", $grid->[0]->@*);""", out='1,9\n'),
+]
+
 def main(argv):
     perl = os.environ.get('CURLY_PERL', 'perl')
     prelude = NEW

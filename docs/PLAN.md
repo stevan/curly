@@ -4939,6 +4939,132 @@ session, as 12a did.
   about perl, 55 tests of the oracle check itself; green under gcc,
   clang, and UBSan with ASan, poison on and off.
 
+#### 13b, as built
+
+**Built** (2026-11-27, by Fable 5.2, alone under Stevan's standing
+instruction): the whole container through a reference. **The Size
+line**, large, is the whole step's; 13b alone is a medium sub-step for
+this model by the workbench's `docs/MODELS.md` (every pass of the
+compiler, nothing in the runtime), and it took one session with the
+D10 commit before it.
+
+- **What is in**: `EXPR->@*`, `EXPR->%*`, `EXPR->$#*`, `@{ EXPR }`,
+  `%{ EXPR }`, `$#{ EXPR }` wherever `@a`, `%h` and `$#a` stand: a
+  list, one value (the count, the last index), `push`, `pop`, `shift`,
+  `unshift`, `splice`, `keys`, `values`, `scalar`, the list of a
+  `for`, a `map`, a `grep` and a `sort`, a call's arguments, `return`
+  (list-shaped, D18), `=` and the last target of a list assignment;
+  the slices `EXPR->@[...]` and `EXPR->@{...}`, read, the one target
+  of a list assignment, and `delete` of a hash's. D107's fault for
+  every read through undef or what is not there; `push`, `unshift`,
+  `splice`, an assignment and a slice on the left make what they go
+  through, by `genChain`'s hops, a variable or an element and nothing
+  else (T252), not a read-only one (T250). A loop over one freezes the
+  container and every container on the way (D114, T251), not through
+  `keys` or a count. D109's name in every walk: the whole container
+  names what references reach and its head, a builtin through one
+  changes what references reach, and `push`, `unshift`, `splice` and
+  the assignments change the head they may make (T249). D108's cuts
+  and D114's refusals, each with its message. **Nothing of 13b's scope
+  is left undone.**
+- **The tree**: `deref` (`head`, `hash`, `last`), and a `deref` on
+  `arrayop`, `hashop` and `slice` for what they reach through a
+  reference, their `name` the empty string. In the code generator
+  `genDeref` is `genChain` of a chain whose last link is the deref
+  (the container its head points at, read through or made), and `box`
+  gives a builtin's or a slice's container, a named one's slot or
+  that. In the lexer a postfix form is one token (`->@*`, `->%*`,
+  `->$#*`, and `->@` before a slice's bracket), and the braces are a
+  `cast` token and a brace marked `deref`. **The runtime gained
+  nothing**: a container through a reference is the very value a
+  variable's slot holds (`rt_deref`), so every array and hash function
+  takes it.
+- **Builder's defaults** (none of them a decision; each the simplest
+  answer that cannot be WRONG): what may stand before a postfix form
+  is what may stand before an arrow, and in the braces any expression
+  of one value; **a subscript or an arrow after the braces is refused
+  wherever it stands**, past blanks and the end of a line (perl reads
+  on, T343), and after a postfix form (perl does not compile it, or
+  dies); a slice of one through a reference is in (perl does not warn
+  of it, as it does of `@a[0]`); `sort $r->@*` is a list, with the
+  arrow hard against the variable, and `sort $r ->@*` stays refused
+  (T345); a builtin takes the whole container as one term beginning
+  with a scalar variable, `@{`, `%{`, a bracket, `[`, a new hash or a
+  call (so `keys +{...}->%*` is refused; `keys %{ +{...} }` says it);
+  `scalar` of `$r->$#*` is refused, as `scalar($#a)` is; **`keys` and
+  a count freeze nothing** in a loop's list, `values`, the whole and a
+  slice freeze every container on the way; an assignment works out its
+  right side, then the head, then makes and stores, and `push` and
+  `unshift` make their container before their list (T344, perl's
+  orders); only a named array sorted into itself is sorted in place
+  (T341: through a reference perl copies, and drops nothing); D77
+  refuses a loop whose block may make its list's head (`push
+  $r->@*` in a loop over `$r->@*`), since the push may assign `$r`, as
+  13a refuses a store through a chain there; the oracle's reading rule
+  reads `%{ ... }` and `HEAD->%*` as it reads `%h` (fixtures both ways
+  in `t/checks/`).
+- **What the build found**: T341 (an in-place sort is a named array's
+  alone), T342 (perl crashes on three shapes D109 refuses: a list that
+  replaces what an earlier part read the whole of, a `push` whose list
+  does, a `map` whose block does), T343 (a subscript after the braces
+  past a blank or a line's end), T344 (the orders of making), T345
+  (`sort $r->@*`). 20 rows of `briefs/claims.py`.
+- **Tests**: 2000 to 2003 from `t/models/whole.py` (Python's lists and
+  dicts again; the model writes a `show` sub into each program, and
+  prints every structure the program builds by it), on which the
+  compiler and perl agreed with the model once the model's slices past
+  the end stood outside a `map`'s list (T177); 2004 by hand with
+  perl's answers (the orders, T341, the count where one value is
+  wanted, the heads, what a value's end lets follow the braces, what
+  `keys` and a count do not freeze); 2020 to 2101, 82 programs that
+  fault once: every
+  read of the whole container through undef (19 uses of an array, 9
+  of a hash), through what is not there, through the other kind, a
+  number, a string; every store that may not make; the odd list;
+  before the start; every change to a frozen container by another
+  name, from a block, a `map`, a `grep`, a `sort` and a sub; a slice
+  past the end where perl would make it; 2110 to 2175, 66 refusals
+  from a table by hand (`briefs/step13b-refusals.py`, each comment
+  perl's own words, pasted by its `--perl`). 1915 to 1922, 13a's
+  refusals of what 13b takes in, are `same` tests now; seven refusals
+  of other steps say their message's new words. **1,843 golden tests,
+  156 unit tests, 1,065 statements about perl, 70 tests of the oracle
+  check itself.**
+- **Broken on purpose** (`briefs/step13b-mutations.py`): 63 of 68
+  caught the first time, six of them breakages of the runtime that 13b
+  leans on and 62 of every pass of the compiler. The five holes, each
+  closed: an assignment to the whole container as the last target of
+  a list assignment, to a frozen array (2086); the end of a value after
+  the braces, which only `x`, `%` and `.` after them show (2004); what
+  `keys` in a loop's own list freezes, which a `sort` round them hid
+  (2004); **a `push` through a chain making the variable its chain
+  starts from, which an earlier part of a list names**, `my @l = ($h,
+  push($h->{m}->@*, 1));`, where perl's list holds `$h` itself, made a
+  hash by the push (2174); and **the whole container as a list among
+  a call's arguments**, which makes a scalar variable before it a place
+  that a later argument may change, `f($x, $r->@*, ($x = 5))`, perl
+  giving `5 2 5` (2175). Each of the last two would have been a WRONG
+  had its rule been missing.
+- **The census**: of the 105 probes that waited for 13b, **41 print
+  what perl prints**, 8 fault (6 for D107, reading a whole container
+  through undef in a `for`, `keys` or `scalar`, and 2 for the freeze),
+  36 are refused by design and moved to `by-design/` (24 for `$_[0]`,
+  D17; 3 each for D108 and D109, all three of D109's order-hunters
+  whose perl prints what was stored later; 2 for D114, 2 for D102, one
+  each for D77 and D78), and the rest wait for 13d (8), 17 (5), 13c and
+  18 (one each) or are open (5, three of them `scalar @{...}` with no
+  brackets). No probe left SAME, and none is WRONG. **1,178 SAME, 172
+  LOUD, 1,525 REFUSED (736 for a later step, 789 open), 4 UNJUDGED,
+  of 2,879 run**, and 2,701 by design.
+- **What 13c needs**: `\$x` and the cell (13a's notes stand); `${`
+  is refused in the lexer's `$` branch, where 13b's `cast` (which
+  takes `@`, `%` and `$#`) would take `$` too; `->$*` is refused in
+  the arrow branch beside 13b's `WHOLE`; the `deref` node would gain a
+  kind for a scalar, and `genDeref` already makes or reads through
+  what its head points at. **What 13d needs**: the lexer's string
+  pieces (`variable`, `Piece`) have no chain and no whole container;
+  T253's rules for what follows them in a string are D114's.
+
 ### 14. Closures
 
 Referee: perl. Size: large.

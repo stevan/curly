@@ -2299,6 +2299,62 @@ chain from left to right, making as it goes, then the store; for every
 other assigning operator and for `++` and `--`, the chain, then the
 right side.
 
+### The whole container through a reference
+
+`EXPR->@*` is the whole array a reference points at, `EXPR->%*` the
+whole hash, and `EXPR->$#*` the array's last index; with braces round
+the reference, `@{ EXPR }`, `%{ EXPR }` and `$#{ EXPR }` are the same.
+What may stand before the postfix forms is what may stand before an
+arrow (a scalar variable, an element, a call, `[ ]`, `{ }`, brackets
+round one value), and in the braces any expression of one value.
+
+    my $people = [{name => "ann", age => 31}, {name => "bob", age => 27}];
+    say scalar($people->@*);                        # 2
+    for my $p (sort { $a->{age} <=> $b->{age} } @{$people}) {
+        say $p->{name};                             # bob, ann
+    }
+    my %count = (x => [1, 2], y => [3]);
+    push $count{y}->@*, 4;
+    say join(",", sort keys %count), " ", $#{ $count{y} };   # x,y 1
+
+Each stands wherever `@a`, `%h` and `$#a` stand, and is what they are
+there: in a list its values (a hash's keys and values by turns); where
+one value is wanted, its count, or the last index (`$r->@* + 1`, `if
+($r->@*)`, `my $n = %{$h};`); copied by `my @c = $r->@*;`; the array of
+`push`, `pop`, `shift`, `unshift` and `splice`, and the hash of `keys`,
+`values` and `scalar`; in the list of a `for`, a `map`, a `grep` and a
+`sort`; among a call's arguments; after `return`, where it is a list
+(D18); and on the left of `=`: `$r->@* = (1, 2);`, `%{$h} = (a => 1);`,
+and last among a list assignment's targets, `($x, $r->@*) = LIST;`.
+
+**Slices**: `EXPR->@[I, J]` and `EXPR->@{K1, K2}`, read as `@a[...]` and
+`@h{...}` are (a slice of one is allowed here, which perl does not warn
+of), the one target of a list assignment (`$r->@[0, 1] = (5, 6);`), and
+`delete $h->@{"a", "b"}`, which gives what it deleted.
+
+**Reading through undef, or through what is not there, is a fault**, as
+for an element: `undef where a reference is wanted`, or `not a
+reference to an array` (to a hash). perl dies for some of these and
+makes the container in silence for the others (a `for`, `keys`, `pop`,
+a slice); here every read faults. So `for my $x (@{ $h{list} })` faults
+where `$h{list}` was never stored: write `@{ $h{list} // [] }`.
+**`push`, `unshift`, `splice`, an assignment to the whole and a slice
+on the left make what they go through**, as perl does: `push
+$h{$k}->@*, $v` makes the array the first time, and the hash element
+that holds it. Only a variable or an element is made; a loop's
+variable, `$_`, `$a` and `$b` holding undef fault, as for an element.
+The order is perl's: `push` and `unshift` make the container before
+their list is worked out; an assignment works its right side out
+first, then the container, then stores.
+
+**A loop over a container through a reference freezes it**, and every
+container on the way to it, while the loop runs: `for my $x
+($h->{list}->@*)` faults if anything stores to that array or to `%$h`,
+by any name, from the block or a sub it calls. Not through `keys`,
+which are copies, nor through a count: `for my $k (sort keys $h->%*) {
+delete $h->{$k} }` is fine. The block may not assign a variable the
+list reads through, nor `push` through it.
+
 ### A reference as a value
 
 A reference is true and defined. **`==` and `!=` between two
@@ -2351,8 +2407,14 @@ reads through, either.
 
 Not in the language: a dereference without braces, `@$r`, `%$r`,
 `$$r`, `$$r[0]`, `$#$r`, which perl reads by rules of its own; the
-arrow says it, `$r->[0]`. `${$r}[0]` and `@{$r}{...}` are refused for
-the same reason. A reference to an element, `\$a[0]`, `\$h{k}`, and
+arrow says it, `$r->[0]`, and the braces, `@{$r}`. A subscript after
+the braces, `@{$r}[0]`, `${$r}[0]`, `%{$h}{...}` (perl reads on, past a
+blank too), and after a postfix form, `$r->@*[0]`, which perl does not
+compile: the slice is `$r->@[0]`. The key-and-value slices,
+`$h->%{...}`. A word alone in the braces, `@{name}`, which is `@name`
+to perl, and `{` first in them. `defined` and `length` of a whole
+container, as of `@a`. `\` before a dereference (a list of references
+to each element, to perl). A reference to an element, `\$a[0]`, `\$h{k}`, and
 `\` before a list or a slice. `{ LIST }` first after `say` or `print`,
 or first inside their brackets (perl takes it for a block): write
 `+{ ... }`. A block that begins with a word, a string or a number and
@@ -2368,10 +2430,8 @@ chain also changes the variable it starts from, since a hop that is
 undef is made in it: `my @l = ($r, ($r->[0] = 1));` is refused. Take
 the value into a `my` first.
 
-Still to come: the whole container through a reference, `$r->@*`,
-`$r->%*`, `$r->$#*`, `@{ $r }`, `%{ $r }` and the slices (step 13b);
-`\$x` and `$r->$*` (step 13c); a reference in a string, `"$r->[0]"`
-(step 13d).
+Still to come: `\$x`, `$r->$*` and `${ $r }` (step 13c); a reference in
+a string, `"$r->[0]"`, `"@{$r}"` (step 13d).
 
 ## die, try and catch
 

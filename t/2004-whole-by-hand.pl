@@ -54,3 +54,25 @@ sub pair() {
     return [7, 8];
 }
 say join(",", ($l)->@*, pair()->@*, [1, 2]->@[1], sort keys %{ +{z => 1, y => 2} });
+# A word alone in a slice's braces is that string; a count in a loop's
+# list freezes nothing, nor do keys.
+my $w = {a => 1, b => 2};
+my @one = $w->@{a};
+my $g = $w;
+for my $n (scalar(keys $w->%*), scalar(%{$w})) {
+    $g->{"n$n"} = 1;
+}
+for my $k (sort keys $w->%*) {
+    $g->{"k$k"} = 1;
+}
+say "@one ", join(",", sort keys $w->%*);
+# After the braces a value has ended: `x` repeats, `%` divides, `.` joins.
+my $f = [5, 6, 7];
+say @{$f} x 2, " ", @{$f} % 2, " ", 7 % @{$f}, " ", @{$f} . "x";
+# A loop over keys freezes nothing: the keys are copies.
+my $count = 0;
+for my $k (keys $w->%*) {
+    $g->{'x' . $count} = 1;
+    $count++;
+}
+say join(",", sort keys $w->%*);

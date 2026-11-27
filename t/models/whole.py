@@ -179,36 +179,38 @@ Every command that writes a file, one a line (t/checks.py runs them all):
     python3 t/models/whole.py 2084 > t/2084-fault-whole-frozen-through-a-name.expected
     python3 t/models/whole.py --program 2085 > t/2085-fault-whole-frozen-named-through-a-reference.pl
     python3 t/models/whole.py 2085 > t/2085-fault-whole-frozen-named-through-a-reference.expected
-    python3 t/models/whole.py --program 2086 > t/2086-fault-whole-frozen-hash-values.pl
-    python3 t/models/whole.py 2086 > t/2086-fault-whole-frozen-hash-values.expected
-    python3 t/models/whole.py --program 2087 > t/2087-fault-whole-frozen-hash-whole.pl
-    python3 t/models/whole.py 2087 > t/2087-fault-whole-frozen-hash-whole.expected
-    python3 t/models/whole.py --program 2088 > t/2088-fault-whole-frozen-hash-assign.pl
-    python3 t/models/whole.py 2088 > t/2088-fault-whole-frozen-hash-assign.expected
-    python3 t/models/whole.py --program 2089 > t/2089-fault-whole-frozen-hash-delete-slice.pl
-    python3 t/models/whole.py 2089 > t/2089-fault-whole-frozen-hash-delete-slice.expected
-    python3 t/models/whole.py --program 2090 > t/2090-fault-whole-frozen-on-the-way.pl
-    python3 t/models/whole.py 2090 > t/2090-fault-whole-frozen-on-the-way.expected
-    python3 t/models/whole.py --program 2091 > t/2091-fault-whole-frozen-in-a-map.pl
-    python3 t/models/whole.py 2091 > t/2091-fault-whole-frozen-in-a-map.expected
-    python3 t/models/whole.py --program 2092 > t/2092-fault-whole-frozen-in-a-grep.pl
-    python3 t/models/whole.py 2092 > t/2092-fault-whole-frozen-in-a-grep.expected
-    python3 t/models/whole.py --program 2093 > t/2093-fault-whole-frozen-in-a-sort.pl
-    python3 t/models/whole.py 2093 > t/2093-fault-whole-frozen-in-a-sort.expected
-    python3 t/models/whole.py --program 2094 > t/2094-fault-whole-frozen-from-a-sub.pl
-    python3 t/models/whole.py 2094 > t/2094-fault-whole-frozen-from-a-sub.expected
-    python3 t/models/whole.py --program 2095 > t/2095-fault-whole-slice-past-the-end-in-a-loop.pl
-    python3 t/models/whole.py 2095 > t/2095-fault-whole-slice-past-the-end-in-a-loop.expected
-    python3 t/models/whole.py --program 2096 > t/2096-fault-whole-slice-no-key-in-a-loop.pl
-    python3 t/models/whole.py 2096 > t/2096-fault-whole-slice-no-key-in-a-loop.expected
-    python3 t/models/whole.py --program 2097 > t/2097-fault-whole-slice-past-the-end-in-a-map.pl
-    python3 t/models/whole.py 2097 > t/2097-fault-whole-slice-past-the-end-in-a-map.expected
-    python3 t/models/whole.py --program 2098 > t/2098-fault-whole-slice-past-the-end-in-arguments.pl
-    python3 t/models/whole.py 2098 > t/2098-fault-whole-slice-past-the-end-in-arguments.expected
-    python3 t/models/whole.py --program 2099 > t/2099-fault-whole-joined-reference.pl
-    python3 t/models/whole.py 2099 > t/2099-fault-whole-joined-reference.expected
-    python3 t/models/whole.py --program 2100 > t/2100-fault-whole-sorted-references.pl
-    python3 t/models/whole.py 2100 > t/2100-fault-whole-sorted-references.expected
+    python3 t/models/whole.py --program 2086 > t/2086-fault-whole-frozen-list-assign.pl
+    python3 t/models/whole.py 2086 > t/2086-fault-whole-frozen-list-assign.expected
+    python3 t/models/whole.py --program 2087 > t/2087-fault-whole-frozen-hash-values.pl
+    python3 t/models/whole.py 2087 > t/2087-fault-whole-frozen-hash-values.expected
+    python3 t/models/whole.py --program 2088 > t/2088-fault-whole-frozen-hash-whole.pl
+    python3 t/models/whole.py 2088 > t/2088-fault-whole-frozen-hash-whole.expected
+    python3 t/models/whole.py --program 2089 > t/2089-fault-whole-frozen-hash-assign.pl
+    python3 t/models/whole.py 2089 > t/2089-fault-whole-frozen-hash-assign.expected
+    python3 t/models/whole.py --program 2090 > t/2090-fault-whole-frozen-hash-delete-slice.pl
+    python3 t/models/whole.py 2090 > t/2090-fault-whole-frozen-hash-delete-slice.expected
+    python3 t/models/whole.py --program 2091 > t/2091-fault-whole-frozen-on-the-way.pl
+    python3 t/models/whole.py 2091 > t/2091-fault-whole-frozen-on-the-way.expected
+    python3 t/models/whole.py --program 2092 > t/2092-fault-whole-frozen-in-a-map.pl
+    python3 t/models/whole.py 2092 > t/2092-fault-whole-frozen-in-a-map.expected
+    python3 t/models/whole.py --program 2093 > t/2093-fault-whole-frozen-in-a-grep.pl
+    python3 t/models/whole.py 2093 > t/2093-fault-whole-frozen-in-a-grep.expected
+    python3 t/models/whole.py --program 2094 > t/2094-fault-whole-frozen-in-a-sort.pl
+    python3 t/models/whole.py 2094 > t/2094-fault-whole-frozen-in-a-sort.expected
+    python3 t/models/whole.py --program 2095 > t/2095-fault-whole-frozen-from-a-sub.pl
+    python3 t/models/whole.py 2095 > t/2095-fault-whole-frozen-from-a-sub.expected
+    python3 t/models/whole.py --program 2096 > t/2096-fault-whole-slice-past-the-end-in-a-loop.pl
+    python3 t/models/whole.py 2096 > t/2096-fault-whole-slice-past-the-end-in-a-loop.expected
+    python3 t/models/whole.py --program 2097 > t/2097-fault-whole-slice-no-key-in-a-loop.pl
+    python3 t/models/whole.py 2097 > t/2097-fault-whole-slice-no-key-in-a-loop.expected
+    python3 t/models/whole.py --program 2098 > t/2098-fault-whole-slice-past-the-end-in-a-map.pl
+    python3 t/models/whole.py 2098 > t/2098-fault-whole-slice-past-the-end-in-a-map.expected
+    python3 t/models/whole.py --program 2099 > t/2099-fault-whole-slice-past-the-end-in-arguments.pl
+    python3 t/models/whole.py 2099 > t/2099-fault-whole-slice-past-the-end-in-arguments.expected
+    python3 t/models/whole.py --program 2100 > t/2100-fault-whole-joined-reference.pl
+    python3 t/models/whole.py 2100 > t/2100-fault-whole-joined-reference.expected
+    python3 t/models/whole.py --program 2101 > t/2101-fault-whole-sorted-references.pl
+    python3 t/models/whole.py 2101 > t/2101-fault-whole-sorted-references.expected
 """
 
 import sys
@@ -744,6 +746,7 @@ fault('frozen-assign', ['my $r = [1, 2];', 'my $s = $r;', 'for my $x ($r->@*) {'
 fault('frozen-slice-store', ['my $r = [1, 2];', 'my $s = $r;', 'for my $x ($r->@*) {', '    $s->@[0] = (5);', '    last;', '}'], FROZEN, 3)
 fault('frozen-through-a-name', ['my @a = (1, 2);', 'my $r = \\@a;', 'for my $x ($r->@*) {', '    push @a, 3;', '    last;', '}'], FROZEN, 3)
 fault('frozen-named-through-a-reference', ['my @a = (1, 2);', 'my $r = \\@a;', 'for my $x (@a) {', '    push $r->@*, 3;', '    last;', '}'], FROZEN, 3)
+fault('frozen-list-assign', ['my $r = [1, 2];', 'my $s = $r;', 'for my $x ($r->@*) {', '    my $y;', '    ($y, $s->@*) = (1, 2);', '    last;', '}'], FROZEN, 4)
 fault('frozen-hash-values', ['my $h = {a => 1};', 'my $g = $h;', 'for my $v (values $h->%*) {', '    $g->{b} = 2;', '    last;', '}'], HFROZEN, 3)
 fault('frozen-hash-whole', ['my $h = {a => 1};', 'my $g = $h;', 'for my $v (%{$h}) {', '    delete $g->{a};', '    last;', '}'], HFROZEN, 3)
 fault('frozen-hash-assign', ['my $h = {a => 1};', 'my $g = $h;', 'for my $v (values $h->%*) {', '    $g->%* = ();', '    last;', '}'], HFROZEN, 3)

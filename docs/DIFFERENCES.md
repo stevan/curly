@@ -6,10 +6,10 @@ be met, and where. It decides nothing. Where it and a decision
 disagree, [`DECISIONS.md`](DECISIONS.md) is right and this file has a
 mistake.
 
-**Built** means steps 0 to 12, 13a, 15 and 16a to 16c: numbers,
+**Built** means steps 0 to 12, 13a, 13b, 15 and 16a to 16c: numbers,
 strings, booleans, variables, control, subs, arrays and lists, `map`,
 `grep`, `sort`, interpolation, hashes, references to arrays and hashes
-with elements through them, `die`, `try`, `catch` and `warn`, and `q`,
+with elements and the whole container through them, `die`, `try`, `catch` and `warn`, and `q`,
 `qq`, `qw`, heredocs, `sprintf`, `printf` and the rest of the string
 builtins. What is decided and not built is at the end.
 
@@ -161,6 +161,9 @@ every one under both.
 | `my %h = (a => 1); my @a = (0); say exists $a[0] ? "yes" : "no";` | `yes` | Refused |
 | `my $h; $h->{a}{b} = 1; my @g = ([1, 2], [3]); say ref($h->{a}), $g[1][0];` | `HASH3` | Same |
 | `my %h; my $x = $h{a}{b}; say exists $h{a} ? "made" : "no";` | `made` | Fault: `undef where a reference is wanted` |
+| `my %h; for my $x (@{ $h{list} }) { } say exists $h{list} ? "made" : "no";` | `made` | Fault: `undef where a reference is wanted` |
+| `my %h; push $h{list}->@*, 1; say scalar(@{ $h{list} });` | `1` | Same |
+| `my $r = [1, 2]; say @{$r}[1];` | `2` | Refused |
 | `my $r = [1, 2]; say $$r[0];` | `1` | Refused |
 | `my $p = [1]; my $q = $p; say $p == $q ? "one" : "two", [] == [] ? "one" : "two";` | `onetwo` | Same |
 | `my $r = [1]; say $r + 0 > 0 ? "an address" : "no";` | `an address` | Fault: `a reference where a number is wanted` |
@@ -194,7 +197,7 @@ is where the feel changes.
 | `each %h`; `while (my ($k, $v) = each %h)` | Cut: `for my $k (sort keys %h)` | idiom | sometimes | data | D22, D101 |
 | A set or an index built by `map`: `my %seen = map { $_ => 1 } @list;` | Refused, for the comma in the block (perl has to guess whether the braces are a block or a hash): `map { ($_ => 1) } @list` | idiom | sometimes | data | D102 † |
 | `BEGIN`, `eval STRING`, a `require` at run time, `do FILE`, `__DATA__` | Cut: the compiler sees the whole program before any of it runs | idiom | sometimes | layout | D20 |
-| A dereference without braces: `@$r`, `%$r`, `$$r[0]`, `$#$r`, the commonest spelling in old Perl | The arrow: `$r->[0]`, `$r->{k}`; and for the whole container `$r->@*` or `@{ $r }` (step 13b). (237 of the 795 census programs that wait for references use a spelling without braces) | idiom | often | data, old code | D108 |
+| A dereference without braces: `@$r`, `%$r`, `$$r[0]`, `$#$r`, the commonest spelling in old Perl | The arrow: `$r->[0]`, `$r->{k}`; and for the whole container `$r->@*` or `@{ $r }`. (237 of the 795 census programs that wait for references use a spelling without braces) | idiom | often | data, old code | D108 |
 | `open(...) or die "...";`, `$ok or die "...";`: a statement joined to `die` by a word operator | Refused, as every statement joined by one is: `die "..." unless $ok;` (a guess: files, at step 21, will make it common) | idiom | sometimes | errors | D146 |
 | `chomp(my $line = <STDIN>)`, `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
@@ -234,6 +237,8 @@ feels like.
 | `reverse` where one value is wanted reverses a string's characters; `sort` there is undef | Both refused there. `grep` and `map` are their count, as in perl | habit | sometimes | strings, data | D84 |
 | `do { ... } while (...);` | Left out, for the step that takes `do BLOCK`. It is not a loop to perl either: `last` in it leaves the loop round it | habit | sometimes | control | D58 † |
 | Reading through what is not there makes it, in silence: `if ($seen{$x}{$y})`, `my $n = $tree->{left}{size};`, `exists $h{a}{b}` | Fault: `undef where a reference is wanted`. `if ($seen{$x} && $seen{$x}{$y})`. Storing makes it, as in perl | habit | often | data | D107 |
+| The whole container through undef in a `for`, `keys`, `pop`, `shift` or a slice is made in silence, where everywhere else perl dies: `for (@{ $h{list} })`, `keys %{ $h{$k} }` | Fault: `undef where a reference is wanted`, everywhere a whole container is read. `@{ $h{list} // [] }`. `push`, `unshift`, `splice` and an assignment make it, as in perl (six of the census's programs met it) | habit | often | data, loops | D107 |
+| A subscript after the braces, `@{$r}[0]`, `${$r}[0]`, `@{$h}{qw(a b)}` | Refused: the slice is `$r->@[0]`, the element `$r->[0]` | habit | sometimes | data, old code | D108 |
 | A later part reads through a reference that an earlier one stores through, or a sub it calls does: `say $o->{name}, bump($o);` | Refused when a later part, or anything it calls, can store through any reference at all (a guess at how often: no program has met it yet). Take the value into a `my` first | habit | sometimes | data | D109, D114 † |
 | perl's own errors, `Illegal division by zero` and the rest, are caught by `try` (or `eval`) | A fault, which nothing catches: only a `die` is caught | habit | sometimes | errors | D13, D143 |
 | A message split over lines, `die "no such ",` newline `$name;` | Refused, unless the message is written to end in a newline: perl names a line of its own choosing in a statement over several lines, or in a `while`'s test | habit | sometimes | errors | D150 † |
@@ -409,11 +414,8 @@ took work, and was done.
 What the decisions already say of steps to come. Each is proposed in
 full when its step is, and its rows join the sections above then.
 
-- **References, the rest** (steps 13b to 13d; D106, D108, D110,
-  D111). 13a is built, and its rows are above. To come: the whole
-  container through a reference, `$r->@*`, `@{ $r }` and the slices,
-  where reading a whole container through undef is a fault too
-  (D107), as perl does for half the operators and not the other half;
+- **References, the rest** (steps 13c and 13d; D106, D108, D110,
+  D111). 13a and 13b are built, and their rows are above. To come:
   `\$x` and `$r->$*`; and in a string, chains and the whole-container
   forms, with no code in a string, `"@{[ ... ]}"` (D111).
 - **Strings, the rest, 16d** (D120): the case escapes `\U \L \u \l

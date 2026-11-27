@@ -179,15 +179,15 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `sub { }` | In | 14 | |
 | `\` on an element, a slice, a list, a value, a call or `my` | Cut | | D110 (T239) |
 | `->[ ]`, `->{ }` | In | 13a | D107: reading through undef or what is not there faults; storing makes it (T248, D114) |
-| `->@*`, `->%*`, `->$#*`, `@{ }`, `%{ }`, `$#{ }` | In | 13b | D108 |
+| `->@*`, `->%*`, `->$#*`, `@{ }`, `%{ }`, `$#{ }` | In | 13b | D108: wherever `@a`, `%h`, `$#a` stand; a word alone, or `{` first, in the braces is refused (D114, T254); a subscript after a postfix form too (perl does not compile it) |
 | `->$*`, `${ }` | In | 13c | D108 |
 | `->( )` | In | 14 | |
 | `@$x`, `%$x`, `$$x`, `$$x[0]`, `$#$x`: dereference without braces | Cut | | D108 (T246): the arrow or braces say it |
-| A subscript after braces, `${$r}[0]`, `@{$r}{...}` | Cut | | D108: the arrow says it |
+| A subscript after braces, `${$r}[0]`, `@{$r}[0]`, `@{$r}{...}`, `%{$h}{...}`, a blank between too | Cut | | D108: the arrow says it (T343) |
 | Arrows left out between subscripts, `$a[1][0]`, `$r->[0]{k}` | In | 13a | Not after a variable: `$r[0]` is an element of `@r` |
 | `$f->()()` | In | 14 | |
 | A list slice `(LIST)[i]` | In | 9 | A subscript after one is refused |
-| Postfix slices `->@[...]`, `->@{...}` | In | 13b | D108 |
+| Postfix slices `->@[...]`, `->@{...}` | In | 13b | D108: read, the one target of a list assignment (D100), `delete` of a hash's; a slice of one is allowed (perl does not warn of it) |
 | Key-and-value slices `%h{...}`, `%a[...]`, `->%[...]`, `->%{...}` | Cut | | D108, D104 |
 | `\&name`, `defined &name` | Later | 14 | |
 | `->&name(...)`, how a lexical method is called | Later | 17 | New in 5.42; not one of the `&` calls D21 cuts |
@@ -243,9 +243,11 @@ Precedence and associativity are `perlop`'s. Chalk's
 | A hash in list context | In | 12a | Its keys and values by turns, in its own order (D27) |
 | Nested data through references | In | 13a | Copies are shallow (T245); a cycle is collected (D26) |
 | Writing through undef (`$h{a}{b} = 1`, `$r->[0]++`) | In | 13a | perl's (T248): only a variable or an element is made (T252), and not a read-only one (T250, D114) |
-| Writing through undef with `push $h{k}->@*, 1` | In | 13b | |
+| Writing through undef with `push $h{k}->@*, 1` | In | 13b | perl's: `push`, `unshift`, `splice`, an assignment to the whole and a slice on the left make what they go through (T248, T344) |
 | Reading through undef or a missing key (`$h->{a}{b}`), `exists` and `delete` through one | Fault | 13a | D107: perl creates `$h->{a}` (T231, T233) |
-| Reading a whole container through undef, in a `foreach`, a `map` or `keys` | Fault | 13b | D107 (T232) |
+| Reading a whole container through undef, in a `foreach`, a `map`, `keys`, `pop`, `shift`, `->$#*` or a slice | Fault | 13b | D107 (T232): perl makes it in silence there, and dies everywhere else a read stands |
+| `defined` or `length` of a whole container through a reference | Cut | | As of `@a` (T256) |
+| `$r->$#* = N`, `++` of it | Cut | | As `$#a = N` |
 | `ref` | In | 13a | D112: ARRAY or HASH, else the empty string; `SCALAR` and `REF` at 13c |
 | `reftype`, `blessed`, `refaddr` | In | 17 | Imported by `use v5.42`; `refaddr`'s number is unspecified |
 | A later part changing what a reference reaches, read through by an earlier part | Cut | | D109, D114 (T235, T236, T249): refused, in every walk over names |

@@ -1,0 +1,2 @@
+t/2168-whole-subscript-after-a-postfix-slice.pl:5:13: a subscript after a slice: perl takes it for an element of what the slice gives; take the slice into an array first
+exit: 1

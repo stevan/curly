@@ -175,9 +175,13 @@ Four ideas do the cleaning, and `SURFACE.md` applies them:
   and a fault wherever else a number or a string is wanted (D112).
   Every walk over names has one more, "what references reach" (D109),
   and a store through a chain also changes the head it starts from
-  (D114). The collector walks from a container to what it holds with
-  a stack of its own, so a chain of references takes none of C's, and
-  a cycle is collected like anything else (D26).
+  (D114). The whole container through a reference (step 13b) is the
+  same container value an array's or a hash's variable holds, so every
+  builtin of an array or a hash takes it as it is; `push`, `unshift`,
+  `splice`, an assignment and a slice on the left make it, every other
+  use reads through. The collector walks from a container to what it
+  holds with a stack of its own, so a chain of references takes none of
+  C's, and a cycle is collected like anything else (D26).
 - The collector traces: precise, non-moving, roots on a shadow stack
   (D26), with stress and poison knobs. No `DESTROY`. Built at step 7
   (D66): every variable and temporary of a function is a slot of one
