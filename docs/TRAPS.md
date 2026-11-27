@@ -861,7 +861,7 @@ row is a program in `briefs/claimsfuzz.py`; D245 answers both.
 | | Program | perl prints | Step | Way out |
 |---|---|---|---|---|
 | T600 | `sub a() { say "a"; 0 } sub b() { say "b"; 3 } sub f() { return (a() .. b()); } f(); say "end";`; `my $n = 2; sub f() { return (0 .. $n); } f();`; `return (LIST) x 2`, `return reverse(@a)` with an undef in `@a`, each in a call for nothing | `a` `end`: in a call for nothing the range is a flip-flop, which works out its left end and stops at a false one; `Use of uninitialized value $. in range (or flip)` for a constant end; `in repeat (x)` and an undef in `reverse`, which work on one value. The language printed `a` `b` `end`, and was silent | fuzz | A fault as the sub gives it back (D245; 5701 to 5703) |
-| T601 | `sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } f(); say "end";`, and the sort as a last statement, in a branch of `? :`, on the right of `\|\|`, as an item of a list, behind a unary plus, in a sub with no name | `end`: a sort in a call for nothing returns at once, its list worked out and its block never run. The language printed `cmp` `end` | fuzz | Agree: the list, not the sort (D245; 5700) |
+| T601 | `sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } f(); say "end";`, and the sort as a last statement, in a branch of `? :`, on the right of `\|\|`, as an item of a list, behind a unary plus, in a sub with no name; `return (g(), 1)` with `g` giving that sort | `end`: a sort in a call for nothing returns at once, its list worked out and its block never run. The language printed `cmp` `end` | fuzz | Agree: the list, not the sort (D245; 5700) |
 
 ## The checks themselves
 

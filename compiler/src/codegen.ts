@@ -36,7 +36,7 @@ import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
 import type { ArrayOp, Binder, CallRef, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
-import { handsOn, shaped, unsorted, voidOneValue, voidSorts } from './shapes.ts';
+import { handsOn, shaped, voidOneValue } from './shapes.ts';
 import type { Gives } from './shapes.ts';
 
 // The context an expression is worked out in (D18): one of perl's three,
@@ -1004,16 +1004,15 @@ const genGiven = (e: Expr, line: number, out: Out, after: readonly string[]): st
         const listed = ['if (want == RT_SCALAR) {', `    cx->line = ${line};`, `    rt_fault_sub(cx, ${cString(label(out.sub!))}, RT_LISTED);`, '}'];
         // A call that wants nothing (D245): perl works a range, `(LIST) x
         // N` and `reverse` out for one value then, a fault before any of
-        // it is; and skips a sort, so only its list is worked out.
+        // it is; and the rest for nothing (genVoid).
         if (voidOneValue(e)) {
             const what = `${label(out.sub!)} is called for nothing, and gives back a range, (LIST) x N or reverse, which perl works out for one value then`;
             return [...listed, 'if (want == RT_VOID) {', `    cx->line = ${line};`, `    rt_fault(cx, ${cString(what)});`, '}', ...asList()];
         }
-        if (voidSorts(e)) {
-            const skipped = genListWhole([unsorted(e)], line, out, c => [`r = ${c};`, ...after]).code;
-            return [...listed, 'if (want == RT_VOID) {', ...indent(skipped), '} else {', ...indent(asList()), '}'];
-        }
-        return [...listed, ...asList()];
+        const b: Code = { vars: [], decls: [], lines: [], temps: 0, values: out.base, out, strings: out.strings, names: out.names, frame: out.frame, fn: out.fn, line };
+        genVoid(e, b);
+        const nothing = [`cx->line = ${line};`, ...b.decls, ...b.lines, 'r = rt_undef();', ...after];
+        return [...listed, 'if (want == RT_VOID) {', ...indent(nothing), '} else {', ...indent(asList()), '}'];
     }
     if (!listy(e)) return asValue();
     // A sub with nothing list-shaped in it is called as one that gives a
@@ -1022,6 +1021,46 @@ const genGiven = (e: Expr, line: number, out: Out, after: readonly string[]): st
     const few = out.names.lists[out.fn] === true ? asList()
         : genListWhole([e], line, out, c => [`r = rt_only(cx, ${c});`, ...after]).code;
     return ['if (want == RT_LIST) {', ...indent(few), '} else {', ...indent(asValue()), '}'];
+};
+
+// What a call that wants nothing works out of what a sub gives back
+// (D245, shapes.ts's voidReach): where the context reaches, a call is
+// for nothing, a sort is the list it was given, its block never run, and
+// a branch or the right of `|| && //` only if it is taken; anything else
+// is worked out as a list, and nothing is made of it.
+const genVoid = (in_: Expr, b: Code): void => {
+    const e = behind(in_);
+    switch (e.kind) {
+    case 'list':
+        e.items.forEach(item => genVoid(item, b));
+        return;
+    case 'ternary': {
+        const test = genExpr(e.test, b);
+        b.lines.push(`if (rt_is_true(cx, ${test.c})) {`);
+        genVoid(e.then, b);
+        b.lines.push('} else {');
+        genVoid(e.else, b);
+        b.lines.push('}');
+        return;
+    }
+    case 'binary': {
+        const op = infixOp(e.op);
+        if (op?.when === undefined) break;
+        const left = genExpr(e.left, b);
+        b.lines.push(`if (${op.when}(cx, ${left.c})) {`);
+        genVoid(e.right, b);
+        b.lines.push('}');
+        return;
+    }
+    case 'sort':
+        genList(e.items, b);
+        return;
+    case 'invoke': case 'callref':
+        genExpr(e, b, 'void');
+        return;
+    default: break;
+    }
+    genList([e], b);
 };
 
 // What a `return` gives back on its way out: everything the loops it is

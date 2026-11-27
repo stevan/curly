@@ -2615,7 +2615,9 @@ does not, and the others were silent where perl warns. **What is done**:
 where a call hands its context on in what a sub gives back (behind a
 unary plus, to each item of a list, to both branches of `? :`, to the
 right of `|| && //`), a sort, with or without a block, is replaced in
-a call for nothing by the list it was given, which is what perl does;
+a call for nothing by the list it was given, which is what perl does,
+and a call there is a call for nothing in turn (an item of a list too:
+`return (g(), 1);` calls `g` for nothing, to perl);
 and a range, a `(LIST) x N` or a `reverse` there is the fault `f is
 called for nothing, and gives back a range, (LIST) x N or reverse,
 which perl works out for one value then`, raised as the `return` or

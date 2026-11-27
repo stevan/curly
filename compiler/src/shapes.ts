@@ -52,8 +52,9 @@ export const shaped = (in_: Expr, gives: Gives): boolean => {
 // (D245): behind a unary plus, to each item of a list, to both branches of
 // `? :` and to the right of `|| && //`. perl works out what stands there
 // for nothing, which is not what it does for a list: a range is a
-// flip-flop, `(LIST) x N` and `reverse` work for one value, and a sort is
-// skipped, its list worked out and its block never run (T600, T601).
+// flip-flop, `(LIST) x N` and `reverse` work for one value, a sort is
+// skipped, its list worked out and its block never run, and a call is
+// for nothing too (T600, T601; codegen's genVoid).
 const voidReach = (in_: Expr, found: (e: Expr) => boolean): boolean => {
     const e = behind(in_);
     if (found(e)) return true;
@@ -69,20 +70,6 @@ const voidReach = (in_: Expr, found: (e: Expr) => boolean): boolean => {
 // a fault, as the call begins to give it back (D245).
 export const voidOneValue = (e: Expr): boolean =>
     voidReach(e, x => isRange(x) || isRepeat(x) || (x.kind === 'listop' && x.op === 'reverse'));
-
-// A sort where a call for nothing reaches it, and the expression with
-// each such sort made the list it was given (D245): what perl works out.
-export const voidSorts = (e: Expr): boolean => voidReach(e, x => x.kind === 'sort');
-export const unsorted = (e: Expr): Expr => {
-    switch (e.kind) {
-    case 'sort': return { kind: 'list', items: e.items, pos: e.pos };
-    case 'unary': return prefixOp(e.op)?.rt === undefined ? { ...e, operand: unsorted(e.operand) } : e;
-    case 'list': return { ...e, items: e.items.map(unsorted) };
-    case 'ternary': return { ...e, then: unsorted(e.then), else: unsorted(e.else) };
-    case 'binary': return infixOp(e.op)?.when !== undefined ? { ...e, right: unsorted(e.right) } : e;
-    default: return e;
-    }
-};
 
 // What a sub may give back: the value of each `return` in it, and its last
 // statement if that is an expression.

@@ -26,5 +26,7 @@ FUZZ = [
     c('T601-for', 'TRAPS; D245', 'sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } f() for 1 .. 2; say "end";', out='end\n'),
     c('T601-list', 'TRAPS; D245', 'sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } my @x = f(); say "@x";', out='cmp\n1 2\n'),
     c('T601-inside', 'TRAPS; D245', 'sub f() { return join(",", sort { say "cmp"; $a <=> $b } (2, 1)); } f(); say "end";', out='cmp\nend\n'),
+    c('T601-call', 'TRAPS; D245', 'sub g() { return sort { say "c"; $a <=> $b } (2, 1) } sub f() { return (g(), 1) } f(); say "end";', out='end\n'),
+    c('T601-call-range', 'TRAPS; D245', 'sub g() { return (1 .. 2) } sub f() { return (g(), 1) } f(); say "end";', out='end\n', err=r'in range \(or flip\)'),
     c('T601-map', 'TRAPS; D245', 'sub f() { return map { say "m"; 1 } (2, 1); } f(); say "end";', out='m\nm\nend\n'),
 ]

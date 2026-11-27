@@ -1417,7 +1417,8 @@ value, a list or nothing was wanted of the sub they are in.
 **A call that wants nothing**, `f();` as a statement, is one perl
 works the sub's value out for nothing, and that is not always what it
 does for a list. A `sort` given back then is skipped: its list is
-worked out and its block never runs, as in perl. A range, `(LIST) x
+worked out and its block never runs, as in perl; and a call given back,
+an item of a list too, is a call for nothing in turn. A range, `(LIST) x
 N` or `reverse` that a call for nothing may give back, through any of
 the places above or as an item of a list, is a fault as the sub begins
 to give it back: `f is called for nothing, and gives back a range,

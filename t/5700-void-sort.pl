@@ -12,6 +12,8 @@ sub plus() { return +(sort { say "cmp"; $a <=> $b } (2, 1)); }
 sub bare() { return sort 3, 1, 2; }
 sub hands() { return direct(); }
 my $anon = sub { sort { say "cmp"; $a <=> $b } (2, 1) };
+# A call that is an item of the list, or a branch, is for nothing too.
+sub calls($c) { return $c ? (direct(), p(3)) : (1, $anon->()); }
 direct();
 last_statement();
 branch(1);
@@ -21,6 +23,8 @@ plus();
 bare();
 hands();
 $anon->();
+calls(1);
+calls(0);
 say "for nothing: done";
 my @l = direct();
 say "@l";
@@ -29,5 +33,6 @@ say "@l";
 @l = hands();
 say "@l";
 say join(",", bare(), item(), $anon->());
+say join(",", calls(1), calls(0));
 direct() for 1 .. 2;
 say "end";
