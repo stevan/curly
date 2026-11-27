@@ -5296,7 +5296,7 @@ and it took one session, most of it the evidence.
   none is WRONG. **1,213 SAME, 172 LOUD, 1,402 REFUSED (613 for a later
   step, 789 open), 4 UNJUDGED, of 2,791 run**, and 2,789 by design.
 
-### 14. Closures
+### 14. Closures (done)
 
 Referee: perl. Size: large.
 
@@ -5521,6 +5521,144 @@ section is right. All 27 claims held.
   above (freezing for good never changes what is printed before the
   fault); D163's union, given the order above; D165 and the parsing
   (108 programs).
+
+#### 14, as built
+
+**Built** (2026-11-27, by Fable 5.2, alone under Stevan's standing
+instruction), in one step, as D160 has it. **The Size line**, large,
+matches the workbench's `docs/MODELS.md` for this model: every pass of the
+compiler and a piece of the runtime, and it took one session.
+
+- **What is in**: `sub (PARAMETERS) { ... }` and `sub { ... }` where a
+  value may begin, a statement too; `EXPR->(ARGUMENTS)`, the arrow left
+  out after a subscript or the brackets of another such call, `[` after
+  those brackets taken as a subscript; `\&name`; `__SUB__`; closures,
+  each scalar a sub uses from an outer function living in a cell (13c's),
+  each array and hash held by its block, new each time its `my` is
+  reached; D161's identity (one value for the run when nothing from
+  outside is used, nested subs counted, T375); D162's copy of a loop's
+  variable, a new cell each time round, and the freeze for good of what
+  the loop froze, the arrays it names and the containers a chain in its
+  list went through; T371's refusal; T372's read-only variable in every
+  sub written in the loop, its defaults too; D163 in every walk (D69,
+  D76, D77, D57, T230's rule, D18's shapes, the arguments built as one
+  list); D164's faults; D165's refusals; D166's orders (the arguments,
+  then what stands before the arrow, then `rt_code`, then the call, the
+  reference kept in a temporary for the whole call). **Not built, as
+  D160 decided**: `state` and `my sub`, both refused, Later.
+- **The tree**: `anonsub` (a `Sub` with `anon`), `callref` (`head`,
+  `args`), `subref`, `cursub`. **The resolver** numbers a sub with no name
+  after the named ones as it meets it (`anonOf`), reads it as a function
+  of its own in the scopes it is written in, less `$_`, `$a` and `$b`
+  (`hidden`), with a wall for `last` and `next`; `seen` gives each
+  declaration of another function to every sub with no name between the
+  two (`captures`, `captured`, `capturedAt`), a file variable to none
+  (every function reaches it through the context), and marks each such
+  sub as using something from outside (D161). What has one value for the
+  run gets a file variable's slot (`constants`); `targets` is D163's list;
+  `loopVars` each `foreach` variable's loop. **The checker**: `parts` of a
+  call through a reference are its arguments and then its head;
+  `calleeChanges` and `calleeDefaults` are the union over `targets`;
+  `changedBy` counts a store to whatever a function does not own (a file
+  variable, or what a sub with no name captured), and a call through a
+  reference as a call of every target. **The code generator**: every
+  sub is one C type, `rt_code_fn`, handed `self`, the slot holding the
+  reference it was called through (NULL for a call by name); a capture is
+  `RT_CAPTURES(self)[k]`, read through the slot each time (a sub that
+  drops the last other reference to itself as it runs is kept by the
+  slot, 3409); `slotOfId` is the one place a declaration's slot is
+  worked out. **The generated code calls the function a reference
+  holds: the runtime still calls no generated code** (D83), a call
+  through a reference is a C call counted by `rt_enter` against the
+  limit on depth (D68), and a `die` through one unwinds as through any
+  other (3408).
+- **The runtime** (`runtime/ref.c`, rt.h): `RT_TAG_CODE`, a block whose
+  first item is the function (`RT_TAG_FN`, which the collector skips and
+  no program sees) and then the captures; `rt_code_new` (one
+  allocation), `rt_code_capture`, `rt_code` (D164), `RT_CODE_FN`,
+  `RT_CAPTURES`; `rt_freeze_forever` and `rt_freeze_all_forever`, a bit
+  of the freeze count (`FROZEN_FOREVER`) that `rt_thaw` and a `die` never
+  take; `rt_ref_tag` in rt.h, the one list of the references, which
+  `to_str`, `numeric`, the truth, `a_scalar`, `==`, `die` and `chomp`
+  read. `ref` gives `CODE`.
+- **Builder's defaults** (none of them a decision; each the simplest
+  answer that cannot be WRONG, and Stevan's to overturn): **a statement
+  may begin with a sub with no name**, which the proposal's text refused
+  and T367's `sub ($x) { sub ($y) { ... } }` needs (perl takes it); `sub
+  { ... };` alone is refused as a statement with only a value; **a blank
+  before a call's bracket**, `$h{f} (1)`, **and `{` hard after one**,
+  `$g->(){a}`, are refused where perl takes both (`->{a}` says the
+  second); `$f(...)` has a message of its own; `->&name` is step 17's,
+  `&` after a value the bitwise operator, step 22's; `\&` of a word that
+  is not one of the program's subs is refused, and so is `defined &name`
+  (D21); **a loop's list with a scalar variable anywhere refuses the
+  capture of its variable, a lone range with a scalar end too**
+  (`for my $i (1 .. $n)`), where perl's own copy is exact (D166 as
+  written; the cheapest of the step's refusals to give back); the fault
+  of the freeze for good is the loop's own message; **D163's targets are
+  every sub with no name in the program**, stored anywhere or not; a
+  file variable is never captured; the oracle's reading rule takes a
+  hash parameter of a sub with no name as it takes a named sub's
+  (fixtures both ways in `t/checks/`).
+- **What the build found**: nothing new of perl's; the proposal's 38
+  claims all held (`briefs/claims14.py`). One thing of the proposal's own
+  was wrong, the sentence that a statement may not begin with a sub with
+  no name, which its review's T367 contradicts: perl takes it, and so
+  does the build.
+- **Tests**: 3400 to 3403 from `t/models/clo.py` (every variable a
+  closure uses a `Cell` written out by hand, a closure a Python function
+  handed its cells when it is made), on which perl agreed under all eight
+  seeds once the model's own program was mended in two places (a `say`
+  that named `$x` before a call through a reference, D163's refusal; a
+  hash parameter, the reading rule); 3404 and 3410 by hand with perl's
+  answers (the orders, `__SUB__` in a `map`, `\&name` before the sub,
+  closures over a catch's variable and a slurpy parameter, placeholders,
+  word operators after a sub's block and `__SUB__`, a call through a
+  reference that gives a list among a call's arguments); 3405, a hundred
+  thousand closures each the only holder of what it captured, under the
+  stress knob; 3406, two hundred thousand closures in cycles dropped under
+  a cap of 8 MB; 3407, an argument read late beside a call through a
+  reference; 3408, a `die` through calls through references, caught, the
+  loops' freezes and the sorts given back; 3409, a closure that drops
+  itself, under a collection at every allocation; 3420 to 3475, 56
+  programs that fault once (the count, D164's every shape, D107 through a
+  sub's reference, D18's two faults naming `an anonymous sub`, the freeze
+  for good by every change and through a reference, a sub and a nested
+  closure, D112 at twenty operators and builtins and in `die` and `warn`,
+  `recursion too deep` through a reference); 3500 to 3555, 56 refusals
+  from a table by hand (`briefs/step14-refusals.py`, each comment perl's
+  own words, pasted by its `--perl`); `runtime/tests/code.c`, the
+  runtime's own: a reference made and called, a million closures in a
+  chain, a cycle, `rt_code`'s faults, the freeze for good, D112. 999 is a
+  `same` test now and 1926 a fault test. **2,172 golden tests, 160 unit
+  tests, 1,169 statements about perl.**
+- **Broken on purpose** (`briefs/step14-mutations.py`, the runtime and
+  every pass of the compiler): 62 of 78 caught the first time. Thirteen
+  were holes, closed by 3409 (the reference called kept in a slot), 3410
+  (an anonymous signature's placeholders, the end of a value after a
+  sub's block, after one with a signature and after `__SUB__`, a `return`
+  in a sub in a `map`'s block, a sub in a loop's list naming what the
+  block changes, a call through a reference that gives a list among a
+  call's arguments and handed on by a named sub) and four refusals, 3552
+  to 3555 (a sub with no name is checked as a sub; what stands before the
+  arrow changes what an earlier part names; a named sub that calls
+  through a reference; the defaults of any sub a reference can be to).
+  Three nothing in the language can see, and are taken out of the script
+  with a note: a file variable captured as well as reached through the
+  context, the resolver reading the head before the arguments, and the
+  order of a call's parts in `parts`.
+- **The census** (`make census`, then `--sort`): of the 189 probes that
+  waited for step 14, **87 print what perl prints**, 6 fault (the freeze,
+  a closure that stores to the array its caller's loop is over), 58 are
+  refused by design and moved to `by-design/` (15 for D19, 10 for D76,
+  nine each for D17 and D21, six for D55, five for D13, one each for D16,
+  D57, D92 and D108), 5 wait for steps 17 and 22, and 33 are open (most
+  `shift` with no array and `scalar` without brackets). The D76 ten are
+  D163's: a list whose later part calls a sub through a reference that
+  changes what an earlier part names, perl printing what was stored
+  later. No probe left SAME, and none is WRONG. **1,300 SAME, 178 LOUD,
+  1,251 REFUSED (429 for a later step, 822 open), 4 UNJUDGED, of 2,733
+  run**, and 2,847 by design.
 
 ### 15. `die`, `try`, `catch` (done)
 

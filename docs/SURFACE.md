@@ -59,16 +59,17 @@ comparison: *in*, *out*, or *n/a*.
 | `$x =- $y`: a sign hard after `=`, and a blank after the sign | Cut | | | D56, T127: perl warns `Reversed -= operator` |
 | A name of more than 251 characters | Cut | | | D55, T126: `Identifier too long` |
 | A statement that only has a value, `$x + 1;`; two joined by a word operator, `$x = 1 and $y = 2;` | Cut | | | D56: perl warns of each (T114) |
-| `state` | In | 14 | in | |
+| `state` | Later | | in | D160: no probe of the census needs it, and it is one variable per closure value; proposed when something wants it (T369) |
 | `our`, package variables, `$Pkg::x` | Cut | | in | D19 |
 | `local` | Cut | | in | D17; parked |
 | `sub name (signature) { }` | In | 8 | in | D72. At the top level of the file; not named for anything perl knows (D21, T28), nor `v` and digits (T136); called before or after it is written |
-| A sub with no signature, `sub name { }` | In | 8, 14, 17 | out | D105: any number of arguments, each worked out, none seen. Anonymous subs at 14, methods at 17 |
+| A sub with no signature, `sub name { }` | In | 8, 14, 17 | out | D105: any number of arguments, each worked out, none seen. Anonymous subs from 14, methods at 17 |
 | `@_`, `$_[N]`, `shift` or `pop` with no array | Cut | | out | D17: a sub names its arguments in a signature |
 | Defaults in a signature, slurpy `@rest`, `%opts` | In | 8, 10, 12 | in | Defaults are in (D72). `@rest`, or `@` alone, is the last parameter, with no default (T182), a copy, filled at its turn (T191, D87); `%opts` so, from step 12b |
 | Prototypes, `&` calls, `goto &sub` | Cut | | out | D21 |
-| `my sub`, anonymous `sub`, closures | In | 14 | in | |
-| `__SUB__` | In | 14 | | |
+| Anonymous `sub (...) { }` and `sub { }`, closures | In | 14 | in | D161: where a value may begin; a sub's body by step 8's rules, D105 with no signature; it uses the variables in scope, not copies (T360), new each time its `my` is reached; a new reference each time it is reached if it uses an outside variable, else one for the run (T363). `$_`, `$a`, `$b` are not seen in one (T362); `last` and `next` do not leave one (D165, T365); `my $f = sub { $f->() }` is refused (T376) |
+| `my sub` | Later | | | D160: no probe needs it; a `my sub` cannot call itself by name (T369) |
+| `__SUB__` | In | 14 | | D166: in a sub with no name, its own reference, in a `map`, `grep` or `sort` block inside one too; refused anywhere else |
 | `__FILE__`, `__LINE__` | In | 16 | | |
 | `sub f;`, a forward declaration | Cut | | | Nothing needs one (D21) |
 | `no warnings 'recursion';`, with the pragmas | In | 8 | | D67: it changes nothing here, and keeps perl quiet past 100 calls deep |
@@ -80,7 +81,7 @@ comparison: *in*, *out*, or *n/a*.
 | A call, `name(args)`; one comma after the last argument | In | 8 | | D21, D72. An argument that is a variable is read as the sub takes it (T1) |
 | A call without brackets; `f(1,,2)`; a blank between a call's name and its bracket first after `say` or `print`; a minus hard against a one-letter name | Cut | | | D21, T137, T136, T135 |
 | Too few or too many arguments | Fault | 8 | | D13: perl dies, after the arguments have run |
-| A sub in a block, a loop or a sub; two subs of one name; a call of a sub the program doesn't have | Cut | | | T31, D72; a sub in a block comes back with closures (14) |
+| A named sub in a block, a loop or a sub; two subs of one name; a call of a sub the program doesn't have | Cut | | | T31, D72, D165: a sub with no name says it (14) |
 | A parameter named twice; a `my` of a parameter's name in the body | Cut | | | T141: perl warns |
 | `my $x = $x`: the right side sees the outer `$x` | In | 5 | | T58 |
 | `my` in a condition, `if ((my $n = f()) > 3)` | In | 5 | | |
@@ -107,7 +108,8 @@ comparison: *in*, *out*, or *n/a*.
 | `$_` | In | 10 | in | Read-only (D17); seen in the block or statement of the `for`, `map` or `grep` that gives it, and not in a sub they call (T180, T15); not declared (`my $_`); always written (D85); `$_[0]` is refused (T192) |
 | `map { } LIST`, `grep { } LIST` | In | 10 | in | D84, D85, D87. A block and a list, no brackets of their own, no comma after the block; the list is copied, its arrays frozen, D77 for its scalars, T177's fault past the end; where one value is wanted, the count; list-shaped after `return` (D18); as statements too. In the block: no `return` (T174), no `last` or `next` to a loop outside it (T59); it ends in an expression, or a `say` (`true`, as D70); not a string or a number and a comma first, nor `{`, nor empty (T175, T192) |
 | `foreach` over `($p, $q)` naming variables | In | 9 | in | D77: copies; refused when the block, or a sub it calls, can change a scalar named anywhere in the list, the end of a range too (T13, T162, T172) |
-| A closure over, or `\` of, a loop variable or `$_` | Later | 14 | in | D17: perl keeps the alias after the loop |
+| A closure over a loop variable | In | 14 | in | D162: a copy, and every array and hash the loop froze stays frozen for good from the moment the sub is made (T11, T361); refused when the loop's list names a scalar variable anywhere, or reads through a reference to a scalar (D166, T371); still read-only in every sub written in the loop (T372) |
+| `\` of a loop variable or `$_`; a closure over `$_`, `$a`, `$b` | Cut | | | D110 (T12); D162 (T362): to perl the second is the global, read when the sub runs |
 | `foreach my ($k, $v) (%h)` | Later | 12 | | 5.36's; to be proposed |
 | `last`, `next`, labels | In | 6 | in | D61, D62. Statements, not expressions (T120); only inside a loop of the same sub, as written; a label is on a loop, in capitals, and is checked as the program compiles |
 | `last` or `next` with no label, straight inside a bare block | Cut | | | D59, T32: it leaves only the block, to perl |
@@ -177,22 +179,24 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `[ LIST ]`, `{ LIST }`, `\@a`, `\%h` | In | 13a | D110, D113: `{` where a value may begin is a hash; an odd list for `{ }` faults (T244) |
 | `\$x` (a `my` scalar, a parameter or a catch's variable) | In | 13c | D110: the variable lives in a cell, a new one each time its `my` is reached (T240), a file's from the start (T255); not a loop's variable, `$_`, `$a` or `$b` (D17, T12) |
 | `\` on a loop's variable, `$_`, `$a`, `$b`, on `->$*` or `${ }` | Cut | | D110 |
-| `sub { }` | In | 14 | |
+| `sub { }` | In | 14 | | D161: a reference to a sub; `ref` gives `CODE`; true, defined, `==` by identity, D112's fault anywhere else |
 | `\` on an element, a slice, a list, a value, a call or `my` | Cut | | D110 (T239) |
 | `->[ ]`, `->{ }` | In | 13a | D107: reading through undef or what is not there faults; storing makes it (T248, D114) |
 | `->@*`, `->%*`, `->$#*`, `@{ }`, `%{ }`, `$#{ }` | In | 13b | D108: wherever `@a`, `%h`, `$#a` stand; a word alone, or `{` first, in the braces is refused (D114, T254); a subscript after a postfix form too (perl does not compile it) |
 | `->$*`, `${ }` | In | 13c | D108: wherever a scalar variable stands, read, assigned, stepped, a target of a list assignment; reading through undef faults, a store makes it (D107, T248); a word alone, or `{` first, in the braces is refused (D114); nothing may be subscripted or arrowed after either (perl takes an arrow: a builder's default) |
-| `->( )` | In | 14 | |
+| `->( )` | In | 14 | | D163, D164, D166: its arguments, then what stands before the arrow, then the call (T370); by a call's rules (the count a fault, the context handed on, D18's fault naming `an anonymous sub`); undef `undef where a reference is wanted`, anything else not a sub's `not a reference to a sub`; to every walk a call of any sub a reference can be to (D163) |
 | `@$x`, `%$x`, `$$x`, `$$x[0]`, `$#$x`: dereference without braces | Cut | | D108 (T246): the arrow or braces say it |
 | A subscript after braces, `${$r}[0]`, `@{$r}[0]`, `@{$r}{...}`, `%{$h}{...}`, a blank between too | Cut | | D108: the arrow says it (T343) |
 | Arrows left out between subscripts, `$a[1][0]`, `$r->[0]{k}` | In | 13a | Not after a variable: `$r[0]` is an element of `@r` |
-| `$f->()()` | In | 14 | |
+| `$f->()()`, `$h{f}(...)`, `$a[0](...)`, `$f->()[0]` | In | 14 | | The arrow left out after a subscript or a call through a reference (T367); not after a call by name or brackets, `f()()`, `(...)(...)` (T374), and not with a blank before the bracket, nor `{` hard after a call (builder's defaults) |
 | A list slice `(LIST)[i]` | In | 9 | A subscript after one is refused |
 | Postfix slices `->@[...]`, `->@{...}` | In | 13b | D108: read, the one target of a list assignment (D100), `delete` of a hash's; a slice of one is allowed (perl does not warn of it) |
 | Key-and-value slices `%h{...}`, `%a[...]`, `->%[...]`, `->%{...}` | Cut | | D108, D104 |
-| `\&name`, `defined &name` | Later | 14 | |
+| `\&name` | In | 14 | | One reference for the run (T368); refused before `->`, `(`, `[` or `{`, which perl calls (T373); `(\&name)->(...)` says it |
+| `defined &name` | Cut | | | D21: every sub is known as the program compiles |
 | `->&name(...)`, how a lexical method is called | Later | 17 | New in 5.42; not one of the `&` calls D21 cuts |
-| `&$f()`, `&{$f}()`, `->&*` | Cut | | D21 |
+| `&$f()`, `&{$f}()`, `->&*`, `&name` | Cut | | D21, D165 |
+| `$f(...)` | Cut | | Not perl's (a file handle to perl, which dies) |
 | A string as a name (symbolic reference) | Cut | | strict refs: perl dies too |
 | File tests, `-e` and the rest | Later | 21 | |
 | `==` and `!=` between two references | In | 13a | D112: identity (T241) |
