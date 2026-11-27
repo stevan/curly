@@ -2235,7 +2235,8 @@ would read the changed variable. Take the string into a `my` first.
 
 ## References
 
-A **reference** is a value that says where an array or a hash is. It
+A **reference** is a value that says where an array, a hash or a
+scalar is (the scalar's, `\$x`, below). It
 is how one container holds another, and how a sub is handed one
 without a copy.
 
@@ -2403,6 +2404,68 @@ by any name. perl walks the element itself there, and would show the
 store, or a freed value. The block may not assign a variable the list
 reads through, either.
 
+### References to scalars
+
+**`\$x`** is a reference to the scalar variable `$x`: a `my`, a
+parameter, or a `catch`'s variable. **`$r->$*`** and **`${ $r }`** are
+the scalar it points at, and stand wherever a scalar variable may:
+read, the target of `=`, of every assigning operator and of `++` and
+`--`, and a target of a list assignment.
+
+    my $count = 0;
+    my $r = \$count;
+    $r->$* += 2;
+    ${ $r }++;
+    say $count;                   # 3
+    sub bump($c) { $c->$* += 10; return; }
+    bump(\$count);
+
+Two references to one scalar are `==`. `ref` of one is `SCALAR`, or
+`REF` when the scalar holds a reference now. **Reading through undef,
+or through an element or a key that is not there, is a fault**, `undef
+where a reference is wanted` (perl makes the scalar in silence for
+`defined $$r`, in a loop's list and among a call's arguments, and dies
+everywhere else); through anything else, `not a reference to a
+scalar`. **A store makes the scalar** where its head is undef, as a
+store through an element makes its hops: `my $r; $r->$* = 5;` leaves
+`$r` a reference to a new scalar holding 5, and so does `$h{k}->$* =
+5` for `$h{k}`. `=` works its right side out first and then makes the
+scalar; the assigning operators and the steps make it first.
+
+**A `my` that is reached again is a new variable**, to every
+reference taken to it:
+
+    my @cells;
+    for my $i (1 .. 3) {
+        my $v = $i * 10;
+        push @cells, \$v;
+    }
+    say join(",", map { $_->$* } @cells);   # 10,20,30
+
+A sub's `my` and its parameters are new at every call. The first part
+of a C-style `for` is one variable for the whole loop, and a file's
+variable is one from the start: a sub may take `\$x` before the `my`
+that declares `$x` has run.
+
+Not in the language: `$$r`, as for every dereference without braces;
+a reference to a loop's variable, to `$_`, `$a` or `$b`, which perl
+makes the list's own element; `\$r->$*` and `\${ $r }`, where the
+reference itself is the reference; and anything after the scalar
+through a reference, `$r->$*->[0]` or `${ $r }->{k}`, which perl takes
+through the reference the scalar holds: write `my $s = $r->$*;
+$s->[0]`.
+
+**The scalar through a reference is read where it stands**, as an
+element through one is, and perl reads it when its operator runs: so
+`say $$r + ($x = 5)` and `say ${ $r }, set($r)` are refused when the
+later part can store to a scalar a reference reaches. A variable whose
+reference is taken is read late, as any variable is: `$x + (${ $r } =
+5)` is 10 here as in perl. **A loop over the scalar through a
+reference, or over a scalar whose reference is taken, may not store to
+a scalar a reference reaches** in its block, by any name, or in a sub
+the block calls: perl's loop walks the scalar itself. A store through
+an element or a whole container through a reference is allowed there.
+
 ### What references may not do, and what is to come
 
 Not in the language: a dereference without braces, `@$r`, `%$r`,
@@ -2430,8 +2493,8 @@ chain also changes the variable it starts from, since a hop that is
 undef is made in it: `my @l = ($r, ($r->[0] = 1));` is refused. Take
 the value into a `my` first.
 
-Still to come: `\$x`, `$r->$*` and `${ $r }` (step 13c); a reference in
-a string, `"$r->[0]"`, `"@{$r}"` (step 13d).
+Still to come: a reference in a string, `"$r->[0]"`, `"@{$r}"`,
+`"${ $r }"` (step 13d).
 
 ## die, try and catch
 

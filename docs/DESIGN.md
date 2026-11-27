@@ -179,7 +179,12 @@ Four ideas do the cleaning, and `SURFACE.md` applies them:
   same container value an array's or a hash's variable holds, so every
   builtin of an array or a hash takes it as it is; `push`, `unshift`,
   `splice`, an assignment and a slice on the left make it, every other
-  use reads through. The collector walks from a container to what it
+  use reads through. A scalar whose reference is taken (step 13c)
+  lives in a cell, an array's block of one value that its slot holds,
+  and every use of the variable goes through it; `\$x` is that block
+  with another tag, and the scalar through a reference reads it or, for
+  a store, makes it as a chain's last hop. D109's name has a part, the
+  scalars references reach, which a loop over one guards (D77). The collector walks from a container to what it
   holds with a stack of its own, so a chain of references takes none of
   C's, and a cycle is collected like anything else (D26).
 - The collector traces: precise, non-moving, roots on a shadow stack

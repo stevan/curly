@@ -175,12 +175,13 @@ Precedence and associativity are `perlop`'s. Chalk's
 | `isa` | In | 17 | |
 | `=~`, `!~` | In | 19 | |
 | `[ LIST ]`, `{ LIST }`, `\@a`, `\%h` | In | 13a | D110, D113: `{` where a value may begin is a hash; an odd list for `{ }` faults (T244) |
-| `\$x` (a `my` scalar or a parameter) | In | 13c | D110 |
+| `\$x` (a `my` scalar, a parameter or a catch's variable) | In | 13c | D110: the variable lives in a cell, a new one each time its `my` is reached (T240), a file's from the start (T255); not a loop's variable, `$_`, `$a` or `$b` (D17, T12) |
+| `\` on a loop's variable, `$_`, `$a`, `$b`, on `->$*` or `${ }` | Cut | | D110 |
 | `sub { }` | In | 14 | |
 | `\` on an element, a slice, a list, a value, a call or `my` | Cut | | D110 (T239) |
 | `->[ ]`, `->{ }` | In | 13a | D107: reading through undef or what is not there faults; storing makes it (T248, D114) |
 | `->@*`, `->%*`, `->$#*`, `@{ }`, `%{ }`, `$#{ }` | In | 13b | D108: wherever `@a`, `%h`, `$#a` stand; a word alone, or `{` first, in the braces is refused (D114, T254); a subscript after a postfix form too (perl does not compile it) |
-| `->$*`, `${ }` | In | 13c | D108 |
+| `->$*`, `${ }` | In | 13c | D108: wherever a scalar variable stands, read, assigned, stepped, a target of a list assignment; reading through undef faults, a store makes it (D107, T248); a word alone, or `{` first, in the braces is refused (D114); nothing may be subscripted or arrowed after either (perl takes an arrow: a builder's default) |
 | `->( )` | In | 14 | |
 | `@$x`, `%$x`, `$$x`, `$$x[0]`, `$#$x`: dereference without braces | Cut | | D108 (T246): the arrow or braces say it |
 | A subscript after braces, `${$r}[0]`, `@{$r}[0]`, `@{$r}{...}`, `%{$h}{...}`, a blank between too | Cut | | D108: the arrow says it (T343) |
@@ -248,7 +249,8 @@ Precedence and associativity are `perlop`'s. Chalk's
 | Reading a whole container through undef, in a `foreach`, a `map`, `keys`, `pop`, `shift`, `->$#*` or a slice | Fault | 13b | D107 (T232): perl makes it in silence there, and dies everywhere else a read stands |
 | `defined` or `length` of a whole container through a reference | Cut | | As of `@a` (T256) |
 | `$r->$#* = N`, `++` of it | Cut | | As `$#a = N` |
-| `ref` | In | 13a | D112: ARRAY or HASH, else the empty string; `SCALAR` and `REF` at 13c |
+| `ref` | In | 13a, 13c | D112: ARRAY, HASH, SCALAR, or REF when the scalar holds a reference; else the empty string (T242) |
+| Reading the scalar through undef, `defined $$r` and a loop's list too | Fault | 13c | D107: perl makes `$r` in silence there (T350), and dies everywhere else a read stands |
 | `reftype`, `blessed`, `refaddr` | In | 17 | Imported by `use v5.42`; `refaddr`'s number is unspecified |
 | A later part changing what a reference reaches, read through by an earlier part | Cut | | D109, D114 (T235, T236, T249): refused, in every walk over names |
 | `weaken`, `unweaken`, `is_weak`, `is_tainted` | Cut | | D26; all imported by `use v5.42`, so the names are still taken (D21) |

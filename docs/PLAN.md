@@ -5065,6 +5065,127 @@ D10 commit before it.
   pieces (`variable`, `Piece`) have no chain and no whole container;
   T253's rules for what follows them in a string are D114's.
 
+#### 13c, as built
+
+**Built** (2026-11-27, by Fable 5.2, alone under Stevan's standing
+instruction): references to scalars. **The Size line**, large, is the
+whole step's; 13c alone is a medium sub-step for this model by the
+workbench's `docs/MODELS.md` (every pass of the compiler, a small piece
+of the runtime), and it took one session, with a fix to 13a's tests
+(T351) in a commit of its own before it.
+
+- **What is in**: `\$x` of a `my`, a parameter or a `catch`'s variable;
+  `EXPR->$*` and `${ EXPR }`, read, the target of `=`, of every
+  assigning operator and of `++` and `--` (`++${ $r }` too), and a
+  target of a list assignment; D107's faults for every read through
+  undef or what is not there, `not a reference to a scalar` for the
+  wrong kind; a store that makes the scalar where its head is undef, a
+  variable or an element, not a read-only one (T250) nor anything else
+  (T252); `ref` gives `SCALAR`, or `REF` when the scalar holds a
+  reference; a reference to a scalar true, defined, `==` and `!=` by
+  identity, and D112's fault at every operator and builtin; thrown by
+  `die` and caught as itself (D142). **A `my` reached again is a new
+  cell** (T240), a sub's `my` and parameters at every call, a C-style
+  `for`'s first part one for the loop, a file's variable one cell from
+  the start (T255). D109's name in every walk, and **a part of it, the
+  scalars references reach** (`CELLS` in checker.ts). **Nothing of
+  13c's scope is left undone.**
+- **The tree**: `sderef` (`head`), its own kind, so that every place
+  that does not know it treats it as an opaque scalar value; `ref` has
+  a `var` for `of`. The resolver adds a taken scalar to `taken`, and
+  refuses one that is read-only. In the code generator a declaration in
+  `taken` that is no array lives in a cell (`inCell`): `variable` gives
+  `RT_CELL(slot)`, a place as a slot is, so every use reads or writes
+  through it; `slotOf` is the slot itself, which `my` (a new cell,
+  `rt_cell_wrap`), a parameter, a `catch` and the file's start fill.
+  `genCell` is `genChain` with a last link that is a scalar (`hash` 2
+  in the runtime's calls), and its cell kept for no freeze.
+- **The runtime** (`runtime/ref.c`): `RT_TAG_CELL`, an array's block
+  holding one value, which the collector walks as it walks an array, and
+  `RT_TAG_SREF`, its reference; `rt_cell_wrap`, `rt_sref`, and `RT_CELL`
+  in rt.h; `rt_deref`, `rt_vivify`, `rt_elem_hop` and `rt_helem_hop` take
+  2 for a scalar. A cell's one value never moves, so a pointer to it is
+  good as a slot's is: a sub is handed `&RT_CELL(f[n])` for a taken
+  variable, and reads it late, as perl reads the scalar.
+- **Builder's defaults** (none of them a decision; each the simplest
+  answer that cannot be WRONG): **nothing may follow the scalar through a
+  reference**, `$r->$*->[0]`, `${ $r }->{k}`, `$r->$*->$*`, where perl
+  goes on through the reference the scalar holds (`${ $r->$* }` says the
+  last); `\` before `->$*` or `${ }` is refused; the scalar through a
+  reference is read where it stands, into a temporary, as an element
+  through one is, and named in every walk whether or not a scalar
+  variable would be (so `$$r + ($x = 5)` is refused, where `$x + ($$r =
+  5)` is 10 as in perl, T346); **D77 for a loop over the scalar through
+  a reference, or over a scalar whose reference is taken, refuses a
+  store to any scalar a reference reaches**, by name, through a
+  reference, or in a sub the block calls, and allows a store through an
+  element or a whole container, which can change no scalar (no element
+  has a reference of its own, D110); the cell is frozen by nothing, and
+  D77 does the freeze's work; **a store by name to a sub's own scalar
+  changes nothing a reference reached before the call** (it is a new
+  cell at every call), so a sub that only fills its own `my $c` before
+  `return \$c` may be called beside a read through a reference (an
+  array keeps 13a's rule); T230's rule reads the head of `${ ... } = `
+  as its index (T348: perl does join late there); `chomp` and `chop`
+  stay a named variable's (D130).
+- **What the build found**: T346 (the scalar through a reference is read
+  late, as the variable it is), T347 (a loop walks the scalar under
+  every name), T348 (T230 through `${ }`), T349 (T249's, for a scalar in
+  a list assignment), T350 (what makes in silence and what dies, for a
+  scalar). 27 rows of `briefs/claims.py`. And T351, by the coordinator
+  on Stevan's Mac: a reference as a count is an address, a few billion
+  there, so 13a's 1872 and 1874 asked perl for gigabytes; they ask for
+  nothing now (D46), in a commit of their own.
+- **Tests**: 2200 to 2203 from `t/models/sref.py` (a taken scalar is a
+  Python `Cell`, and a reference the cell itself; the model writes a
+  `show` sub that prints `\` before what a reference to a scalar holds),
+  on which perl agreed the first time but for the model's own slip (a
+  name made twice); 2204 by hand with perl's answers (the orders, a
+  variable read late through its cell, `chomp`, a default, a file's
+  variable stepped by a sub); 2205, a chain of a million cells under the
+  stress knob, and 2206, cycles of cells dropped under a cap of 8 MB;
+  2220 to 2270, 51 programs that fault once: every read through undef
+  (a variable, an element, a key, a hop, a call, `defined`, a loop's
+  list, an argument), the wrong kind both ways, every store that may not
+  make, 18 operators and builtins given a reference to a scalar, `die`
+  of one uncaught, the freeze of a container on the way; 2300 to 2348,
+  49 refusals from a table by hand (`briefs/step13c-refusals.py`, each
+  comment perl's own words, pasted by its `--perl`). 1924 is a fault
+  test now, 1928 a `same` test; five refusals of other steps say their
+  message's new words (583, 1910, 1914, 1933, 1934). Two unit tests more,
+  the lexer's tokens and the runtime's cell (`runtime/tests/ref.c`).
+  **1,950 golden tests, 158 unit tests, 1,094 statements about perl.**
+- **Broken on purpose** (`briefs/step13c-mutations.py`): 62 of 70 caught the first
+  time, the first 20 of them breakages of the runtime and the rest of
+  every pass of the compiler; one of the runtime's (a cell tagged as an
+  array) is seen by the runtime's own tests alone, which is as it
+  should be: nothing in the language reads the tag of a cell. Of the
+  eight it missed, two were lines nothing read, `chains.fill` for the
+  scalar through a reference in the resolver and `addId`'s adding the
+  scalars references reach, and both lines went; six were holes, closed
+  by two lines of 2204 (a value ends after `->$*` and a step; brackets
+  round the scalar through a reference make a list assignment) and four
+  refusals, 2345 to 2348, **three of which would have been WRONGs
+  without their rules**: an assignment to the scalar through a reference
+  as an earlier part of a list, which perl reads late as the scalar
+  itself (`77`); a list assignment through one in a sub a later part
+  calls (`51`); and a store that makes the very scalar the right side
+  is (`$x->[0] = $r->$*`, where perl stores `$x` in itself).
+- **The census**: of the 40 probes that waited for 13c, **13 print what
+  perl prints**, 11 are refused by design for D110 (`\(@a)`, `\` before
+  a loop's variable or `$_`, `\$a[0]`), 7 for D19 (`our`), 3 for D108 (a
+  subscript after `${$r}`), 2 for D114 (`${x}`), one each for D17
+  (`$_[0]`) and D55 (`my $a`), one waits for 13d and one is open; 3 open
+  probes moved to D108 by the `$$$` message. 28 moved to `by-design/`.
+  No probe left SAME, and none is WRONG. **1,191 SAME, 172 LOUD, 1,484
+  REFUSED (697 for a later step, 787 open), 4 UNJUDGED, of 2,851 run**,
+  and 2,729 by design.
+- **What 13d needs**: the lexer's string pieces have no chain, no whole
+  container and no scalar through a reference; `"${ $r }"` is refused
+  today by 11a's rule for a name in braces, and `"$r->$*"` by 13d's own.
+  A taken scalar in a string is already read through its cell, as every
+  `variable` is.
+
 ### 14. Closures
 
 Referee: perl. Size: large.
