@@ -497,8 +497,8 @@ def counted(code, m):
     # does, and the seeds are left to see it.
     if re.search(r'\breturn\s+$', before):
         return True
-    # A parameter of a sub.
-    if m.group(0)[0] == '%' and re.search(r'\bsub\s+\w+\s*\([^{;]*$', before):
+    # A parameter of a sub, one with no name too (step 14).
+    if m.group(0)[0] == '%' and re.search(r'\bsub\s*(?:\w+\s*)?\([^{;]*$', before):
         return True
     return False
 

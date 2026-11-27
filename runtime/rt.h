@@ -21,8 +21,18 @@
 // A scalar whose reference is taken lives in a cell (step 13c): an array's
 // block holding one value, which the variable's slot holds as a CELL, and
 // SREF is a reference to it, its payload the same block.
+// A sub's reference (step 14; D161) is CODE, its payload a block of the
+// collector's as an array's is: its first item the sub's C function, FN,
+// which no program sees, and then what the sub captured, each a cell or a
+// container, in the order the compiler numbered them.
 enum { RT_TAG_INT = 1, RT_TAG_NUM = 2, RT_TAG_STR = 3, RT_TAG_UNDEF = 4, RT_TAG_BOOL = 5, RT_TAG_ARRAY = 6, RT_TAG_ABSENT = 7, RT_TAG_HASH = 8,
-       RT_TAG_AREF = 9, RT_TAG_HREF = 10, RT_TAG_CELL = 11, RT_TAG_SREF = 12 };
+       RT_TAG_AREF = 9, RT_TAG_HREF = 10, RT_TAG_CELL = 11, RT_TAG_SREF = 12, RT_TAG_CODE = 13, RT_TAG_FN = 14 };
+
+// Whether a tag is one of the references, each true, defined, `==` by
+// identity, and a fault as a number or a string (D112).
+static inline int rt_ref_tag(uint64_t tag) {
+    return tag == RT_TAG_AREF || tag == RT_TAG_HREF || tag == RT_TAG_SREF || tag == RT_TAG_CODE;
+}
 
 // An array (D80): a row of values that grows and shrinks in place, the
 // collector's as a heap string is, with storage of its own. It is what an
@@ -473,6 +483,27 @@ rt_value rt_ref(rt_ctx *cx, rt_value v);
 void rt_cell_wrap(rt_ctx *cx, rt_value *slot);
 rt_value rt_sref(rt_ctx *cx, rt_value cell);
 #define RT_CELL(v) ((v).as.a->items[0])
+// Subs with no name and calls through a reference (step 14; D161, D164;
+// runtime/ref.c). Every compiled sub is a function of this type: its
+// context, perl's three, where its arguments are, and `self`, the slot that
+// holds the reference it was called through, NULL for a call by name. The
+// generated code calls it: the runtime still calls no generated code (D83).
+// `rt_code_new` makes a sub's reference with room for `count` captures,
+// each undef until `rt_code_capture` stores one; `rt_code` is the check of
+// a call through a reference, D107's two faults, and gives the reference
+// back; RT_CODE_FN is the function it holds, and RT_CAPTURES where its
+// captures begin, which never move.
+typedef rt_value (*rt_code_fn)(rt_ctx *cx, int want, int64_t argc, rt_value **argv, rt_value *flat, rt_value *self);
+rt_value rt_code_new(rt_ctx *cx, rt_code_fn fn, int64_t count);
+void rt_code_capture(rt_ctx *cx, rt_value code, int64_t at, rt_value v);
+rt_value rt_code(rt_ctx *cx, rt_value v);
+#define RT_CODE_FN(v) ((rt_code_fn)(uintptr_t)(v).as.a->items[0].as.bits)
+#define RT_CAPTURES(v) ((v)->as.a->items + 1)
+// A closure over a `foreach`'s variable (D162): what the loop froze stays
+// frozen for good from the moment the closure is made. A bit of its own in
+// the count, which no `die` gives back.
+void rt_freeze_forever(rt_ctx *cx, rt_value container);
+void rt_freeze_all_forever(rt_ctx *cx, rt_value frozen);
 // The containers a chain in the list of a loop, a `map`, a `grep` or a
 // `sort` went through, every one frozen while it runs (D114, T251): each
 // added to a list of its own as the list is built, then all frozen, and

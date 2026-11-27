@@ -105,13 +105,14 @@ programs, as it is built. In outline:
   warnings can't be turned off.
 - **Values:** undef, booleans (`true`, `false`), Int, Num, Str,
   references to arrays, hashes, scalars and code, and objects.
-- **Variables:** lexical only, `my` and `state`. No package
+- **Variables:** lexical only, `my`, and `state` later (D160). No package
   variables, no `local` (D17, D19).
 - **Control:** `if`, `unless`, `while`, `until`, both `for`s, the
   statement modifiers, `last` and `next` with labels, `try` and
   `catch`, `die`.
-- **Subs:** named, anonymous and lexical, each with a signature;
-  closures. Called with brackets (D21). No `@_`, no `wantarray`.
+- **Subs:** named and anonymous, with a signature or none (D105);
+  closures (step 14; D160 to D166); lexical `my sub` later (D160).
+  Called with brackets (D21). No `@_`, no `wantarray`.
 - **Classes:** `class`, `field`, `method`, `ADJUST`, `:isa` (D19).
 - **Packages:** `package Name;` names a file's subs, and nothing
   more: no `bless`, no package variables (D19).
@@ -191,6 +192,22 @@ Four ideas do the cleaning, and `SURFACE.md` applies them:
   (D111, D114). The collector walks from a container to what it
   holds with a stack of its own, so a chain of references takes none of
   C's, and a cycle is collected like anything else (D26).
+- **A sub's reference** (step 14; D161) is a reference too, CODE: a
+  block of the collector's whose first item is the sub's C function
+  and the rest what it captured, each the variable itself, a scalar's
+  cell (13c's) or a container's block. A sub with no name that uses no
+  outside variable is one value for the run, kept in a slot of the
+  file's, as is each named sub with a `\&name`. Every compiled sub is
+  one C type, handed its context, its arguments and the slot holding
+  the reference it was called through; **the generated code calls the
+  function the reference holds, so the runtime still calls no
+  generated code** (D83), and a call is a C call, counted against the
+  limit on depth as any other (D68). A closure over a `foreach`'s
+  variable takes a copy in a cell of its own each time round, and
+  freezes for good what the loop froze, a bit of the count no `die`
+  gives back (D162). To every walk a call through a reference is a
+  call of any sub a reference can be to (D163), and what stands before
+  the arrow is the last part of its call (D166).
 - The collector traces: precise, non-moving, roots on a shadow stack
   (D26), with stress and poison knobs. No `DESTROY`. Built at step 7
   (D66): every variable and temporary of a function is a slot of one
@@ -287,7 +304,7 @@ optimization plan.
 
 ## Open questions
 
-D1 to D114 are decided. What is left is what the decisions hand to a
+D1 to D166 are decided. What is left is what the decisions hand to a
 step, roughly in the order it will matter:
 
 1. **Whether perl 5.42 agrees with what was run under 5.38.2**: it
@@ -323,8 +340,9 @@ step, roughly in the order it will matter:
    **dereference without braces**, `@$x` and `$$x[0]`: cut (D108),
    leaving the arrow, `->@*` and `@{ }`, as Stevan's style guide has
    it.
-8. **A closure over a loop variable** (step 14): refused until then,
-   and too common an idiom to leave refused.
+8. **A closure over a loop variable** (step 14): settled, D162. A
+   copy, and what the loop froze stays frozen for good; refused when
+   the loop's list names a scalar variable (D166).
 9. **`finally` and `defer`; how `warn` is tested**: settled, D144
    and D149 (step 15). Both are refused, to be revisited with files at
    step 21; a test that writes to stderr is of kind `warns`, and the

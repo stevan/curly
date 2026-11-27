@@ -39,7 +39,25 @@ export type Binary = { kind: 'binary'; op: string; left: Expr; right: Expr; pos:
 // against a scalar on the left of `=`, later).
 export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Step | Unary | Binary | Ternary | Apply | Invoke
     | ArrayVar | MyArray | Elem | LastIndex | List | Slice | ArrayOp | ListAssign | ListOp | Binder | Sort | HashOp
-    | Chain | Anon | Ref | Deref | Sderef;
+    | Chain | Anon | Ref | Deref | Sderef | AnonSub | CallRef | SubRef | CurSub;
+
+// A sub with no name, where a value may begin (step 14; D161): `sub
+// (PARAMETERS) { ... }` and `sub { ... }`. Its value is a reference to the
+// sub, holding the variables it uses from outside it. `pos` is the word's.
+export type AnonSub = { kind: 'anonsub'; sub: Sub; pos: Pos; bracketed?: true };
+
+// A call through a reference (step 14; D163, D164, D166): `EXPR->(ARGS)`,
+// and after a subscript or another such call with the arrow left out,
+// `$h{add}(1, 2)`, `$f->(1)(2)`. Its arguments are worked out first and
+// then `head`, the reference (T370). `pos` is the head's.
+export type CallRef = { kind: 'callref'; head: Expr; args: readonly Expr[]; pos: Pos; bracketed?: true };
+
+// `\&name`, a reference to one of the program's named subs (step 14), one
+// value for the whole run. `pos` is the backslash's.
+export type SubRef = { kind: 'subref'; name: string; pos: Pos; bracketed?: true };
+
+// `__SUB__`, in a sub with no name: that sub's own reference (step 14).
+export type CurSub = { kind: 'cursub'; pos: Pos; bracketed?: true };
 
 // An element through a reference (step 13a; D107): `EXPR->[I]` and
 // `EXPR->{K}`, and either one after a subscript with the arrow left out,
@@ -217,7 +235,9 @@ export type Param = { my?: My; op?: string; default?: Expr; slurpy?: true; hash?
 
 // `sub name(params) { body }`. `pos` is the word `sub`'s, `named` the
 // name's, and `end` the closing brace's.
-export type Sub = { kind: 'sub'; name: string; params: readonly Param[]; body: readonly Stmt[]; pos: Pos; named: Pos; end: Pos };
+// A sub with no name (step 14) has `anon`, and a name made for it that no
+// named sub can have, for the generated C.
+export type Sub = { kind: 'sub'; name: string; params: readonly Param[]; body: readonly Stmt[]; pos: Pos; named: Pos; end: Pos; anon?: true };
 
 // `return;` and `return value;`.
 export type Return = { kind: 'return'; value?: Expr; pos: Pos };

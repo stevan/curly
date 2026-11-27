@@ -1,0 +1,2 @@
+t/3521-clo-reference-of-a-word.pl:4:10: \& before 'say': \& takes the name of one of the program's subs, hard against it, \&name
+exit: 1

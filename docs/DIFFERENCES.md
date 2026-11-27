@@ -6,10 +6,10 @@ be met, and where. It decides nothing. Where it and a decision
 disagree, [`DECISIONS.md`](DECISIONS.md) is right and this file has a
 mistake.
 
-**Built** means steps 0 to 13, 15 and 16a to 16c: numbers,
+**Built** means steps 0 to 16c: numbers,
 strings, booleans, variables, control, subs, arrays and lists, `map`,
 `grep`, `sort`, interpolation, hashes, references to arrays, hashes and
-scalars, with elements, the whole container and the scalar through them, in code and in strings, `die`, `try`, `catch` and `warn`, and `q`,
+scalars, with elements, the whole container and the scalar through them, in code and in strings, subs with no name and closures, `die`, `try`, `catch` and `warn`, and `q`,
 `qq`, `qw`, heredocs, `sprintf`, `printf` and the rest of the string
 builtins. What is decided and not built is at the end.
 
@@ -179,6 +179,11 @@ every one under both.
 | `try { my $x = 1 / 0; } catch ($e) { say "caught"; }` | `caught` | Fault: `division by zero` |
 | `sub f($n) { try { return $n * 2; } catch ($e) { return 0; } } say f(4);` | `8` | Same |
 | `my $x = 0; $x or die "zero\n";` | dies | Refused |
+| `my @s; for my $i (1 .. 3) { push @s, sub { $i * 10 } } say join(",", map { $_->() } @s);` | `10,20,30` | Same |
+| `my @a = (1, 2); my @s; for my $x (@a) { push @s, sub { $x } } $a[0] = 9; say $s[0]->();` | `9` | Fault: `an array was changed while a foreach is over it` |
+| `my @a = (1, 2); my @s = map { sub { $_ } } @a; say defined($s[0]->()) ? "def" : "undef";` | `undef` | Refused |
+| `my $n = 2; my @s; for my $i (1 .. $n) { push @s, sub { $i } } say $s[1]->();` | `2` | Refused |
+| `my $f = sub { 1 }; &$f();` | (nothing) | Refused |
 
 ## 1. Idioms you will miss
 
@@ -251,6 +256,10 @@ feels like.
 | perl's own errors, `Illegal division by zero` and the rest, are caught by `try` (or `eval`) | A fault, which nothing catches: only a `die` is caught | habit | sometimes | errors | D13, D143 |
 | A message split over lines, `die "no such ",` newline `$name;` | Refused, unless the message is written to end in a newline: perl names a line of its own choosing in a statement over several lines, or in a `while`'s test | habit | sometimes | errors | D150 † |
 | `q/.../`, `qq{...}` and `qw/a b/` with any delimiter, `q (x)` with a blank | A bracket hard against the word: `q(...)`, `qq[...]`, `qw<...>` | habit | sometimes | strings | D121 † |
+| `$_`, `$a` or `$b` in a sub with no name: `map { sub { $_ } } @a`, which perl reads when the sub runs | Refused: take the value into a `my` first | habit | sometimes | subs, loops | D162 |
+| A closure made in a loop whose list names a scalar variable: `for my $i (1 .. $n) { push @subs, sub { $i } }`, `for my $x ($r->@*) { ... sub { $x } ... }` | Refused, though for a lone range perl's own copy is exact (a guess at how often: no census program has met it yet). `my $j = $i;` in the block, and the sub taking `$j` | habit | sometimes | subs, loops | D166 † |
+| A later part that calls through a reference beside an earlier part that names a variable: `my @l = ($x, $f->());` | Refused when any sub with no name in the program, or any named one with a `\&name`, may store to the variable: the compiler cannot tell which sub a reference holds (a guess at how often) | habit | sometimes | subs | D163 † |
+| `&$f(...)`, `&{$f}(...)`, `&name(...)`, `&name;` | Refused: `$f->(...)`, `name(...)` | habit | sometimes | subs, old code | D21, D165 |
 
 ## 3. Rare, but you meant it
 
@@ -266,13 +275,13 @@ someone.
 | A bare block is a loop that runs once: `{ ...; last if $x; ... }` | A scope and nothing else; an unlabelled `last` nearest one is refused. Label the loop that is meant | idiom | rarely | control | D59 † |
 | The flip-flop, `..` where one value is wanted; a range of strings, `"a" .. "e"` | Refused; a string as the end of a range is a fault | idiom | rarely | control, data | D80 |
 | `redo`, `goto`, `continue` blocks | Cut | idiom | rarely | control | D62 |
-| `last` or `next` in a called sub, or in a `map`, `grep` or `sort` block, leaves the loop round it | Refused | habit | rarely | control | D87 |
+| `last` or `next` in a called sub, a sub with no name, or a `map`, `grep` or `sort` block, leaves the loop round it | Refused | habit | rarely | control | D87, D165 |
 | `unless (...) { } else { }` | Refused: it is an `if` written backwards | habit | rarely | control | D54 † |
 | Chained comparisons: `0 <= $i < $n` (since 5.32) | Refused; `0 <= $i && $i < $n`. A later step can take them | habit | rarely | control | D50 † |
 | A label in any case, on any statement | On a loop, in capitals, checked as the program compiles | habit | rarely | control | D61 † |
 | `foreach (my $i = 0; $i < 3; $i++)`: the two words are one | `for` has three parts; `foreach` is over a list | habit | rarely | loops | D81 † |
 | `for my $i (1 .. $n) { $n-- }`: perl fixes a range's ends as the loop starts | Refused: a loop may not change a scalar its list names | habit | rarely | loops | D77, D81 † |
-| A reference to an element, `\$a[0]`, `\$h{k}`; `\` before a list or a slice; a reference to a loop's variable or to `$_`, `map { \$_ } @a`; a closure that keeps a loop variable's alias | Refused (11 of the census's programs that waited for step 13c take one of these) | idiom | rarely | data | D17, D110 |
+| A reference to an element, `\$a[0]`, `\$h{k}`; `\` before a list or a slice; a reference to a loop's variable or to `$_`, `map { \$_ } @a` | Refused (11 of the census's programs that waited for step 13c take one of these) | idiom | rarely | data | D17, D110 |
 | Going on through a reference that a scalar holds: `$r->$*->[0]`, `${ $r }->{k}` | Refused, though perl takes it: `my $s = $r->$*; $s->[0]` (a builder's default at step 13c, stricter than it has to be) | habit | rarely | data | D108 |
 | In a string, a subscript after the braces or a postfix form: `"${$s}->[0]"`, `"@{$r}[1]"` (a subscript to perl), `"$r->@*[0]"` (text to perl) | Refused: `"$r->[1]"`, or a backslash, `"$r->@*\[0]"` | habit | rarely | strings | D114 |
 | A hash's slice through a reference in a string, `"$r->@{'a', 'b'}"` | Refused, as `"@h{...}"` is: join it | habit | rarely | strings | D99, D111 |
@@ -296,6 +305,7 @@ someone.
 | Two heredocs on a line, `<< "END"`, `<<""`, a terminator with a blank in it | One heredoc on a line, its terminator a word hard against `<<` | habit | rarely | strings | D123 † |
 | `%i`, `%ld`, `%F`, `%2$s`, `%v`, `%n` in a format; a flag perl ignores | `%d`, `%f`; no argument by its number | habit | rarely | printing | D125 |
 | `sprintf("%s-%s", "a")`: a missing value printed as nothing, a value too many dropped | A fault, both ways | habit | rarely | printing | D126 |
+| `state $n = 0;`, `my sub f { }` | Not built yet: a closure over a `my` says the first, a sub with no name in a `my` the second | idiom | rarely | subs | D160 |
 
 ## 4. Accidents
 
@@ -326,6 +336,7 @@ quiet has met few of them.
 | `my $x = (4, 5, 6);`: the comma operator, and a warning | Refused: no comma operator, but in a `for`'s first and third parts | accident | rarely | variables | D60 |
 | A word before `=>` is quoted across a line end, but `true` and `v65` are not | A word is a string before `=>`, or alone in braces, only on one line with them | accident | rarely | data | D102 † |
 | `-bar => 1` and `$h{-bar}` are the string `-bar` | Refused: write `"-bar"` | accident | rarely | data | D102 |
+| A closure over a `foreach`'s variable sees a later store to the array: `for my $x (@a) { push @s, sub { $x } } $a[0] = 9;` | The closure has a copy, and the array is frozen for good: the store is the fault `an array was changed while a foreach is over it` (a guess at how often) | accident | rarely | loops, subs | D162 |
 | A list with an odd number of values assigned to a hash warns, and the last key has no value; an undef as a key warns, and is the empty string | Each a fault | accident | rarely | data | D15, D48 |
 | `$h {a}`, a blank before the brace; `exists $h{k};` or `keys %h;` alone as a statement, in silence | Each refused | accident | rarely | data | D104 † |
 | `exists $h{a} + 1` dies as it runs; `keys %h + 1` does not compile | Refused, with the brackets that say what was meant: `exists($h{a}) + 1` | accident | rarely | data | D102 |
@@ -473,8 +484,8 @@ project is run, how the compiler and the runtime are built, and
 decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
-D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D173,
-D174.
+D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164,
+D173, D174.
 
 ## What this leaves out
 

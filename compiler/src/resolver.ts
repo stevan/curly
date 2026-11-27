@@ -22,7 +22,7 @@
 // declared before it, and no `last` or `next` in it reaches a loop
 // outside it (T60).
 import { refuse } from './errors.ts';
-import type { Binder, Expr, Foreach, Sort, Invoke, Jump, Loop, My, MyArray, Pos, Program, Stmt, Sub } from './ast.ts';
+import type { AnonSub, Binder, CallRef, Expr, Foreach, Sort, Invoke, Jump, Loop, My, MyArray, Pos, Program, Stmt, Sub, SubRef } from './ast.ts';
 import { listSubs } from './shapes.ts';
 
 // A declaration is a number, in the order the `my`s are met; `of` says
@@ -74,6 +74,28 @@ export type Resolution = {
     // And the scalar variables, `\$x` (step 13c): each lives in a cell,
     // its slot holding the cell and every use of it going through it.
     taken: ReadonlySet<number>;
+    // Step 14. A sub with no name is a function too, numbered after the
+    // named ones in the order met (`anonOf`); `parents` is the function each
+    // is written in. `captures` is, for each function, the declarations of
+    // another's it uses, in the order its reference holds them (D161): a
+    // scalar among them lives in a cell, as a taken one does (`captured`).
+    // A file variable is never captured: every function reaches it
+    // through the context. `constants` gives the declaration whose slot, a
+    // file variable's, holds the one value of a sub with no name that uses
+    // nothing from outside it (D161), and of a named sub with a `\&name`.
+    // `targets` is every function a call through a reference may be of
+    // (D163). `capturedAt` is where each captured declaration is first used
+    // in a sub that captures it; `loopVars` the variable of each `foreach`,
+    // to what the loop holds.
+    anonOf: ReadonlyMap<AnonSub, number>;
+    parents: readonly number[];
+    captures: readonly (readonly number[])[];
+    captured: ReadonlySet<number>;
+    constants: ReadonlyMap<number, number>;
+    subrefs: ReadonlyMap<SubRef, number>;
+    targets: readonly number[];
+    capturedAt: ReadonlyMap<number, Pos>;
+    loopVars: ReadonlyMap<number, Each>;
 };
 
 // What a `foreach` has beside its variable: `list`, a declaration no
@@ -89,6 +111,8 @@ export type Each = { list: number; arrays: readonly number[]; frozen?: number };
 // bare block, which runs once (T32).
 // And the block of a `map` or a `grep`, which no `last` or `next` may leave
 // (T59).
+// And a sub with no name, which no `last` or `next` may leave (T365,
+// D165): `anon`.
 type Round = { loop: Loop } | { bare: Pos } | { wall: string };
 
 export const resolve = (program: Program): Resolution => {
@@ -106,6 +130,7 @@ export const resolve = (program: Program): Resolution => {
         const found = [...scopes].reverse().find(scope => scope.has('%' + name));
         if (found === undefined) return refuse(`%${name} is not declared: my %${name}`, at);
         of.set(e, found.get('%' + name)!);
+        seen(found.get('%' + name)!, at);
         // A hash named in the list of a loop, a map, a grep or a sort is
         // frozen while it runs, as an array is (D17, T217): not by its
         // `keys`, which are copies, and not in a string, which is one.
@@ -125,6 +150,7 @@ export const resolve = (program: Program): Resolution => {
             return refuse(`@${name} is not declared: my @${name}${meant}`, e.pos);
         }
         of.set(e, found.get('@' + name)!);
+        seen(found.get('@' + name)!, e.pos);
         // A string is a copy: an array in one is not named by the list
         // the string stands in (T209).
         if (!quoted && !counted) naming.forEach(set => set.add(found.get('@' + name)!));
@@ -162,7 +188,25 @@ export const resolve = (program: Program): Resolution => {
     let round: Round[] = [];
 
     // The subs, before anything is read: a call may come before its sub.
-    const subs = program.body.filter(s => s.kind === 'sub');
+    // The subs with no name are added as they are met (step 14).
+    const subs: Sub[] = program.body.filter(s => s.kind === 'sub');
+    const anonOf = new Map<AnonSub, number>();
+    const parents: number[] = [0, ...subs.map(() => 0)];
+    const captures: number[][] = [[], ...subs.map(() => [])];
+    const uses: boolean[] = [false, ...subs.map(() => false)];
+    const isAnon: boolean[] = [false, ...subs.map(() => false)];
+    const captured = new Set<number>();
+    const capturedAt = new Map<number, Pos>();
+    const subrefs = new Map<SubRef, number>();
+    const referred = new Set<number>();
+    const loopVars = new Map<number, Each>();
+    // The functions the one being read is written in, the file first.
+    let nest: number[] = [0];
+    // The names `$_`, `$a` and `$b` that a sub with no name does not see,
+    // and the declarations of the statements it stands in, not yet seen
+    // (T362, T376).
+    let hidden = new Set<string>();
+    const pending: { fn: number; ds: (My | MyArray)[] }[] = [];
     const called = new Map<string, number>();
     for (const [n, s] of subs.entries()) {
         if (called.has(s.name)) refuse(`a second sub called ${s.name}: perl warns that it is redefined, and takes this one`, s.named);
@@ -188,20 +232,71 @@ export const resolve = (program: Program): Resolution => {
         peak = Math.max(peak, inScope);
     };
 
+    // A declaration used in the function being read (step 14): one of
+    // another function's is used by every sub with no name between the two,
+    // which captures it, unless it is a file variable (D161, T375).
+    const seen = (id: number, at: Pos): void => {
+        const o = owner[id]!;
+        if (o === fn) return;
+        for (const f of nest.slice(nest.lastIndexOf(o) + 1)) {
+            if (!isAnon[f]) continue;
+            uses[f] = true;
+            if (fileSlots.has(id)) continue;
+            if (!captures[f]!.includes(id)) captures[f]!.push(id);
+            captured.add(id);
+            if (!capturedAt.has(id)) capturedAt.set(id, at);
+        }
+    };
+
     // The variables an expression uses, each looked up as it is met; and
     // the ones it declares, which are returned and not yet seen.
     const walk = (e: Expr, declared: (My | MyArray)[]): void => {
         switch (e.kind) {
         case 'var': {
             const found = [...scopes].reverse().find(s => s.has(e.name));
+            // (In a sub with no name: perl's are the globals, read when the
+            // sub runs, T362.)
+            if (found === undefined && hidden.has(e.name)) return refuse(`$${e.name} in a sub with no name: to perl it is the global $${e.name}, read when the sub runs, and not the ${e.name === '_' ? "for's, map's or grep's" : "sort's"} round it (D162); take the value into a my first`, e.pos);
+            if (found === undefined && pending.some(q => q.fn !== fn && q.ds.some(d => d.kind === 'my' && d.name === e.name))) {
+                return refuse(`$${e.name} is not declared yet: a my is seen from the statement after it (D55), and the sub is made before the store; write my $${e.name}; $${e.name} = sub { ... };, or __SUB__ for the sub itself`, e.pos);
+            }
             if (found === undefined && (e.name === 'a' || e.name === 'b')) return refuse(`$${e.name} outside the block of a sort: $a and $b are the two values a sort gives its block, and are seen there alone`, e.pos);
             if (found === undefined && e.name === '_') return refuse('$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)', e.pos);
             if (found === undefined) {
                 return refuse(`$${e.name} is not declared: my $${e.name}${quoted ? '; in a string, \\$ is the character, and ${name} ends a name sooner' : ''}`, e.pos);
             }
             of.set(e, found.get(e.name)!);
+            seen(found.get(e.name)!, e.pos);
             return;
         }
+        // Step 14: a sub with no name, a function of its own read where it
+        // stands; a call through a reference, its arguments first (T370);
+        // `\&name`; `__SUB__`.
+        case 'anonsub': {
+            const n = subs.push(e.sub);
+            anonOf.set(e, n);
+            parents[n] = fn;
+            captures[n] = [];
+            uses[n] = false;
+            isAnon[n] = true;
+            pending.push({ fn, ds: declared });
+            function_(e.sub, n);
+            pending.pop();
+            return;
+        }
+        case 'callref':
+            e.args.forEach(a => walk(a, declared));
+            return walk(e.head, declared);
+        case 'subref': {
+            const found = called.get(e.name);
+            if (found === undefined) return refuse(`\\&${e.name}: the program has no sub called ${e.name}`, e.pos);
+            subrefs.set(e, found);
+            referred.add(found);
+            return;
+        }
+        case 'cursub':
+            if (!isAnon[fn]) return refuse("__SUB__ outside a sub with no name: perl gives undef at the top of the file and the sub itself in a named one; write the sub's name, or \\&name", e.pos);
+            return;
         case 'interp': {
             const outer = quoted;
             quoted = true;
@@ -315,8 +410,11 @@ export const resolve = (program: Program): Resolution => {
             return e.targets.forEach(x => walk(x, declared));
         case 'assign':
             // The right side first: it is worked out first, and in `my $x
-            // = $x` its `$x` is the outer one.
+            // = $x` its `$x` is the outer one. (A sub with no name there that
+            // uses `$x` is told so, T376.)
+            if (e.target.kind === 'my') pending.push({ fn, ds: [e.target] });
             walk(e.value, declared);
+            if (e.target.kind === 'my') pending.pop();
             return walk(e.target, declared);
         case 'step': return walk(e.target, declared);
         case 'unary': return walk(e.operand, declared);
@@ -379,7 +477,9 @@ export const resolve = (program: Program): Resolution => {
             declare(d);
         }
         variables.forEach(v => readonly.add(of.get(v)!));
-        each.set(binder, chained ? { list: of.get(list)!, arrays: [...arrays], frozen: of.get(frozen)! } : { list: of.get(list)!, arrays: [...arrays] });
+        const held: Each = chained ? { list: of.get(list)!, arrays: [...arrays], frozen: of.get(frozen)! } : { list: of.get(list)!, arrays: [...arrays] };
+        each.set(binder, held);
+        if (binder.kind === 'foreach') loopVars.set(of.get(binder.var)!, held);
     };
 
     const inner = (body: readonly Stmt[]): void => {
@@ -393,13 +493,34 @@ export const resolve = (program: Program): Resolution => {
     // parameter exists, so `sub f($x = $x)` means the file's `$x` (T138);
     // the body is in the parameters' scope, so a `my` of a parameter's
     // name there is a second one (T141).
-    const function_ = (s: Sub): void => {
-        const outer = { fn, inScope, variables, scopes, round };
-        fn = called.get(s.name)!;
+    // A sub with no name (step 14), `number` its function's, sees what is in
+    // scope where it is written, but `$_`, `$a` and `$b` (T362), and no
+    // `last` or `next` leaves it (T365). What the statement round it is
+    // reading (a loop's list, the slots in use) is put aside while it is
+    // read.
+    const function_ = (s: Sub, number?: number): void => {
+        const outer = { fn, inScope, variables, scopes, round, peak, quoted, nest, hidden };
+        const lists = naming.splice(0);
+        const chained = chains.splice(0);
+        fn = number ?? called.get(s.name)!;
         inScope = 0;
         variables = 0;
-        scopes = [fileScope, new Map()];
-        round = [];
+        peak = 0;
+        quoted = false;
+        if (number === undefined) {
+            scopes = [fileScope, new Map()];
+            round = [];
+            nest = [0, fn];
+        } else {
+            hidden = new Set(hidden);
+            scopes = [...scopes.map(scope => {
+                const seen_ = new Map(scope);
+                for (const name of ['_', 'a', 'b']) if (seen_.delete(name)) hidden.add(name);
+                return seen_;
+            }), new Map()];
+            round = [{ wall: 'anon' }];
+            nest = [...nest, fn];
+        }
         for (const p of s.params) {
             if (p.default) whole(p.default);
             if (p.rest !== undefined) {
@@ -419,12 +540,16 @@ export const resolve = (program: Program): Resolution => {
         }
         s.body.forEach(statement);
         frames[fn] = variables;
-        ({ fn, inScope, variables, scopes, round } = outer);
+        ({ fn, inScope, variables, scopes, round, peak, quoted, nest, hidden } = outer);
+        naming.push(...lists);
+        chains.push(...chained);
     };
 
     // perl's `last` in a `map` block leaves the loop round the `map`, and
     // warns (T59).
-    const walled = (word: string, op: string): string => `${word} out of the block of a ${op}: a loop says it`;
+    const walled = (word: string, op: string): string => (op === 'anon'
+        ? `${word} out of a sub with no name: perl leaves the loop of whatever called the sub, and warns (D165); give back a value that says to, and test it in the loop`
+        : `${word} out of the block of a ${op}: a loop says it`);
 
     const statement = (s: Stmt): void => {
         switch (s.kind) {
@@ -536,11 +661,28 @@ export const resolve = (program: Program): Resolution => {
     };
 
     program.body.forEach(statement);
+    // The one value of each sub with no name that uses nothing from outside
+    // it, and of each named sub with a `\&name` (D161): a file variable's
+    // slot, which the program fills as it starts.
+    const constants = new Map<number, number>();
+    for (const f of [...subs.keys()].map(k => k + 1).filter(f => (isAnon[f] && !uses[f]) || referred.has(f))) {
+        const id = names.length;
+        names.push(` the sub ${f}`);
+        isArray.push(false);
+        isHash.push(false);
+        owner[id] = 0;
+        slots[id] = file;
+        file += 1;
+        fileSlots.add(id);
+        constants.set(f, id);
+    }
+    const targets = [...subs.keys()].map(k => k + 1).filter(f => isAnon[f] || referred.has(f));
     // The file's own frame: its file variables first, and then the rest,
     // which were numbered from 0 before anyone knew how many those were.
     for (const id of names.keys()) {
         if (owner[id] === 0 && !fileSlots.has(id)) slots[id]! += file;
     }
     frames[0] = file + variables;
-    return { of, names, isArray, isHash, slots, owner, frames, file, fileIds: fileSlots, subs, calls, lists: listSubs(subs, calls), loops, jumps, each, readonly, taken };
+    return { of, names, isArray, isHash, slots, owner, frames, file, fileIds: fileSlots, subs, calls, lists: listSubs(subs, calls, targets), loops, jumps, each, readonly, taken,
+        anonOf, parents, captures, captured, constants, subrefs, targets, capturedAt, loopVars };
 };

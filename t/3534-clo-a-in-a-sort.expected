@@ -1,0 +1,2 @@
+t/3534-clo-a-in-a-sort.pl:4:30: $a in a sub with no name: to perl it is the global $a, read when the sub runs, and not the sort's round it (D162); take the value into a my first
+exit: 1

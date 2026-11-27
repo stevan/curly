@@ -1,0 +1,2 @@
+t/3505-clo-arrow-amp-name.pl:5:3: '->&' and a name: a lexical method call, and classes are not in the language yet (step 17)
+exit: 1

@@ -1,0 +1,3 @@
+1
+fault: a reference where a number is wanted at t/3458-fault-clo-reference-stepped.pl line 6.
+exit: 1

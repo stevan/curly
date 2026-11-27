@@ -69,7 +69,9 @@ export type Name =
     | { kind: 'handle'; say: string; print: string }
     // `chomp` and `chop` (step 16c, D130): a statement on one scalar
     // variable, built as the variable assigned what `rt` makes of it.
-    | { kind: 'changer'; rt: string };
+    | { kind: 'changer'; rt: string }
+    // `__SUB__` (step 14): in a sub with no name, its own reference.
+    | { kind: 'cursub' };
 
 export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['use', { kind: 'use' }],
@@ -135,6 +137,7 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['rindex', { kind: 'function', min: 2, rt: ['rt_rindex2', 'rt_rindex3'] }],
     ['chomp', { kind: 'changer', rt: 'rt_chomp' }],
     ['chop', { kind: 'changer', rt: 'rt_chop' }],
+    ['__SUB__', { kind: 'cursub' }],
 ]);
 
 // Every word perl 5.42 gives a meaning to: its own keyword table, whole

@@ -148,10 +148,24 @@ REASONS = [
     (r"^'\{' hard after .* in a string: perl reads on, and does not compile it", 'design', 'D92'),
     (r"^'->.' hard after .* in a string: a dereference of what that gives, to perl, which is no reference", 'design', 'D92'),
     # ---- later, by the step (step 13c's and 13d's rows went with them)
-    (r"\(step 14\)", 'later', '14'),
     (r"\(step 17\)", 'later', '17'),
-    (r"^a sub with no name, as a value", 'later', '14'),
-    (r"^'&' is not in the language yet", 'later', '14'),
+    # Step 14's (D21, D55, D162, D165, D166); its own rows, `(step 14)`,
+    # a sub with no name as a value and `&`, went with it, and `&` after a
+    # value is the bitwise operator, step 22's.
+    (r"^'&' is not in the language yet", 'later', '22'),
+    (r"^'&' before a sub's name or a reference: a call by '&' is cut", 'design', 'D21'),
+    (r"^->&\*: a call by '&' is cut", 'design', 'D21'),
+    (r"out of a sub with no name: perl leaves the loop", 'design', 'D165'),
+    (r"in a sub with no name: to perl it is the global", 'design', 'D162'),
+    (r"^a sub with no name takes \$\w+, the variable of a loop whose list names", 'design', 'D166'),
+    (r"^a bracket after (a call by name|brackets): perl does not compile", 'design', 'D166'),
+    (r"after \\&\w+: perl calls \w+ and takes a reference", 'design', 'D166'),
+    (r"^__SUB__ outside a sub with no name", 'design', 'D166'),
+    (r"is not declared yet: a my is seen from the statement after it", 'design', 'D55'),
+    (r"is not perl's: a call through a reference is", 'design', 'D165'),
+    (r"^a blank before the bracket of a call through a reference", 'design', 'D104'),
+    (r"^'\{' hard after a call through a reference", 'design', 'D104'),
+    (r"^after sub comes its signature or its block, found .*: a prototype or an attribute", 'design', 'D165'),
     # (Step 15's rows went with it: `die`, `warn`, `try`, `catch`.)
     (r"^expected a value, found '(sprintf|qw|q|qq|ucfirst|lcfirst|rindex|join|reverse|sprintf|chomp)'$", 'later', '16'),
     # (Step 16's own build: these three are numbers, step 22, as SURFACE.md has them.)

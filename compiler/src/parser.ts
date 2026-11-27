@@ -5,7 +5,7 @@
 import { refuse } from './errors.ts';
 import { AND_ROW, COMMA_ROW, NAMED_UNARY_ROW, NAMES, NAME_MAX_LENGTH, OPERATORS, PERL_KEYWORDS, PERL_WORDS, PRAGMAS, PRECEDENCE, TERNARY_ROW, infixOp, isLabel, isVersionString, prefixOp, stepOp } from './names.ts';
 import type { Index, Key, Piece, Token } from './lexer.ts';
-import type { Arm, Chain, Deref, Elem, Expr, HashOp, Label, Param, Pos, Program, Stmt } from './ast.ts';
+import type { Arm, CallRef, Chain, Deref, Elem, Expr, HashOp, Label, Param, Pos, Program, Stmt } from './ast.ts';
 
 // A token as a diagnostic names it. A string is shown if it is short.
 const show = (t: Token): string =>
@@ -216,6 +216,66 @@ export const parse = (tokens: readonly Token[]): Program => {
         return { kind: 'apply', name: head.text, args, pos: head.pos };
     };
 
+    // A sub's signature, or its block with none, next (D72): its
+    // parameters, the closing bracket read. A sub with no signature takes
+    // any number of arguments and sees none (D105): to perl they are in
+    // @_, which is not in the language. That is `sub f(@)`, a slurpy
+    // parameter with no name.
+    const signature = (): Param[] => {
+        const bare = peek().kind === '{';
+        const open = bare ? peek() : next();
+        const params: Param[] = bare ? [{ slurpy: true, pos: open.pos }] : [];
+        while (!bare && peek().kind !== ')') {
+            const v = next();
+            // A slurpy parameter, `@rest` or `@`: the last, and with
+            // no default; perl compiles neither otherwise (T182).
+            if (v.kind === 'array') {
+                const after = peek();
+                if (after.kind === 'op' && (after.text === '=' || after.text === '//=' || after.text === '||=')) refuse('a slurpy parameter has no default: perl refuses one', after.pos);
+                if (after.kind !== ')') refuse(`${v.text} takes every argument that is left, so it is the last parameter: perl refuses one after it`, after.pos);
+                params.push(v.name === '' ? { slurpy: true, pos: v.pos } : { slurpy: true, rest: { kind: 'myarray', name: v.name, pos: v.pos }, pos: v.pos });
+                continue;
+            }
+            // A last parameter that is a hash, `%opts` or `%` alone
+            // (step 12b). tree-sitter-perl takes `:$x`, and perl
+            // doesn't (T55).
+            if (v.kind === 'hash') {
+                const after = peek();
+                if (after.kind === 'op' && (after.text === '=' || after.text === '//=' || after.text === '||=')) refuse('a slurpy parameter has no default: perl refuses one', after.pos);
+                if (after.kind !== ')') refuse(`${v.text} takes every argument that is left, so it is the last parameter: perl refuses one after it`, after.pos);
+                params.push(v.name === '' ? { slurpy: true, hash: true, pos: v.pos } : { slurpy: true, hash: true, rest: { kind: 'myarray', name: v.name, hash: true, pos: v.pos }, pos: v.pos });
+                continue;
+            }
+            if (v.kind !== 'var') return refuse(`a parameter is $name or, last, @name, found ${show(v)}`, v.pos);
+            const assign = peek();
+            let param: Param = v.name === '' ? { pos: v.pos } : { my: { kind: 'my', name: own(v), pos: v.pos }, pos: v.pos };
+            if (assign.kind === 'op' && (assign.text === '=' || assign.text === '//=' || assign.text === '||=')) {
+                next();
+                param = { ...param, op: assign.text };
+                if (peek().kind !== ',' && peek().kind !== ')') {
+                    const outer = inList;
+                    inList = true;
+                    param = { ...param, default: unit(v.pos, () => expression(COMMA_ROW)) };
+                    inList = outer;
+                } else if (v.name !== '') {
+                    refuse(`'${assign.text}' with no default after it: perl refuses it`, assign.pos);
+                }
+            } else if (assign.kind === 'op') {
+                refuse(`'${assign.text}' in a signature: a default is given with =, //= or ||=`, assign.pos);
+            }
+            params.push(param);
+            const after = peek();
+            if (after.kind === ',') {
+                next();
+                if (peek().kind === ',') refuse('two commas together in a signature', peek().pos);
+            } else if (after.kind !== ')') {
+                unexpected(after, "',' or ')'");
+            }
+        }
+        if (!bare) next();
+        return params;
+    };
+
     // The items of a list as far as `end`, the opening bracket read: each
     // may hold what binds tighter than a comma, and one comma may follow
     // the last.
@@ -289,8 +349,33 @@ export const parse = (tokens: readonly Token[]): Program => {
 
     // What an arrow may follow (step 13a): a scalar variable, an element, a
     // call, `[ ]` and `{ }`, and brackets round one value.
+    // (Step 14: and a call through a reference, a sub with no name, and
+    // `__SUB__`; `\&name` in brackets, T373.)
     const arrowable = (e: Expr): boolean =>
-        e.kind === 'var' || e.kind === 'elem' || e.kind === 'chain' || e.kind === 'invoke' || e.kind === 'anon' || (e.bracketed === true && e.kind !== 'list');
+        e.kind === 'var' || e.kind === 'elem' || e.kind === 'chain' || e.kind === 'invoke' || e.kind === 'anon' || (e.bracketed === true && e.kind !== 'list')
+        || e.kind === 'callref' || e.kind === 'anonsub' || e.kind === 'cursub';
+
+    // The arguments of a call through a reference, its bracket next (step
+    // 14): as a call by name has them (D72, T137).
+    const callArguments = (): Expr[] => {
+        next();
+        const outer = inList;
+        inList = true;
+        const args: Expr[] = [];
+        while (peek().kind !== ')') {
+            if (peek().kind === ',') refuse("a comma with no argument before it: perl leaves it out, in silence, where it doesn't refuse it", peek().pos);
+            args.push(expression(COMMA_ROW));
+            const t = peek();
+            if (t.kind === 'op' && (infixOp(t.text)?.row ?? 0) > COMMA_ROW) {
+                refuse(`'${t.text}' in a list of arguments takes the whole list for its left side, to perl: bracket what it joins`, t.pos);
+            }
+            if (t.kind !== ',') break;
+            next();
+        }
+        inList = outer;
+        closing();
+        return args;
+    };
 
     // The subscripts that follow what an arrow may follow, each an element
     // through a reference (step 13a): after an arrow, and between two
@@ -327,11 +412,25 @@ export const parse = (tokens: readonly Token[]): Program => {
                 const deref: Deref = hash ? { kind: 'deref', head: e, hash: true, pos: e.pos } : { kind: 'deref', head: e, pos: e.pos };
                 return hash ? { kind: 'slice', name: '', deref, indexes, hash: true, pos: e.pos } : { kind: 'slice', name: '', deref, indexes, pos: e.pos };
             }
+            // A call through a reference (step 14): after an arrow, and with
+            // the arrow left out after a subscript or another such call, as
+            // perl has it (T367, T374).
+            const callable_ = subscripted || e.kind === 'callref';
+            if ((t.kind === 'op' && t.text === '->' && tokens[i + 1]!.kind === '(' && arrowable(e)) || (callable_ && t.kind === '(')) {
+                if (t.kind === '(' && !touching(i - 1)) refuse("a blank before the bracket of a call through a reference: perl takes it, and reads on; write it hard against what it calls, $h{f}(...)", t.pos);
+                if (t.kind === 'op') next();
+                const call: CallRef = { kind: 'callref', head: e, args: callArguments(), pos: e.pos };
+                e = call;
+                continue;
+            }
+            if (e.kind === 'var' && t.kind === '(' && touching(i - 1)) refuse(`$${e.name}(...) is not perl's: a call through a reference is $${e.name}->(...)`, t.pos);
+            if (e.kind === 'invoke' && t.kind === '(') refuse("a bracket after a call by name: perl does not compile name()(...) (T374); write name()->(...)", t.pos);
+            if (e.kind === 'callref' && t.kind === '{' && touching(i - 1)) refuse("'{' hard after a call through a reference: perl takes it for a key of what the call gives; write the arrow, ->{...}", t.pos);
             if (t.kind === 'op' && t.text === '->') {
                 if (!arrowable(e)) break;
                 // (The lexer has seen that a bracket is hard after it.)
                 next();
-            } else if (subscripted && t.kind === '[') {
+            } else if ((subscripted || e.kind === 'callref') && t.kind === '[') {
                 if (!touching(i - 1)) refuse("a blank between two subscripts: perl takes it, and reads on; write them hard together, $a[0][1]", t.pos);
             } else if (subscripted && t.kind === '{' && t.subscript) {
                 // (A key's brace hard after the last.)
@@ -736,6 +835,8 @@ export const parse = (tokens: readonly Token[]): Program => {
             }
             // Brackets round one value, and an arrow (step 13a).
             if (!isList && peek().kind === 'op' && peek().text.startsWith('->')) return stepAfter(chained(inner));
+            // perl does not compile `(EXPR)(...)` (T374).
+            if (peek().kind === '(') refuse('a bracket after brackets: perl does not compile (...)(...) (T374); a call through a reference is (...)->(...)', peek().pos);
             if (peek().kind !== '[') return inner;
             const open = next();
             const indexes = itemsTo(']');
@@ -797,6 +898,18 @@ export const parse = (tokens: readonly Token[]): Program => {
         // `\@a` and `\%h` (step 13a; D110).
         if (t.kind === 'op' && t.text === '\\') {
             const what = next();
+            // `\&name` (step 14): a reference to a named sub of the
+            // program's. perl takes what follows for `\(&name...)`: a call
+            // and a reference to what it gives (T373).
+            if (what.kind === 'op' && what.text === '&') {
+                const word = next();
+                if (!callable(word) || !touching(i - 2)) return refuse(`\\& before ${show(word)}: \\& takes the name of one of the program's subs, hard against it, \\&name`, what.pos);
+                const after = peek();
+                if (after.kind === '(' || after.kind === '[' || after.kind === '{' || (after.kind === 'op' && after.text.startsWith('->'))) {
+                    refuse(`${show(after)} after \\&${word.text}: perl calls ${word.text} and takes a reference to what it gives; bracket the reference, (\\&${word.text})->(...)`, after.pos);
+                }
+                return { kind: 'subref', name: word.text, pos: t.pos };
+            }
             const after = peek();
             const subscripted = after.kind === '[' || (after.kind === '{' && after.subscript === true) || (after.kind === 'op' && after.text.startsWith('->'));
             // `\$r->@*` and `\@{ $r }` (step 13b): a list of a reference to
@@ -860,7 +973,30 @@ export const parse = (tokens: readonly Token[]): Program => {
         if (name?.kind === 'jump' || name?.kind === 'return') {
             return refuse(`${t.text} is a statement, not a value: write '${t.text} if ...;' or '${t.text} unless ...;'`, t.pos);
         }
-        if (name?.kind === 'sub') return refuse('a sub with no name, as a value, is not in the language yet', t.pos);
+        // A sub with no name (step 14; D161): its signature, or its block
+        // with none (D105), and its block, which is a sub's, `return` and
+        // all, wherever it stands; then what an arrow may follow it with.
+        if (name?.kind === 'sub') {
+            const open = peek();
+            if (open.kind === 'word' && callable(open)) refuse(`sub ${open.text} as a value: a named sub stands at the top level of the file, as a statement; a sub with no name is sub (...) { ... }`, open.pos);
+            if (open.kind !== '(' && open.kind !== '{') refuse(`after sub comes its signature or its block, found ${show(open)}: a prototype or an attribute is not in the language (D165)`, open.pos);
+            const params = signature();
+            if (peek().kind !== '{') unexpected(peek(), "'{' after the signature");
+            const outer = { inSub, blocks, inList };
+            inSub = true;
+            blocks = 0;
+            inList = false;
+            const body = block();
+            ({ inSub, blocks, inList } = outer);
+            const made: Expr = { kind: 'anonsub', sub: { kind: 'sub', name: '', params, body, pos: t.pos, named: t.pos, end: tokens[i - 1]!.pos, anon: true }, pos: t.pos };
+            return stepAfter(chained(made));
+        }
+        // `__SUB__` (step 14): the sub with no name it stands in, which the
+        // resolver says.
+        if (name?.kind === 'cursub') {
+            if (peek().kind === '(') refuse('__SUB__ is written without brackets: __SUB__->(...) calls the sub', peek().pos);
+            return stepAfter(chained({ kind: 'cursub', pos: t.pos }));
+        }
         // perl refuses each of these where a value stands (T315, D143).
         if (name?.kind === 'try' || name?.kind === 'catch') return refuse(`${t.text} is a statement, not a value: perl does not compile it here`, t.pos);
         if (t.kind === 'op' && NAMES.get(t.text)?.kind === 'yada') return refuse("'...' is a statement alone, which dies: perl does not compile it anywhere else", t.pos);
@@ -1254,11 +1390,13 @@ export const parse = (tokens: readonly Token[]): Program => {
         }
         // `sub NAME(PARAMETERS) { ... }` (D72). perl ties a named sub in a
         // loop or a sub to the first time round (T31).
-        if (name?.kind === 'sub') {
+        // (A sub with no name may begin one, as a value: step 14, T367's
+        // `sub ($x) { sub ($y) { ... } }`, below.)
+        if (name?.kind === 'sub' && tokens[i + 1]!.kind !== '{' && tokens[i + 1]!.kind !== '(') {
             next();
             if (depth > 0) refuse('a sub stands at the top level of the file: not in a block, a loop or another sub', head.pos);
             const named = next();
-            if (named.kind !== 'word' && named.kind !== 'version') return refuse(`after 'sub' comes a name, found ${show(named)}: a sub with no name is not in the language yet`, named.pos);
+            if (named.kind !== 'word' && named.kind !== 'version') return refuse(`after 'sub' comes a name, found ${show(named)}`, named.pos);
             // perl ignores a sub named for one of its own words, or doesn't
             // compile the call (T28); it reads `v1_0` as a version string
             // where it hasn't seen the sub yet (T136); and it stops at a
@@ -1269,64 +1407,13 @@ export const parse = (tokens: readonly Token[]): Program => {
                 refuse(`a sub may not be called ${named.text}: perl reads v and digits as a version, where it has not yet seen the sub`, named.pos);
             }
             if (named.text.length > NAME_MAX_LENGTH) refuse(`a name of more than ${NAME_MAX_LENGTH} characters: perl refuses it as too long`, named.pos);
-            // A sub with no signature takes any number of arguments and
-            // sees none (D105): to perl they are in @_, which is not in the
-            // language. That is `sub f(@)`, a slurpy parameter with no name.
-            const bare = peek().kind === '{';
-            const open = bare ? peek() : next();
-            if (!bare && open.kind !== '(') return refuse(`after sub ${named.text} comes its signature, sub ${named.text}(...) { ... }, or its block, found ${show(open)}`, open.pos);
-            const params: Param[] = bare ? [{ slurpy: true, pos: open.pos }] : [];
-            while (!bare && peek().kind !== ')') {
-                const v = next();
-                // A slurpy parameter, `@rest` or `@`: the last, and with
-                // no default; perl compiles neither otherwise (T182).
-                if (v.kind === 'array') {
-                    const after = peek();
-                    if (after.kind === 'op' && (after.text === '=' || after.text === '//=' || after.text === '||=')) refuse('a slurpy parameter has no default: perl refuses one', after.pos);
-                    if (after.kind !== ')') refuse(`${v.text} takes every argument that is left, so it is the last parameter: perl refuses one after it`, after.pos);
-                    params.push(v.name === '' ? { slurpy: true, pos: v.pos } : { slurpy: true, rest: { kind: 'myarray', name: v.name, pos: v.pos }, pos: v.pos });
-                    continue;
-                }
-                // A last parameter that is a hash, `%opts` or `%` alone
-                // (step 12b). tree-sitter-perl takes `:$x`, and perl
-                // doesn't (T55).
-                if (v.kind === 'hash') {
-                    const after = peek();
-                    if (after.kind === 'op' && (after.text === '=' || after.text === '//=' || after.text === '||=')) refuse('a slurpy parameter has no default: perl refuses one', after.pos);
-                    if (after.kind !== ')') refuse(`${v.text} takes every argument that is left, so it is the last parameter: perl refuses one after it`, after.pos);
-                    params.push(v.name === '' ? { slurpy: true, hash: true, pos: v.pos } : { slurpy: true, hash: true, rest: { kind: 'myarray', name: v.name, hash: true, pos: v.pos }, pos: v.pos });
-                    continue;
-                }
-                if (v.kind !== 'var') return refuse(`a parameter is $name or, last, @name, found ${show(v)}`, v.pos);
-                const assign = peek();
-                let param: Param = v.name === '' ? { pos: v.pos } : { my: { kind: 'my', name: own(v), pos: v.pos }, pos: v.pos };
-                if (assign.kind === 'op' && (assign.text === '=' || assign.text === '//=' || assign.text === '||=')) {
-                    next();
-                    param = { ...param, op: assign.text };
-                    if (peek().kind !== ',' && peek().kind !== ')') {
-                        const outer = inList;
-                        inList = true;
-                        param = { ...param, default: unit(v.pos, () => expression(COMMA_ROW)) };
-                        inList = outer;
-                    } else if (v.name !== '') {
-                        refuse(`'${assign.text}' with no default after it: perl refuses it`, assign.pos);
-                    }
-                } else if (assign.kind === 'op') {
-                    refuse(`'${assign.text}' in a signature: a default is given with =, //= or ||=`, assign.pos);
-                }
-                params.push(param);
-                const after = peek();
-                if (after.kind === ',') {
-                    next();
-                    if (peek().kind === ',') refuse('two commas together in a signature', peek().pos);
-                } else if (after.kind !== ')') {
-                    unexpected(after, "',' or ')'");
-                }
-            }
-            if (!bare) next();
+            const open = peek();
+            if (open.kind !== '{' && open.kind !== '(') return refuse(`after sub ${named.text} comes its signature, sub ${named.text}(...) { ... }, or its block, found ${show(open)}`, open.pos);
+            const params = signature();
+            const outer = inSub;
             inSub = true;
             const body = block();
-            inSub = false;
+            inSub = outer;
             return { kind: 'sub', name: named.text, params, body, pos: head.pos, named: named.pos, end: tokens[i - 1]!.pos };
         }
         // A block. An empty one is an anonymous hash to perl, `{}`, and a

@@ -679,11 +679,36 @@ Each row is in `briefs/claims.py`.
 |---|---|---|---|---|
 | T351 | `my $r = [1]; say("a" x $r);` and `my @l = (1 .. $r);` in a fault test; against `my $x = "" x 5000000000;` and `my @l = (5000000000 .. 1);` | perl takes a reference's address for the count: on Linux about 94 trillion, and perl dies at once; on a Mac a few billion, and perl builds and prints gigabytes, which the oracle stops at 16 MB. An empty string repeated and a range that runs down are nothing, whatever the count (`0`, `0`) | 13a | No test asks perl for work the size of an address (D46, T131's kin): 1872 repeats an empty string and 1874 runs its range down. Every fault test that gives perl a reference for a number was read as if the address were 5,000,000,000: the rest cost perl nothing |
 
+## Found proposing step 14
+
+T11 is this step's from before. Each row is in `briefs/claims.py`
+(`briefs/claims14.py`).
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T360 | `for my $i (1..3) { push @s, sub { $i } }`; the same with a C-style `for (my $i = 0; ...)`; `my $j = $i;` in the block and `sub { $j++ }`; `sub counter() { my $n = 0; return sub { ++$n } }` called twice; `my $f = sub { $x }; $x = 2;` | `1,2,3`; `3,3,3`; each closure its own `$j`; `121`; `2`: a closure has the variable, not its value, one per `my` reached | 14 | Agree (D161): a captured scalar is a cell, new each time its `my` is reached, and the closure holds the cell |
+| T361 | A closure over `for my $x (@a)`, then `$a[0] = 9`; over `values %h`, then `$h{a} = 9`; over `keys %h`, then `delete $h{a}`; over `($p, $q)`, then `$p = 9`; over `@a`, then `push` and `shift` | `9`; `9`; `a`; `9`; `13`: to perl the variable is the element, and the closure sees a later store, not through `keys` | 14 | D162: the closure takes a copy, and what the loop froze stays frozen for good, so every such store is a fault; a list that names a scalar variable is refused (D166) |
+| T362 | `my @s = map { sub { $_ } } @a; say defined $s[0]->() ? "def" : "undef";` | `undef`: `$_` is a global, read when the sub runs | 14 | `$_`, `$a` and `$b` are not seen inside an anonymous sub (D162) |
+| T363 | `sub { 1 }` made twice in a loop, `==`; `sub { $i }` the same; `sub { $g }` with `$g` the file's, from a sub called twice; `sub { 1 }` from it | `same`; `diff`; `diff`; `same` | 14 | Agree (D161): new each time if it uses an outside variable, the file's too; otherwise one value |
+| T364 | `my $c = $f->();` with `return (1,2,3)`; `$total + $step->()` where the sub adds to `$total`; `@l = ($x, $bump->())` where the sub sets `$x` | `3` (`33` with the list); `106`; `9 0` | 14 | D18's fault for the first; the second agrees (D14, `$total` read when `+` runs); the third refused (D76, which needs D163 to see it) |
+| T365 | `my $f = sub { last }; for my $i (1..3) { say $i; $f->() } say "done";` | `1`, `done`, and `Exiting subroutine via last` | 14 | Refused (D165): `last` and `next` do not leave an anonymous sub |
+| T366 | `my $f = sub () { 42 }; $f->(1);`; `my $f; $f->();`; `$f = [1]`; `$f = 5` | Each dies: `Too many arguments`, `Can't use an undefined value as a subroutine reference`, `Not a CODE reference`, `Can't use string ("5") as a subroutine ref` | 14 | Faults (D164): the count, `undef where a reference is wanted`, `not a reference to a sub` |
+| T367 | `$d{add}->(1,2)`, `$fs[0]()`, `$d{add}(3,4)`; `$add->(1)->(2)`, `$add->(1)(2)`; `sub { 3 }->()` | `377`, `33`, `3`: the arrow may be left out after a subscript or a call through a reference | 14 | Agree |
+| T368 | `\&named`, `ref` of it, `==` to another `\&named`; `__SUB__->($n - 1)` in an anonymous sub | `2CODEsame`, `120` | 14 | Agree: one value per named sub; `__SUB__` the anonymous sub's own value |
+| T369 | `my sub fact($n) { ... fact($n - 1) }`; `state $n = 0` in a closure made twice | dies, `Undefined subroutine &main::fact`; `121`, one `state` per closure value | 14 | Not built (D160): refused, Later |
+
 ## Found by the review of step 14
 
 | | Program | perl prints | Step | Way out |
 |---|---|---|---|---|
 | T257 | `sub f($n) { my @x = (1) x $n } say f(3) ? "true" : "false";`; and a sub that ends in `my ($p, $q) = (7, 8)`, `@a = (5, 6)`, `($g, $h) = (1, 2, 3)`, `my %x = (a => 1)`, `@h{"p", "q"} = (1, 2)`, `@a[0, 1] = (8, 9)`, `@a = ()`, its value wanted | `true`; the count of the right side, 3, 2, 2, 3, 2, 2, 2, 0: the compiler gave undef, and printed `false` (WRONG since step 9) | 13a | Fault: such an ending has no value, as D78 says (`f has no value`), where the value is used |
+| T370 | `fn()->(arg());`; `$fs[$i]->($i = 1)`; `mk()->($x + 0), mk()->($x)` with `mk` setting `$x` | `arg`, `fn`, `called`; `one`; `15`: perl works out its arguments first, then the sub to call, and the arguments that are variables are read when the sub copies them | 14 | Agree (D166): the arguments, then what stands before the arrow, then the call; that is the last part of the call in every walk |
+| T371 | `for my $x ($c ? $p : $q) { push @s, sub { $x } } $p = 9;`; an inner loop over `grep { 1 } $x` | `9`; `9`: the loop's variable is a scalar of the list through more than its name | 14 | Refused (D166): the capture, when the loop's list names any scalar variable, or reads through a reference to a scalar |
+| T372 | `for my $x (@a) { push @s, sub { $x = 5 } } $s[0]->(); say "@a";` | `5 2`: a store through the closure lands in the array | 14 | Refused: a captured loop variable is read-only in every sub written in the loop (D166) |
+| T373 | `my $r = \&nm->(); say ref($r);` | `SCALAR`: `\(&nm->())` | 14 | Refused (D166): `\&name` before `->`, `(`, `[` or `{`; `(\&name)->(...)` says it |
+| T374 | `say mk2()();` | does not compile: `syntax error` | 14 | Refused: the arrow is left out only after a subscript, or after the brackets of a call through a reference |
+| T375 | `push @s, sub { sub { $g } }` twice, `==` | `diff`: the inner sub's use of `$g` counts for the outer | 14 | Agree (D166) |
+| T376 | `my $f = sub { $f->() };` | does not compile: `Global symbol "$f"` | 14 | Refused, with `my $f; $f = sub { ... };` or `__SUB__` in the message (D55, D166) |
 
 ## Found proposing step 15
 

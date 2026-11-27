@@ -2545,6 +2545,108 @@ braces, `"@$r"`, `"$$r[0]"`; anything but a scalar variable and its
 subscripts in the braces; a slice of a hash through a reference,
 `"$r->@{...}"` ("References in a string").
 
+## Subs with no name
+
+**`sub (PARAMETERS) { ... }`** and **`sub { ... }`**, where a value may
+begin, are a sub with no name: its value is a reference to the sub. Its
+body is a sub's, by the rules of a named one: a signature with its
+defaults, or none, and then it takes any arguments and sees none;
+`return`; the value of its last statement. It may stand anywhere a value
+may: in a sub, a block, a loop, another sub with no name, a list, a
+hash's value, a `return`.
+
+    my $add = sub ($x, $y) { $x + $y };
+    say $add->(1, 2);
+    my %dispatch = (inc => sub ($n) { $n + 1 }, dec => sub ($n) { $n - 1 });
+    say $dispatch{inc}(5);
+
+**A call through a reference** is `EXPR->(ARGUMENTS)`, by the rules of
+a call by name: a wrong number of arguments is a fault, after they have
+all been worked out; an array among them flattens; the call's context is
+handed on, so a sub that returns a list to a call for one value is the
+fault `an anonymous sub returned a list where one value is wanted`.
+**Its arguments are worked out first, and then what stands before the
+arrow**, as perl has it: `$fs[$i]->($i = 1)` calls `$fs[1]`. After a
+subscript, or after the brackets of another such call, the arrow may be
+left out: `$h{add}(1, 2)`, `$f->(1)(2)`, and `$f->()[0]` is an element
+of what the call gives. **Calling undef is the fault `undef where a
+reference is wanted`, and calling anything else that is not a sub's
+reference `not a reference to a sub`.**
+
+**`\&name`** is a reference to one of the program's named subs, the
+same value each time. **`__SUB__`**, in a sub with no name, is that
+sub's own reference, for a sub that calls itself:
+
+    my $fact = sub ($n) { return $n <= 1 ? 1 : $n * __SUB__->($n - 1) };
+
+**A sub's reference is a reference** ("A reference as a value"): true,
+defined, `==` and `!=` to another by identity, `ref` gives `CODE`, and a
+fault wherever else a number or a string is wanted. A sub with no name
+gives a new reference each time it is reached if it uses any variable
+from outside it, a file's variable too; otherwise it is one reference
+for the whole run, as perl has it.
+
+### Closures
+
+**A sub with no name may use every variable in scope where it is
+written, and uses the variable, not its value**: it reads it when it
+runs, and a store from it is a store to the variable.
+
+    my $n = 0;
+    my $count = sub { return ++$n };
+    $count->();
+    say $n;         # 1
+
+**A `my` reached again is a new variable**, so each sub made in a loop,
+or in a call of a sub, has its own:
+
+    sub counter() { my $c = 0; return sub { return $c++ } }
+    my @subs;
+    for my $i (1 .. 3) { push @subs, sub { $i * 10 } }    # 10, 20, 30
+
+and one made in a C-style `for` shares the loop's one variable, which is
+3 once the loop `for (my $i = 0; $i < 3; $i++)` has run. What a sub
+uses lives as long as the sub does; a sub that holds the variable that
+holds it is freed like any other cycle.
+
+**A sub that takes a loop's variable takes a copy of it, and every
+array and hash the loop froze stays frozen for good** from the moment
+the sub is made: a later store to one is the fault `an array was changed
+while a foreach is over it`. To perl the variable is the array's own
+element, and the sub would see the store. The loop's variable is still
+read-only, in every sub written in the loop. A loop whose list names a
+scalar variable anywhere, `for my $x ($p, $q)`, or `1 .. $n`, or
+`$r->@*`, or reads through a reference to a scalar, may not have its
+variable taken: a scalar has no freeze. `my $y = $x;` in the block, and
+the sub taking `$y`, says it, and freezes nothing.
+
+**`$_`, `$a` and `$b` are not seen inside a sub with no name**: to perl
+each is a global, read when the sub runs, not the value its `for`,
+`map`, `grep` or `sort` had. Take the value into a `my` first.
+
+### What a call through a reference may change
+
+The compiler cannot tell which sub a reference will hold, so **a call
+through a reference is, to every rule about what a call may change or
+give back, a call of any sub a reference can be to**: every sub with no
+name in the program, and every named sub with a `\&name` somewhere.
+`my @l = ($x, $f->());` is refused if any of them may store to `$x`, and
+the arguments of a call are built as one list (and a variable among
+them copied as it is met) if any of them may return a list.
+
+### What subs with no name may not do
+
+Not in the language: `&$f(...)`, `&{$f}(...)`, `&name`, `$f->&*`, perl's
+older ways of calling (call by name with brackets, or through an arrow);
+`$f(...)`, which is not perl's; `sort $f LIST` (a block says it); `last`
+and `next` out of a sub with no name, which leave the loop of whatever
+called it, to perl, with a warning; a prototype or an attribute; `@_`
+and `wantarray`; a named sub inside one. `\&name` before `->`, `(`, `[`
+or `{`, which perl takes for a call: `(\&name)->(...)` says it. `my $f =
+sub { $f->() };`, where the sub would use a `$f` not yet declared: `my
+$f; $f = sub { ... };`, or `__SUB__`. `__SUB__` outside a sub with no
+name. Not yet: `state` and `my sub`.
+
 ## die, try and catch
 
 A program stops itself with `die`:

@@ -473,6 +473,26 @@ test('a scalar whose reference is taken lives in a cell, which the collector kee
         assert.deepEqual(run('ref', `sop-${which}`), { status: 1, output: `2\nfault: a reference where a ${what} is wanted at ref.pl line 1.\n` }, which);
     }
 });
+// Step 14: subs' references and closures (D161, D162, D164).
+test("a sub's reference holds its function and what it captured, which the collector keeps while it is reached", () => {
+    assert.deepEqual(run('code', 'code', { CURLY_GC_STRESS: '1', CURLY_GC_POISON: '1' }),
+        { status: 0, output: '16\n22\n22\nCODE\n1\n1\n1\n1\nthe reference held: 4 on the heap\nnone held: 0 on the heap\n' });
+    assert.deepEqual(run('code', 'code-deep'), { status: 0, output: 'a million kept: 2000000 on the heap\n1000000 deep\ndropped: 0 on the heap\n' });
+    assert.deepEqual(run('code', 'code-cycle'), { status: 0, output: 'the cell held: 2 on the heap\nnone held: 0 on the heap\n' });
+    const faults: [string, string][] = [['call-undef', 'undef where a reference is wanted'], ['call-number', 'not a reference to a sub'],
+        ['call-string', 'not a reference to a sub'], ['call-array-reference', 'not a reference to a sub'], ['call-container', 'not a value'],
+        ['deref-code', 'not a reference to an array']];
+    for (const [which, what] of faults) assert.deepEqual(run('code', which), { status: 1, output: `fault: ${what} at code.pl line 1.\n` }, which);
+    assert.deepEqual(run('code', 'capture-not-a-variable'), { status: 2, output: 'internal: a sub captured what is no variable at code.pl line 1.\n' });
+    assert.deepEqual(run('code', 'capture-past-the-end'), { status: 2, output: 'internal: a capture stored where a sub has none at code.pl line 1.\n' });
+    assert.deepEqual(run('code', 'forever'), { status: 1, output: 'thawed\nfault: an array was changed while a foreach is over it at code.pl line 1.\n' });
+    assert.deepEqual(run('code', 'forever-hash'), { status: 1, output: 'thawed\nfault: a hash was changed while a foreach is over it at code.pl line 1.\n' });
+    assert.deepEqual(run('code', 'forever-all'), { status: 1, output: 'frozen\nfault: an array was changed while a foreach is over it at code.pl line 1.\n' });
+    for (const which of ['add', 'neg', 'inc', 'lt', 'eq-num-right', 'concat', 'length', 'say', 'key', 'join', 'sort']) {
+        const what = ['add', 'neg', 'inc', 'lt', 'eq-num-right'].includes(which) ? 'number' : 'string';
+        assert.deepEqual(run('code', `op-${which}`), { status: 1, output: `2\nfault: a reference where a ${what} is wanted at code.pl line 1.\n` }, which);
+    }
+});
 // Step 15 (D141): a die unwinds frames, freezes and a sort by hand, under
 // a collection at every allocation and poison.
 test('a die puts back the frames, the freezes and the sorts a try had open', () => {

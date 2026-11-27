@@ -1,0 +1,3 @@
+1
+fault: too many arguments for one: got 2, expected 1 at t/3423-fault-clo-count-of-a-named-sub.pl line 9.
+exit: 1

@@ -1,0 +1,2 @@
+t/3537-clo-loop-over-a-range-to-a-scalar.pl:7:20: a sub with no name takes $i, the variable of a loop whose list names $n: to perl the sub has the scalar itself, and sees whatever is stored to it later (D166); take the value into a my in the block first, my $y = $i;
+exit: 1

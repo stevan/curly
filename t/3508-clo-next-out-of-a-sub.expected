@@ -1,0 +1,2 @@
+t/3508-clo-next-out-of-a-sub.pl:5:19: next out of a sub with no name: perl leaves the loop of whatever called the sub, and warns (D165); give back a value that says to, and test it in the loop
+exit: 1

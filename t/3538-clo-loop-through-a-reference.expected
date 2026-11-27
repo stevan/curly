@@ -1,0 +1,2 @@
+t/3538-clo-loop-through-a-reference.pl:7:20: a sub with no name takes $x, the variable of a loop whose list names $r: to perl the sub has the scalar itself, and sees whatever is stored to it later (D166); take the value into a my in the block first, my $y = $x;
+exit: 1

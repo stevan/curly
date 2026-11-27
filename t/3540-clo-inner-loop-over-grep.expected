@@ -1,0 +1,2 @@
+t/3540-clo-inner-loop-over-grep.pl:8:24: a sub with no name takes $y, the variable of a loop whose list names $x: to perl the sub has the scalar itself, and sees whatever is stored to it later (D166); take the value into a my in the block first, my $y = $y;
+exit: 1

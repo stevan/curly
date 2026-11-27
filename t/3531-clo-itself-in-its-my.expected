@@ -1,0 +1,2 @@
+t/3531-clo-itself-in-its-my.pl:4:15: $f is not declared yet: a my is seen from the statement after it (D55), and the sub is made before the store; write my $f; $f = sub { ... };, or __SUB__ for the sub itself
+exit: 1

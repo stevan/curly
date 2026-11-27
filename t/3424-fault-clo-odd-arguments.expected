@@ -1,0 +1,3 @@
+1
+fault: an odd number of arguments for an anonymous sub's hash at t/3424-fault-clo-odd-arguments.pl line 6.
+exit: 1

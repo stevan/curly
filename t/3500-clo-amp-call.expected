@@ -1,0 +1,2 @@
+t/3500-clo-amp-call.pl:5:1: '&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+exit: 1

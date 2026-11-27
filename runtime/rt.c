@@ -143,7 +143,7 @@ static void mark(rt_ctx *cx, rt_value v) {
         if (v.as.s->where == RT_STR_DEAD) rt_internal(cx, "a slot holds a string that was collected");
         if (v.as.s->where == RT_STR_HEAP) ((rt_block *)v.as.s - 1)->marked |= REACHED;
         return;
-    case RT_TAG_ARRAY: case RT_TAG_HASH: case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_CELL: case RT_TAG_SREF:
+    case RT_TAG_ARRAY: case RT_TAG_HASH: case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_CELL: case RT_TAG_SREF: case RT_TAG_CODE:
         mark_container(cx, v.as.a);
         return;
     default:
@@ -378,7 +378,7 @@ static const rt_str *to_str(rt_ctx *cx, rt_value v, scratch *number) {
     if (v.tag == RT_TAG_BOOL) return v.as.i ? &STR_TRUE : &STR_FALSE;
     if (v.tag == RT_TAG_UNDEF) rt_fault(cx, "undef where a string is wanted");
     // perl prints an address, in silence (D112, T241).
-    if (v.tag == RT_TAG_AREF || v.tag == RT_TAG_HREF || v.tag == RT_TAG_SREF) rt_fault(cx, "a reference where a string is wanted");
+    if (rt_ref_tag(v.tag)) rt_fault(cx, "a reference where a string is wanted");
     int len = format_number(cx, v, number->bytes);
     number->s.len = (uint64_t)len;
     number->s.chars = (uint64_t)len;
@@ -409,7 +409,7 @@ static void emit_checked(rt_ctx *cx, rt_value v, int newline, int write) {
     char buf[32];
     const char *bytes = buf;
     size_t len;
-    if (v.tag == RT_TAG_STR || v.tag == RT_TAG_BOOL || v.tag == RT_TAG_UNDEF || v.tag == RT_TAG_AREF || v.tag == RT_TAG_HREF || v.tag == RT_TAG_SREF) {
+    if (v.tag == RT_TAG_STR || v.tag == RT_TAG_BOOL || v.tag == RT_TAG_UNDEF || rt_ref_tag(v.tag)) {
         scratch none;
         const rt_str *s = to_str(cx, v, &none);
         if (s->len != s->chars) {
@@ -592,7 +592,7 @@ static number numeric(rt_ctx *cx, rt_value v) {
     case RT_TAG_UNDEF:
         rt_fault(cx, "undef where a number is wanted");
     // perl takes the address, in silence (D112, T241).
-    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF:
+    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE:
         rt_fault(cx, "a reference where a number is wanted");
     default:
         rt_fault(cx, "not a numeric value");
@@ -1133,7 +1133,7 @@ int rt_is_true(rt_ctx *cx, rt_value v) {
         return !(s->len == 0 || (s->len == 1 && s->bytes[0] == '0'));
     }
     // A reference is true (D112).
-    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: return 1;
+    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE: return 1;
     default: rt_fault(cx, "not a value");
     }
 }
@@ -1145,7 +1145,7 @@ int rt_is_false(rt_ctx *cx, rt_value v) {
 // One of the kinds of value a scalar holds: a number, a string, undef, a
 // boolean, a reference; no container, and nothing absent.
 static int a_scalar(uint64_t tag) {
-    return (tag >= RT_TAG_INT && tag <= RT_TAG_BOOL) || tag == RT_TAG_AREF || tag == RT_TAG_HREF || tag == RT_TAG_SREF;
+    return (tag >= RT_TAG_INT && tag <= RT_TAG_BOOL) || rt_ref_tag(tag);
 }
 
 int rt_is_undef(rt_ctx *cx, rt_value v) {
@@ -1202,7 +1202,7 @@ static int compare_strings(rt_ctx *cx, rt_value a, rt_value b) {
 // container (D112, T241); a reference beside anything else is a fault, by
 // the operands in order.
 static int is_ref(rt_value v) {
-    return v.tag == RT_TAG_AREF || v.tag == RT_TAG_HREF || v.tag == RT_TAG_SREF;
+    return rt_ref_tag(v.tag);
 }
 
 rt_value rt_num_eq(rt_ctx *cx, rt_value a, rt_value b) {

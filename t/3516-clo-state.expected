@@ -1,0 +1,2 @@
+t/3516-clo-state.pl:6:20: 'state' is not in the language
+exit: 1
