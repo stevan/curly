@@ -525,7 +525,11 @@ is `P::helper`, a method named `floor` is never installed, a `my
 method` hides a builtin, a method of a class's name hides the class,
 `new` copies each value at its field's turn and runs code the walks
 must see, `SUPER::` is the written class's parent. **D178**, the
-builder's defaults on it, is Stevan's to confirm; then 17a is built. What it turns
+builder's defaults on it, is Stevan's to confirm. **Paused there
+(Stevan, 2026-11-27)**: perl's class system is in places badly
+designed, and he wants Curly stricter than it rather than repeating
+it, so D170 to D178 may change; **17a waits for step 14 to land and be
+tested, and for his rethink. Build nothing of 17 before that.** What it turns
 on: **a method call reaches every method of its name** (the program
 is one file, Q3); **construction is perl's two passes** (T400);
 **a class's block holds declarations only** (T408, T411).
