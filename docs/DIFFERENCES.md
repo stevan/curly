@@ -214,6 +214,10 @@ is where the feel changes.
 | `chomp(my $line = <STDIN>)`, `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
 | Code in a string: `"@{[ scalar(@a) ]}"`, `"${\ join(",", @a) }"`, and anything in `"@{ ... }"` but a scalar variable and its subscripts | Refused: work the value out first, into a `my`, and put that in the string | idiom | sometimes | strings | D111 |
+| `$1`, `$2`, `$&` after a match: `if ($s =~ /(\d+)/) { say $1 }` | Not in: a match where a list is wanted gives its captures, `my ($n) = $s =~ /(\d+)/;` (a guess: most of the 190 census programs that wait at `=~` use `$1`) | idiom | often | strings | D228 |
+| A variable in a pattern: `$s =~ /^$prefix/`, `/\Q$x\E/` | Refused: a pattern is known when the program compiles; `index` finds a string | idiom | often | strings | D229 |
+| `while ($s =~ /(\w+)/g) { ... }`, `pos`, `\G`: a match that goes on from where the last left off | Refused: `/g` only where a list is wanted, `for my $w ($s =~ /(\w+)/g) { ... }` | idiom | sometimes | strings, loops | D233 |
+| A pattern alone matching `$_`: `grep { /x/ } @l`, `next if /^#/;` | `$_` is written: `grep { $_ =~ /x/ } @l` | idiom | sometimes | strings | D234, D85 † |
 
 ## 2. Habits that now stop
 
@@ -260,6 +264,7 @@ feels like.
 | A closure made in a loop whose list names a scalar variable: `for my $i (1 .. $n) { push @subs, sub { $i } }`, `for my $x ($r->@*) { ... sub { $x } ... }` | Refused, though for a lone range perl's own copy is exact (a guess at how often: no census program has met it yet). `my $j = $i;` in the block, and the sub taking `$j` | habit | sometimes | subs, loops | D166 † |
 | A later part that calls through a reference beside an earlier part that names a variable: `my @l = ($x, $f->());` | Refused when any sub with no name in the program, or any named one with a `\&name`, may store to the variable: the compiler cannot tell which sub a reference holds (a guess at how often) | habit | sometimes | subs | D163 † |
 | `&$f(...)`, `&{$f}(...)`, `&name(...)`, `&name;` | Refused: `$f->(...)`, `name(...)` | habit | sometimes | subs, old code | D21, D165 |
+| `m!...!`, `m\|...\|`, `m#...#` and the other delimiters perl takes | `/.../`, or `m` and a bracket: `m{...}` | habit | sometimes | strings | D227 † |
 
 ## 3. Rare, but you meant it
 
@@ -306,6 +311,7 @@ someone.
 | `%i`, `%ld`, `%F`, `%2$s`, `%v`, `%n` in a format; a flag perl ignores | `%d`, `%f`; no argument by its number | habit | rarely | printing | D125 |
 | `sprintf("%s-%s", "a")`: a missing value printed as nothing, a value too many dropped | A fault, both ways | habit | rarely | printing | D126 |
 | `state $n = 0;`, `my sub f { }` | Not built yet: a closure over a `my` says the first, a sub with no name in a `my` the second | idiom | rarely | subs | D160 |
+| `x{,3}`, `x{ 2 }`, a brace in a pattern that is no quantifier's | Refused: `x{0,3}`, `x{2}`, `\{` | habit | rarely | strings | D236 |
 
 ## 4. Accidents
 
@@ -367,6 +373,10 @@ quiet has met few of them.
 | `sprintf("%d", 1e30)` is `-1`; `%g` of `-$x` is `-0` or `0` by what `$x` was; `%3c` pads a wide character by its bytes | A fault where perl's conversion is the machine's or has two answers; `%c` takes no width | accident | rarely | printing | D127, D131 |
 | `qq[$x\[0\]]` is an element of `@x`: the backslash before the bracket goes before the variables are read | A backslash before a `qq`'s own bracket is refused | accident | rarely | strings | D131 |
 | `ucfirst("éa")` is `Éa`, by perl's tables | A first character past ASCII is a fault, as for `uc` | accident | rarely | strings | D129 |
+| `/i` folds past ASCII: `"\x{212A}" =~ /k/i` matches, and `"\xdf" =~ /ss/i` | A match under `/i` of a string with a character past ASCII is a fault, as `uc` and `lc` past ASCII are | accident | sometimes | strings | D230 |
+| A group that captures inside a repeated group, `/(?:(a)\|b)*/`: perl keeps or forgets its value by rules of its own | Refused, unless it is the repeated group itself: `(a\|b)*` | accident | rarely | strings | D231 † |
+| A pattern that backtracks without end, which perl's shortcuts often finish at once | A fault past ten million steps of the matcher | accident | rarely | strings | D232 |
+| `!$x =~ /a/` is `(!$x) =~ /a/`; `@a =~ /x/` matches the count | Refused | accident | rarely | strings | D234 |
 
 The thread through the last six rows: **in perl a value remembers
 what was done with it, and in Curly a value has no past.** `my $x =
@@ -488,7 +498,7 @@ decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
 D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164,
-D186, D170.
+D186, D170, D225, D226, D235, D237.
 
 ## What this leaves out
 

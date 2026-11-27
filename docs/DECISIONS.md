@@ -2597,3 +2597,100 @@ now, a walk that refuses whatever would let a program see the order
 of construction, which would refuse most `ADJUST`s that print and
 every default that reads a variable a default above it changes, and
 is better decided beside the protocol that may change the order.
+
+## Step 19: regexes, matching
+
+D225 to D237 are the builder's recommendations on step 19's proposal
+(`PLAN.md`, step 19), recorded under Stevan's standing instruction of
+2026-11-27 ("I pre-approve all your recommendations, so do not ask me
+for confirmation and just keep building"), each his to overturn.
+
+**D225. Step 19 is cut in three: 19a the matcher and a match as a
+test, 19b captures where a list is wanted, 19c `/g` where a list is
+wanted.** *(Builder's recommendation, 2026-11-27.)* Each is green and
+committed. Rejected: one step, too large to review at once; step 20's
+`s///`, `split`, `tr` and `qr` with it.
+
+**D226. The subset**: characters, the escapes that are characters,
+`.`, classes, `\d \w \s \D \W \S` with exactly perl's characters (its
+own tables, Unicode's for every string under `use v5.42`, T545, T67),
+`^ $ \A \z \Z \b \B`, `* + ? {n} {n,} {n,m}` greedy and lazy, `(...)`,
+`(?:...)`, `|`, `\1` to `\9`, and the flags `i m s x g`.
+*(Builder's recommendation, 2026-11-27.)* Rejected for now:
+lookaround, possessive quantifiers, `(?flags)`, `(?#...)`, named
+captures, POSIX classes, `\p{...}`, `\h \v \R \N \X \K \G`, `\g`,
+`\k`, the flags `a u l n p o xx e r c`: each a refusal that names it.
+
+**D227. A pattern's delimiters are `/` and, after `m`, one of the four
+brackets hard against it.** *(Builder's recommendation, 2026-11-27.)*
+A backslash before a bracket's own closing bracket is refused. The
+empty pattern is refused (T66). Rejected: every delimiter perl takes,
+since an escaped delimiter that is a metacharacter becomes the
+metacharacter (T541).
+
+**D228. A match's captures reach the program only as the list it
+gives where a list is wanted; `$1` and its kin are not in.**
+*(Builder's recommendation, 2026-11-27; DESIGN's open item 11.)* `$1`
+to `$9`, `$&`, `` $` ``, `$'`, `@-`, `@+` and `%+` are refused.
+Rejected: `$1` as perl has it (T554: it outlives its block and a
+failed match keeps the last one's); `$1` only in the block of an `if`
+whose test is the match (machinery a later step can add without
+changing anything here); `%+` (with named captures, step 20).
+
+**D229. A pattern has no variable in it.** *(Builder's
+recommendation, 2026-11-27.)* A `$` that is not last in the pattern or
+before `)` or `|` is refused (T550), and so is any `@`, a `$` or `@`
+in a class, and the case escapes `\Q \E \U \L \u \l`. Rejected:
+`\Q$x\E` as literal text (it comes with `qr`, step 20).
+
+**D230. `/i` is ASCII's.** *(Builder's recommendation, 2026-11-27.)*
+A character past ASCII in a pattern under `/i` is refused, and a
+match under `/i` of a string that holds one is the fault `a match
+without regard to case of a string with a character past ASCII`, as
+`uc` and `lc` past ASCII are faults. Rejected: perl's folding, by
+Unicode's tables, one character to two (T546).
+
+**D231. What the matcher never has to decide as perl does**: a
+quantifier on what can match the empty string is refused (T552), and
+a capturing group inside a repeated group is refused unless it is the
+repeated thing itself and holds no other group. *(Builder's
+recommendation, 2026-11-27.)* perl forgets a group's value when a
+later time round a loop takes another branch (T540). Rejected:
+copying perl's `CURLYX` and `WHILEM` rules.
+
+**D232. The step limit**: a match operation that runs more than
+10,000,000 instructions of the matcher is the fault `pattern match
+too long`, `/g`'s whole list counted as one. *(Builder's
+recommendation, 2026-11-27.)* perl's shortcuts finish some patterns
+at once that a plain backtracking machine cannot (T555), so the
+language is loud where perl is not. Rejected: perl's shortcuts (a
+super-linear cache, the longest fixed substring); no limit.
+
+**D233. `/g` only where a list is wanted, and not with `!~`.**
+*(Builder's recommendation, 2026-11-27.)* `pos` and `\G` stay cut, so
+a list `/g` always starts at the beginning (T543).
+
+**D234. What stands left of `=~` and `!~`**: one value; an array, a
+hash or a list is refused, and so is an unbracketed `!` before it
+(T547), and a pattern anywhere but on the right of one: a pattern
+alone, matching `$_`, is written `$_ =~ /.../` (D85). *(Builder's
+recommendation, 2026-11-27.)*
+
+**D235. What a match is worth** (T548): where one value is wanted a
+boolean (D47), `!~` its opposite and always one value; where a list
+is wanted, `(1)` or `()` with no group, the captures (undef for a
+group that took no part) or `()` with groups, and under `/g` every
+match's. A match with two groups or more, or `/g`, is list-shaped
+(D18). *(Builder's recommendation, 2026-11-27.)*
+
+**D236. A pattern's limits**: a count is at most 32766, and blanks
+in a quantifier's braces, `{,n}`, and a `{` or `}` that is no
+quantifier's are refused (T542). A pattern's program is at most
+100,000 instructions. *(Builder's recommendation, 2026-11-27.)*
+
+**D237. `/x`**: blanks (space, tab, newline) and `#` comments are
+dropped between the pieces of a pattern, outside a class; `\ ` and
+`\#` are themselves; a blank between a quantifier and what it repeats
+is allowed, as perl has it. The characters past ASCII that perl's `/x`
+also drops (U+0085, U+200E, U+200F, U+2028, U+2029) are refused in
+any pattern. *(Builder's recommendation, 2026-11-27.)*

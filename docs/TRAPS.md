@@ -852,6 +852,30 @@ Every program is kept there and is a row of `briefs/claims17.py`
 | T436 | `field $y :param` on one line, `= die "no y";` on the next (15) | `no y at ... line 4.`, the field's first line | 17a | A field's declaration is a statement to D150 (D178) |
 | T437 | `grep { $self->drop } @a`, `drop` shifting the field `@a` (17) | perl dies of a segmentation fault | 17a | No test asks perl for it (T194's kin) |
 
+## Found proposing step 19
+
+Run 2026-11-27 under perl 5.42.0; each row is in `briefs/claims19.py`.
+Numbered from T540.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T540 | `"ab" =~ /(?:(a)\|b)*/` in a list; `"aba" =~ /^(?:(a)\|(b))+$/` | `(undef)`; `("a", "b")`: perl forgets a group's value when a later time round takes another branch, and keeps it otherwise | 19 | Refuse a capturing group inside a repeated group (D231) |
+| T541 | `"ab" =~ m\|a\\\|b\|` | `1`: an escaped delimiter that is a metacharacter is the metacharacter | 19 | Only `/` and the brackets (D227) |
+| T542 | `"aa" =~ /a{ 2 }/`, `"aaa" =~ /^a{,3}$/`, `/a{/` | `1`, `1`, and a warning: blanks in braces, `{,n}`, a brace passed through | 19 | Refuse (D236) |
+| T543 | `my $s = "aXbX"; my $t = $s =~ /X/g; $t = $s =~ /X/g; my @l = ($s =~ /X/g);` | `@l` empty: a list `/g` starts at `pos` | 19 | Refuse `/g` where one value is wanted (D233) |
+| T544 | `"aab" =~ /a*/g`; `"ab" =~ /x*\|a/g` | `("aa", "", "")`; `("", "a", "", "")`: after a match of no length the next may not be of no length where it ended | 19 | Agree |
+| T545 | `"\xe9" =~ /\w/`; `"\xa0"`, `"\x0b"`, `"\x85"`, `"\x{2028}"` `=~ /\s/`; `"\x{200b}" =~ /\s/` | all match but the last | 19 | Agree, with perl's own tables |
+| T546 | `"\x{212A}" =~ /k/i`, `"\x{17F}" =~ /s/i`, `"\xdf" =~ /ss/i`, `"\x{FB01}" =~ /fi/i` | all match | 19 | Fault: `/i` on a string past ASCII (D230) |
+| T547 | `!$x =~ /a/`; `@a =~ /1/` | warnings: a precedence problem; the match acts on `scalar(@a)` | 19 | Refuse (D234) |
+| T548 | `("a" =~ /b/)`, `("a" !~ /a/)`, `("ab" =~ /(a)(x)?/)` in a list | `()`, `("")`, `("a", undef)` | 19 | Agree (D235) |
+| T549 | `"a\n" =~ /\n^/m`; `"a\n\n" =~ /a$/`; `"a\n" =~ /$/g` | no; no; two matches | 19 | Agree |
+| T550 | `"a" =~ /a$\|b/`; `my $n = 5; "5" =~ /^$n$/` | `1`; `1`: `$` before `\|` or `)` is an anchor, before a name a variable | 19 | Refuse a `$` anywhere else (D229) |
+| T551 | `/(a)\2/`; `"b" =~ /(a)?\1b/` | dies as it compiles; no match | 19 | Refuse the first; agree |
+| T552 | `"" =~ /(?:\b)*/` | `1`, and a warning: matches null string many times | 19 | Refuse a quantifier on what can be empty (D231) |
+| T553 | `"b" =~ /(a*)?b/` in a list | `("")` | 19 | Refuse (D231): `a*` can be empty |
+| T554 | `if ("a" =~ /(a)/) { } "b" =~ /(x)/; say $1;` | `a`: `$1` outlives its block and a failed match | 19 | `$1` is not in (D228) |
+| T555 | `("a" x 60) . "b" =~ /^(?:a\|aa)*$/` | `0`, at once | 19 | Fault past the step limit (D232) |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

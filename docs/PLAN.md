@@ -7198,6 +7198,219 @@ backtracking matcher with perl's order of trying. Decides: the subset
 on backtracking, since a regex is the one place a small program can
 run for ever by accident. Traps: T66, T67.
 
+**Step 19, matching, proposed 2026-11-27, by Fable 5.2, working alone
+overnight in a worktree of its own (branch `step-19`) while step 17a is
+built on `main`, under Stevan's standing instruction ("I pre-approve
+all your recommendations, so do not ask me for confirmation and just
+keep building"): each question below is answered by its
+recommendation, recorded as D225 to D240, each the builder's and his to
+overturn.** Step 20 (substitution, `split`, `tr`, `qr`) is not
+proposed here. Every statement about perl below was run under 5.42.0
+and is a row of `briefs/claims19.py`, which `claims.py` reads; the
+traps found writing it are T540 to T555.
+
+**The size.** The outline says large, and by `MODELS.md` it is: a
+second small compiler in the compiler (a pattern's parser, its
+refusals and its code, `compiler/src/regex.ts`), a matcher in the
+runtime (`runtime/regex.c`, with perl's own tables for `\d`, `\w` and
+`\s`), and one new node that every walk has to see. It is cut in
+three, each green and committed: **19a** the matcher, `=~` and `!~`
+as a test; **19b** captures, a match where a list is wanted; **19c**
+`/g` where a list is wanted.
+
+**The census**: 226 probes are refused today with "later 19": 190 at
+`=~`, 23 at `split`, 13 at `s` or `tr`. Most of the 190 use `$1`,
+`s///` or a variable in the pattern, which this proposal does not take
+in; the account will say how many move.
+
+#### The picture
+
+**A pattern is a program, known when the program compiles.** The
+compiler reads it, refuses what is outside the subset with a message
+that names it, and writes it as a row of instructions, a constant of
+the generated C. The runtime has one matcher, a backtracking machine
+that tries the alternatives in perl's order (leftmost first, then the
+first alternative, then the greedy count before the shorter), so that
+the match found is perl's and what each group captures is perl's. A
+match makes nothing on the heap until it is over, and then only the
+strings of its captures.
+
+What is hard here is not the machine but **what perl does that a
+plain backtracking machine does not**: a group that captures inside
+a repeated group is kept or forgotten by rules of perl's own (T540);
+`/i` folds characters past ASCII to ASCII letters, one to two (T546);
+`\w` and `\s` are Unicode's (T545); `$` interpolates when a name
+follows it (T550); `$1` lives on past a failed match and past the
+block (T554). Each is either matched exactly or refused.
+
+#### The language at step 19
+
+- **`EXPR =~ /PATTERN/FLAGS`** and **`EXPR !~ /PATTERN/FLAGS`**, also
+  written `m/.../`, `m{...}`, `m(...)`, `m[...]` and `m<...>`, the
+  bracket hard against the `m`. The left side is one value, made a
+  string as `.` makes one (D48, D112 and D36's faults there). The
+  right side is a pattern and nothing else.
+- **Where one value is wanted** a match is a boolean (D47): `"a" =~
+  /a/` is `1`, a failed one the empty string. `!~` is its opposite,
+  and always one value.
+- **Where a list is wanted** (19b) a match with no group is `(1)` or
+  `()`; with groups it is what each captured, undef for a group that
+  took no part, or `()` when it fails (T548). So `my ($k, $v) = $line
+  =~ /^(\w+)=(.*)$/;`, `say $s =~ /(\d+)/;`, a `map` block.
+- **`/g` where a list is wanted** (19c): every match from the start,
+  left to right, each one's captures or, with no group, what it
+  matched; after a match of no length the next may not be of no length
+  where it ended (T544).
+- **The pattern**: characters, a character past ASCII under `use utf8`
+  too; the escapes of a double-quoted string that are characters
+  (`\n \t \r \f \e \a`, `\xHH`, `\x{...}`, `\o{...}`,
+  `\N{U+...}`), a backslash before punctuation; `.`; `[...]` and
+  `[^...]` with characters, ranges and `\d \w \s \D \W \S` in
+  them; `\d \w \s \D \W \S`, **matching exactly perl's
+  characters**, Unicode's for every string (T545, T67; the tables are
+  perl's own, generated); `^ $ \A \z \Z \b \B`; `* + ? {n} {n,}
+  {n,m}`, each lazy with a `?` after it; `(...)` and `(?:...)`; `|`;
+  `\1` to `\9`, a group already closed. The flags **`i m s x g`**.
+
+#### What is refused, and what faults
+
+Refused (a construct outside the subset is a refusal that names it):
+
+- **A variable in a pattern** (D229): a `$` that is not last, or
+  before `)` or `|`; any `@`; `\Q...\E` and the other case escapes.
+  A string interpolated as a pattern is cut already (SURFACE).
+- **The empty pattern** (T66), and **a pattern alone**, `/x/`
+  matching `$_`: write `$_ =~ /x/` (D85).
+- **`/g` where one value is wanted** (`pos` is cut), and with `!~`.
+- **What perl warns of or dies at**: an unknown escape, `\0` and
+  octal, a backreference to a group that is not closed before it, a
+  quantifier on nothing or on a quantifier, `{n,m}` with n > m, `{,n}`
+  and blanks in a quantifier's braces (T542), a `{` or `}` that is no
+  quantifier's, a range backwards or of a class, `]` first in a class,
+  `[` in one, a quantifier on what can match the empty string (T552,
+  and it is how the machine is kept from looping), `!` unbracketed
+  before the left side (T547), an array, a hash or a list on the left
+  (T547).
+- **What is not in the subset yet**: lookaround, possessive
+  quantifiers, `(?flags)`, `(?#...)`, named captures and `%+`, POSIX
+  classes, `\p{...}`, `\h \v \R \N \X \K \G`, `\g` and
+  `\k`, the flags `a u l n p o xx`, and `e r c` (step 20 has `s///`).
+- **A group that captures inside a repeated group** (D231, T540),
+  unless it is itself the repeated thing and holds no other group:
+  `(\d+)?` and `(a|b)*` are in, `(?:(\w+),)*` is refused.
+- **Delimiters other than `/` and the four brackets** (T541: perl
+  makes an escaped `|` a metacharacter when `|` is the delimiter), and
+  a backslash before a bracket's own closing bracket.
+- **`$1` and its kin** (D228): `$1`, `$&`, `` $` ``, `$'`, `@-`,
+  `@+`, `%+`.
+
+Faults:
+
+- **`/i` on a string with a character past ASCII** (D230, T546): perl
+  folds by Unicode's tables, one character to two.
+- **A match that takes more than 10,000,000 steps** (D232): `pattern
+  match too long`, where perl's own shortcuts may finish at once (a
+  fault test asks perl for nothing it cannot finish).
+- What a value made a string faults with already: undef, a
+  reference, a whole Num from 10^15.
+
+#### What perl does that the obvious build gets wrong
+
+| | | |
+|---|---|---|
+| T540 | `"ab" =~ /(?:(a)\|b)*/` | `$1` undef: perl forgets a group's value when a later time round takes another branch; `"aba" =~ /^(?:(a)\|(b))+$/` keeps both |
+| T541 | `"ab" =~ m\|a\\\|b\|` | matches: the escaped delimiter is `\|`, alternation |
+| T542 | `"aa" =~ /a{ 2 }/`, `"aaa" =~ /^a{,3}$/` | both match: blanks in braces, `{,3}` is `{0,3}` |
+| T543 | two scalar `$s =~ /X/g`, then a list one | the list one starts where they left off |
+| T544 | `"aab" =~ /a*/g`, `"ab" =~ /x*\|a/g` | `("aa", "", "")`, `("", "a", "", "")` |
+| T545 | `"\xe9" =~ /\w/`, `"\xa0"`, `"\x0b"` and `"\x85"` `=~ /\s/` | all match, under `use v5.42` |
+| T546 | `"\x{212A}" =~ /k/i`, `"\x{17F}" =~ /s/i`, `"\xdf" =~ /ss/i` | all match |
+| T547 | `!$x =~ /a/`, `@a =~ /1/` | warnings: a precedence problem; the match acts on `scalar(@a)` |
+| T548 | `my @l = ("a" =~ /b/)`, `("a" !~ /a/)` | `()`, and `("")`: `!~` is one value always |
+| T549 | `"a\n" =~ /\n^/m`, `"a\n" =~ /$/g` | no match: `^` under `/m` is not after the last newline; two matches |
+| T550 | `"a" =~ /a$\|b/`; `my $n = 5; "5" =~ /^$n$/` | an anchor before `\|`; `$n` is the variable |
+| T551 | `/(a)\2/`; `"b" =~ /(a)?\1b/` | dies as it compiles; no match |
+| T552 | `/(?:\b)*/` | warns, `matches null string many times` |
+| T553 | `"b" =~ /(a*)?b/` | `$1` is the empty string |
+| T554 | `if ("a" =~ /(a)/) { } "b" =~ /(x)/; say $1;` | `a`: `$1` outlives its block and a failed match |
+| T555 | `("a" x 60) . "b" =~ /^(?:a\|aa)*$/` | false at once: perl's own shortcuts |
+
+#### The questions, each answered by its recommendation
+
+- **D225, the cut.** 19a, 19b, 19c as above. Rejected: one step (too
+  large to review at once); step 20's constructs with it.
+- **D226, the subset**, as listed. Backreferences are in (they cost
+  the machine one instruction). Rejected for now: lookaround and
+  possessive forms (more machine, few probes), named captures (they
+  come with `%+`, step 20).
+- **D227, the delimiters**: `/`, and `m` with a bracket. Rejected:
+  every delimiter perl takes (T541).
+- **D228, captures**: only the list a match gives where a list is
+  wanted. Rejected: `$1` as perl has it (T554: dynamic scope, and a
+  failed match leaves the last one's); `$1` only in the block of an
+  `if` whose test is the match (machinery, and a later step can add
+  it without changing anything here); `%+` (with named captures).
+- **D229, no variable in a pattern**. Rejected: `\Q$x\E` as literal
+  text (useful, and `index` does it; it comes with `qr` at step 20).
+- **D230, `/i` is ASCII's**: a character past ASCII in a pattern under
+  `/i` is refused, and a match under `/i` of a string that holds one
+  is a fault. Rejected: perl's folding tables (one to many, T546).
+- **D231, what the machine never has to decide as perl does**: a
+  quantifier on what can match the empty string is refused, and so is
+  a capturing group inside a repeated group unless it is the repeated
+  group, with no group inside it (T540). Rejected: copying perl's
+  `CURLYX`/`WHILEM` rules for the lost captures.
+- **D232, the step limit**: ten million steps of the machine (each
+  instruction run), counted over one match operation, `/g`'s whole
+  list included; past it the fault. Rejected: perl's shortcuts (a
+  super-linear cache, the longest fixed substring); no limit.
+- **D233, `/g` only where a list is wanted**; not with `!~`. `pos`
+  and `\G` stay cut.
+- **D234, what stands left of `=~`**: one value, not an array, a
+  hash or a list, and no `!` before it unbracketed (T547).
+- **D235, what a match is worth** (T548): a boolean where one value
+  is wanted; where a list is, as above. A match with two groups or
+  more, or with `/g`, is list-shaped (D18), so a sub that gives one
+  back faults where one value is wanted; one with fewer is a value or
+  none there, as `()` is.
+- **D236, the limits of a pattern**: a count is at most 32766; a
+  pattern's program at most 100,000 instructions.
+- **D237, `/x`**: blanks and `#` comments between the pieces of a
+  pattern, outside a class; `\ ` and `\#` are themselves. The five
+  characters past ASCII that perl's `/x` also takes for blanks are
+  refused in any pattern.
+
+#### What has nothing to choose
+
+The order of trying is perl's, and a backtracking machine has it:
+leftmost start, alternatives left to right, a greedy quantifier the
+most first and a lazy one the fewest. `^ $ \A \z \Z` and `/m`, `/s`
+are perl's definitions. `.` is one character, a code point, not a
+grapheme. A match's left side is worked out before anything else in
+it, and the match makes copies: a group's value is a new string, so a
+match names nothing for D76 and is read once.
+
+#### Tests
+
+A model, `t/models/re.py`: a backtracking matcher of its own in
+Python, over the subset, writing programs of matches with their
+expected output (5100 on); the oracle holds perl to it. Fault tests
+at each edge (5300 on): `/i` past ASCII, the step limit, undef and a
+reference on the left. Refusals from a table by hand (5400 on,
+`briefs/step19-refusals.py`). The evidence beyond tests:
+`briefs/step19-review/patterns.py`, random patterns and subjects run
+under perl and the compiler, many thousands of each, kept with what
+it found.
+
+#### How it moves the other files
+
+`SURFACE.md`: the regex rows say what is in, what is cut (`$1` and
+named captures stay later; the delimiters); `=~` and `!~` In.
+`DIFFERENCES.md` gains: no `$1` (habit, often), no variable in a
+pattern (habit, often), `/i` faults past ASCII (accident, sometimes),
+a group inside a repeated group (accident, rarely), the step limit
+(a guess: accident, rarely). DESIGN's open item 11 is settled by D228.
+
 ### 21. Files and the outside
 
 Referee: perl. Size: large.
