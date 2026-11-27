@@ -3,7 +3,7 @@
 // it and the runtime, link them. `node bin/curlyc.ts -o out file.pl`.
 // Exit codes: 0 ok; 1 a refusal (`FILE:LINE:COL: message`, and no binary);
 // 2 usage, the toolchain, or a file it can't read or write.
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,6 +75,23 @@ const run = (args: string[]): void => {
     if (r.error) { console.error(`curlyc: can't run ${cc[0]}: ${r.error.message}`); process.exit(2); }
     if (r.status !== 0) process.exit(2);
 };
-run(['-O1', '-c', '-o', `${out}.rt.o`, join(root, 'runtime', 'rt.c')]);
+// CURLY_RT_OBJ names a runtime already compiled, for a caller that
+// compiles many programs with one compiler and one runtime (the oracle
+// check): built there the first time, by way of a file of this process's
+// own so that two drivers at once never link half a file, and linked as
+// it is after that. The caller removes it when the runtime may have
+// changed. Unset, every build compiles the runtime afresh.
+const shared = process.env.CURLY_RT_OBJ;
+let rt = `${out}.rt.o`;
+if (shared) {
+    rt = shared;
+    if (!existsSync(shared)) {
+        const mine = `${shared}.${process.pid}`;
+        run(['-O1', '-c', '-o', mine, join(root, 'runtime', 'rt.c')]);
+        renameSync(mine, shared);
+    }
+} else {
+    run(['-O1', '-c', '-o', rt, join(root, 'runtime', 'rt.c')]);
+}
 // -lm: `**` is the C library's pow (D35).
-run(['-O0', '-o', out, `${out}.c`, `${out}.rt.o`, '-lm']);
+run(['-O0', '-o', out, `${out}.c`, rt, '-lm']);

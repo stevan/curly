@@ -127,6 +127,14 @@ fi
 mkdir -p build/t
 JOBS=${JOBS-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}
 
+# One runtime for the whole run, compiled by the first test to need it
+# with this run's $CURLY_CC (bin/curlyc.ts, CURLY_RT_OBJ), and removed at
+# the end: never one from another run, whose runtime may have changed.
+CURLY_RT_OBJ=$(pwd)/build/t/rt-$$.o
+export CURLY_RT_OBJ
+rm -f "$CURLY_RT_OBJ"
+trap 'rm -f "$CURLY_RT_OBJ"' EXIT
+
 for src in "$@"; do
     name=$(basename "$src")
     rm -f "build/t/${name%.*}.fail"

@@ -712,13 +712,18 @@ def check_oracle(write=False):
     problem = perl_problem()
     if problem:
         return [problem]
+    # The tests a few at a time, each compiling to a binary of its own
+    # name, with the one runtime `main` has the driver build.
+    import concurrent.futures
     bad, fixtures = ([], 0) if write else check_oracle_itself()
     tests = golden_tests()
     counts = {}
     for path in tests:
         kind = headers(path).get('kind', 'same')
         counts[kind] = counts.get(kind, 0) + 1
-        bad += [f'{path}: {b}' for b in oracle_one(path, write)]
+    with concurrent.futures.ThreadPoolExecutor(int(os.environ.get('JOBS', os.cpu_count() or 2))) as pool:
+        for path, found in zip(tests, pool.map(lambda p: oracle_one(p, write), tests)):
+            bad += [f'{path}: {b}' for b in found]
     by_kind = ', '.join(f'{n} {k}' for k, n in sorted(counts.items()))
     print(f'oracle: {len(tests)} tests ({by_kind})' + (' written from perl' if write else f'; {fixtures} tests of the check itself'))
     return bad
@@ -936,6 +941,19 @@ def check_differences():
 
 def main(argv):
     os.chdir(ROOT)
+    # One runtime for every program the checks compile, built by the
+    # first of them (bin/curlyc.ts, CURLY_RT_OBJ), and removed at the end,
+    # so that a runtime changed since the last run is never linked.
+    os.makedirs('build/oracle', exist_ok=True)
+    shared = os.path.abspath(f'build/oracle/rt-{os.getpid()}.o')
+    os.environ['CURLY_RT_OBJ'] = shared
+    try:
+        main_(argv)
+    finally:
+        if os.path.exists(shared):
+            os.remove(shared)
+
+def main_(argv):
     what = argv[0] if argv else 'all'
     if what == 'models':
         bad = check_models('--write' in argv)

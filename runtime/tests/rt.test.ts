@@ -13,12 +13,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 const runtime = join(here, '..');
 const build = join(runtime, '..', 'build', 'unit');
 
+// Each program is built once in a run, the first time it is asked for:
+// most are run many times over, with one argument and then another.
+const built = new Set<string>();
 const run = (name: string, arg = '', env: Record<string, string> = {}): { status: number | null; output: string } => {
     mkdirSync(build, { recursive: true });
     const bin = join(build, name);
-    const cc = (process.env.CURLY_CC ?? 'cc').split(' ');
-    const built = spawnSync(cc[0]!, [...cc.slice(1), '-O1', '-Wall', `-I${runtime}`, '-o', bin, join(here, `${name}.c`), join(runtime, 'rt.c'), '-lm'], { encoding: 'utf8' });
-    assert.equal(built.status, 0, built.stderr);
+    if (!built.has(name)) {
+        const cc = (process.env.CURLY_CC ?? 'cc').split(' ');
+        const made = spawnSync(cc[0]!, [...cc.slice(1), '-O1', '-Wall', `-I${runtime}`, '-o', bin, join(here, `${name}.c`), join(runtime, 'rt.c'), '-lm'], { encoding: 'utf8' });
+        assert.equal(made.status, 0, made.stderr);
+        built.add(name);
+    }
     // The knobs are the test's own to set: none comes in from outside.
     const clean = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('CURLY_GC_') && name !== 'CURLY_HEAP_CAP'));
     const r = spawnSync('sh', ['-c', 'exec "$0" "$1" 2>&1', bin, arg], { encoding: 'utf8', env: { ...clean, ...env } });

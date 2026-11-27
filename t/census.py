@@ -269,9 +269,19 @@ def census(only=None):
             compile_.append(name)
     assert len(found) + len(compile_) == len(wanted), 'the front lost a probe'
     knobs = checks.knobs()
-    with ThreadPoolExecutor(int(os.environ.get('JOBS', os.cpu_count() or 4))) as pool:
-        for name, result in zip(compile_, pool.map(lambda n: probe(n, knobs), compile_)):
-            found[name] = result
+    # One runtime for every probe, built by the first (bin/curlyc.ts,
+    # CURLY_RT_OBJ), and removed at the end.
+    os.makedirs(BUILD, exist_ok=True)
+    shared = os.path.abspath(f'{BUILD}/rt-{os.getpid()}.o')
+    os.environ['CURLY_RT_OBJ'] = shared
+    try:
+        with ThreadPoolExecutor(int(os.environ.get('JOBS', os.cpu_count() or 4))) as pool:
+            for name, result in zip(compile_, pool.map(lambda n: probe(n, knobs), compile_)):
+                found[name] = result
+    finally:
+        del os.environ['CURLY_RT_OBJ']
+        if os.path.exists(shared):
+            os.remove(shared)
     return dict(sorted(found.items()))
 
 def count(root):
