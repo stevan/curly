@@ -33,7 +33,7 @@
 // (D28: nothing is global). After every call the caller's line is stored
 // again (D34).
 import { NAMES, PRAGMAS, infixOp, prefixOp, stepOp } from './names.ts';
-import type { ArrayOp, Binder, Chain, Deref, Expr, If, Invoke, Program, Sort, Stmt, Sub } from './ast.ts';
+import type { ArrayOp, Binder, Chain, Deref, Expr, If, Invoke, Program, Sderef, Sort, Stmt, Sub } from './ast.ts';
 import { behind } from './shapes.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn, shaped } from './shapes.ts';
@@ -96,12 +96,24 @@ const pointTo = (b: Code, v: C): string => `&${v.place ? v.c : temp(b, v.c).c}`;
 
 // The slot of the variable or the array a node names (D80: an element, a
 // slice and a builtin name their array).
-const variable = (b: Code, e: Expr): string => {
+const slotOf = (b: Code, e: Expr): string => {
     const id = b.names.of.get(e);
     const slot = id === undefined ? undefined : b.names.slots[id];
     if (id === undefined || slot === undefined) throw new Error(`a ${e.kind} was not resolved`);
     // Its own function's, or the file's, which a sub reaches through `g`.
     return b.names.owner[id] === b.fn ? `f[${slot}]` : `g[${slot}]`;
+};
+
+// Whether a declaration is a scalar whose reference is taken (step 13c):
+// its slot holds a cell, and the variable is the cell's one value.
+const inCell = (names: Resolution, id: number): boolean => names.taken.has(id) && !names.isArray[id];
+
+// Where the variable a node names is: its slot, or for a scalar whose
+// reference is taken, the value in the cell its slot holds, which is a
+// place as a slot is.
+const variable = (b: Code, e: Expr): string => {
+    const id = b.names.of.get(e);
+    return id !== undefined && inCell(b.names, id) ? `RT_CELL(${slotOf(b, e)})` : slotOf(b, e);
 };
 
 // Whether a declaration is a file variable: undef as the program starts,
@@ -378,7 +390,9 @@ const elem = (e: Expr): string => ((e.kind === 'elem' || e.kind === 'chain') && 
 // variable and no element is only read through, and faults for undef
 // (T252). While a loop's own list is built, every container gone through
 // is kept, to be frozen (D114, T251).
-const genChain = (e: Chain, b: Code, store: boolean): { container: string; last: Expr } => {
+// With `scalar`, the last link is the scalar through a reference (step 13c):
+// what it points at is a cell, wanted as 2, and kept for no freeze.
+const genChain = (e: Chain, b: Code, store: boolean, scalar = false): { container: string; last: Expr } => {
     const links: Chain[] = [];
     let base: Expr = e;
     while (base.kind === 'chain') {
@@ -386,8 +400,9 @@ const genChain = (e: Chain, b: Code, store: boolean): { container: string; last:
         base = base.head;
     }
     const subs: { index: Expr; hash: boolean }[] = links.map(c => ({ index: c.index, hash: c.hash === true }));
-    const kept = (c: string): string => {
-        if (b.frozen !== undefined) b.lines.push(`rt_frozen_add(cx, ${b.frozen}, ${c});`);
+    const kind = (k: number): number => (scalar && k === subs.length - 1 ? 2 : subs[k]!.hash ? 1 : 0);
+    const kept = (c: string, k: number): string => {
+        if (b.frozen !== undefined && kind(k) !== 2) b.lines.push(`rt_frozen_add(cx, ${b.frozen}, ${c});`);
         return c;
     };
     let container: string;
@@ -396,24 +411,24 @@ const genChain = (e: Chain, b: Code, store: boolean): { container: string; last:
         container = variable(b, base);
         subs.unshift({ index: base.index, hash: base.hash === true });
     } else {
-        const wanted = subs[0]!.hash ? 1 : 0;
+        const wanted = kind(0);
         const id = base.kind === 'var' ? b.names.of.get(base) : undefined;
         if (store && base.kind === 'var' && !b.names.readonly.has(id!)) {
-            container = kept(temp(b, `rt_vivify(cx, &${variable(b, base)}, ${wanted})`).c);
+            container = kept(temp(b, `rt_vivify(cx, &${variable(b, base)}, ${wanted})`).c, 0);
         } else {
             const head = genExpr(base, b);
-            container = kept(temp(b, `rt_deref(cx, ${head.c}, ${wanted})`).c);
+            container = kept(temp(b, `rt_deref(cx, ${head.c}, ${wanted})`).c, 0);
         }
     }
     for (let k = 0; k + 1 < subs.length; k++) {
         const at = genExpr(subs[k]!.index, b);
-        const wanted = subs[k + 1]!.hash ? 1 : 0;
+        const wanted = kind(k + 1);
         const read = subs[k]!.hash ? 'rt_helem' : 'rt_elem';
         if (store) {
-            container = kept(temp(b, `${read}_hop(cx, ${container}, ${at.c}, ${wanted})`).c);
+            container = kept(temp(b, `${read}_hop(cx, ${container}, ${at.c}, ${wanted})`).c, k + 1);
         } else {
             const v = temp(b, `${read}(cx, ${container}, ${at.c})`);
-            container = kept(temp(b, `rt_deref(cx, ${v.c}, ${wanted})`).c);
+            container = kept(temp(b, `rt_deref(cx, ${v.c}, ${wanted})`).c, k + 1);
         }
     }
     return { container, last: subs.at(-1)!.index };
@@ -427,6 +442,15 @@ const genChain = (e: Chain, b: Code, store: boolean): { container: string; last:
 const genDeref = (d: Deref, b: Code, store: boolean): string => {
     const whole: Chain = d.hash ? { kind: 'chain', head: d.head, index: d.head, hash: true, pos: d.pos } : { kind: 'chain', head: d.head, index: d.head, pos: d.pos };
     return genChain(whole, b, store).container;
+};
+
+// The scalar through a reference (step 13c): the cell its head points at,
+// worked out as the whole container's is, read through (D107) or made where
+// it is undef (T248). The cell is no container a loop freezes: D77 keeps
+// what may store to it out of the loop's block (T347).
+const genCell = (d: Sderef, b: Code, store: boolean): string => {
+    const whole: Chain = { kind: 'chain', head: d.head, index: d.head, pos: d.pos };
+    return genChain(whole, b, store, true).container;
 };
 
 // The container a builtin or a slice names: a named array's or hash's
@@ -484,8 +508,9 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
     case 'var': return { c: variable(b, e), place: true };
     // `my $x`: an undef, each time the `my` is reached, whatever the slot
     // held for a variable before it.
+    // One whose reference is taken is a new cell (step 13c; T240).
     case 'my':
-        if (!isFile(b, e)) b.vars.push(`${variable(b, e)} = rt_undef(); // my $${e.name}`);
+        if (!isFile(b, e)) b.vars.push(`${slotOf(b, e)} = rt_undef(); // my $${e.name}`, ...(inCell(b.names, b.names.of.get(e)!) ? [`rt_cell_wrap(cx, &${slotOf(b, e)});`] : []));
         return { c: variable(b, e), place: true };
     // `my @a`: a new array each time the `my` is reached; the file's are
     // made as the program starts (T156).
@@ -523,6 +548,12 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         const c = genDeref(e, b, false);
         return temp(b, `${e.last ? 'rt_last_index' : e.hash ? 'rt_hash_count' : 'rt_count'}(cx, ${c})`);
     }
+    // Step 13c: the scalar through a reference, read where it stands, as an
+    // element through one is (D109 refuses what would change it later).
+    case 'sderef': {
+        const c = genCell(e, b, false);
+        return temp(b, `RT_CELL(${c})`);
+    }
     // An element is read where it stands (D76).
     case 'elem': {
         const at = genExpr(e.index, b);
@@ -543,7 +574,10 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         b.lines.push(`rt_hash_assign(cx, ${made.c}, ${values.c});`);
         return temp(b, `rt_href(cx, ${made.c})`);
     }
-    case 'ref': return temp(b, `${e.of.hash ? 'rt_href' : 'rt_aref'}(cx, ${variable(b, e.of)})`);
+    case 'ref':
+        // `\$x` (step 13c): the cell the variable's slot holds.
+        if (e.of.kind === 'var') return temp(b, `rt_sref(cx, ${slotOf(b, e.of)})`);
+        return temp(b, `${e.of.hash ? 'rt_href' : 'rt_aref'}(cx, ${variable(b, e.of)})`);
     // `(LIST)[N]`, where one value is wanted: that one, or undef.
     case 'slice': return temp(b, `rt_first(cx, ${genList([e], b).c})`);
     case 'sort': throw new Error('sort where one value is wanted');
@@ -623,6 +657,8 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
                 return at;
             }
             if (t.kind === 'deref') containers[n] = genDeref(t, b, true);
+            // The scalar through a reference (step 13c), made now too.
+            if (t.kind === 'sderef') containers[n] = genCell(t, b, true);
             return t.kind === 'elem' ? kept(genExpr(t.index, b)) : undefined;
         });
         e.targets.forEach((t, n) => {
@@ -632,6 +668,7 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
             else if (t.kind === 'slice') b.lines.push(`${t.hash ? 'rt_hslice_store' : 'rt_slice_store'}(cx, ${containers[n]}, ${indexes[n]!.c}, ${values.c});`);
             else if (t.kind === 'elem') b.lines.push(`${elem(t)}_store(cx, ${variable(b, t)}, ${indexes[n]!.c}, rt_list_item(cx, ${values.c}, ${n}));`);
             else if (t.kind === 'chain') b.lines.push(`${elem(t)}_store(cx, ${containers[n]}, ${indexes[n]!.c}, rt_list_item(cx, ${values.c}, ${n}));`);
+            else if (t.kind === 'sderef') b.lines.push(`RT_CELL(${containers[n]}) = rt_list_item(cx, ${values.c}, ${n});`);
             else b.lines.push(`${variable(b, t)} = rt_list_item(cx, ${values.c}, ${n});`);
         });
         return { c: 'rt_undef()', place: false };
@@ -692,6 +729,28 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
             b.lines.push(`${elem(e.target)}_put(cx, ${array}, ${at}, ${now.c});`);
             return now;
         }
+        // The scalar through a reference (step 13c): for `=` the right
+        // side, then the head, the cell made if it is undef (T248), then the
+        // store; for the others the cell made first, as an element's is.
+        if (e.target.kind === 'sderef') {
+            const target = e.target;
+            if (op?.rt === undefined && op?.when === undefined) {
+                const value = genExpr(e.value, b);
+                const cell = genCell(target, b, true);
+                b.lines.push(`RT_CELL(${cell}) = ${value.c};`);
+                return temp(b, `RT_CELL(${cell})`);
+            }
+            const cell = genCell(target, b, true);
+            if (op.when !== undefined) {
+                b.lines.push(`if (${op.when}(cx, RT_CELL(${cell}))) {`);
+                b.lines.push(`RT_CELL(${cell}) = ${genExpr(e.value, b).c};`, '}');
+                return temp(b, `RT_CELL(${cell})`);
+            }
+            const value = genExpr(e.value, b);
+            const now = temp(b, `${op.rt}(cx, RT_CELL(${cell}), ${value.c})`);
+            b.lines.push(`RT_CELL(${cell}) = ${now.c};`);
+            return now;
+        }
         if (e.target.kind === 'my') genExpr(e.target, b);
         const v = variable(b, e.target);
         if (op?.when !== undefined) {
@@ -715,6 +774,16 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
             const was = e.before || op.before === undefined ? held : temp(b, `${op.before}(cx, ${held.c})`);
             const now = temp(b, `${op.rt}(cx, ${held.c})`);
             b.lines.push(`${elem(e.target)}_put(cx, ${array}, ${at}, ${now.c});`);
+            return e.before ? now : was;
+        }
+        // The scalar through a reference (step 13c): the cell, made if it is
+        // undef, and then as a variable, its value kept for `++$$r`.
+        if (e.target.kind === 'sderef') {
+            const cell = genCell(e.target, b, true);
+            const held = temp(b, `RT_CELL(${cell})`);
+            const was = e.before || op.before === undefined ? held : temp(b, `${op.before}(cx, ${held.c})`);
+            const now = temp(b, `${op.rt}(cx, ${held.c})`);
+            b.lines.push(`RT_CELL(${cell}) = ${now.c};`);
             return e.before ? now : was;
         }
         const v = variable(b, e.target);
@@ -1036,7 +1105,7 @@ const genStmt = (s: Stmt, out: Out): string[] => {
                 `if (setjmp(${t}.jump) == 0) {`,
                 ...indent(['{', ...indent(body), '}', `rt_try_end(cx, &${t});`]),
                 '} else {',
-                ...indent([`${v} = rt_caught(cx); // $${s.var.name}`, '{', ...indent(handler), '}']),
+                ...indent([`${v} = rt_caught(cx); // $${s.var.name}`, ...(inCell(out.names, id) ? [`rt_cell_wrap(cx, &${v});`] : []), '{', ...indent(handler), '}']),
                 '}',
             ]),
             '}',
@@ -1069,6 +1138,9 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
         const given = p.op === '//=' ? `a${n} != NULL && !rt_is_undef(cx, *a${n})`
             : p.op === '||=' ? `a${n} != NULL && rt_is_true(cx, *a${n})`
             : `a${n} != NULL`;
+        // A parameter whose reference is taken is put in a cell once it
+        // has its value (step 13c).
+        const cell = p.my !== undefined && inCell(names, names.of.get(p.my)!) ? [`rt_cell_wrap(cx, &${slot});`] : [];
         const copy = slot === undefined ? [] : [`${slot} = *a${n}; // $${p.my!.name}`];
         if (p.slurpy) {
             // Filled now, at its turn, from where the arguments are (T191).
@@ -1078,12 +1150,12 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
                     `${p.hash ? 'rt_slurp_hash' : 'rt_slurp'}(cx, ${rest}, argc, argv, flat, ${n});`);
             }
         } else if (p.op === undefined) {
-            lines.push(...copy);
+            lines.push(...copy, ...cell);
         } else if (p.default === undefined) {
             // `$=`: an argument that may be left out, and names nothing.
         } else {
             const fallback = genWhole(p.default, p.pos.line, out, c => (slot === undefined ? [] : [`${slot} = ${c};`])).code;
-            lines.push(`if (${given}) {`, ...indent(copy), '} else {', ...indent(fallback), '}');
+            lines.push(`if (${given}) {`, ...indent(copy), '} else {', ...indent(fallback), '}', ...cell);
         }
     }
     const last = s.body.at(-1);
@@ -1165,7 +1237,10 @@ export const generate = (program: Program, names: Resolution, file: string): str
         // The file's variables: undef before anything runs, a sub
         // included, and reached by the subs through the context (T134).
         ...names.names.flatMap((_, id) => (names.owner[id] === 0 && names.slots[id]! < names.file && isFileSlot(names, id)
-            ? [`    f[${names.slots[id]}] = ${names.isHash[id] ? 'rt_hash_new(cx)' : names.isArray[id] ? 'rt_array_new(cx)' : 'rt_undef()'};`] : [])),
+            ? [`    f[${names.slots[id]}] = ${names.isHash[id] ? 'rt_hash_new(cx)' : names.isArray[id] ? 'rt_array_new(cx)' : 'rt_undef()'};`,
+                // One whose reference is taken has one cell from the start
+                // (step 13c; T255).
+                ...(inCell(names, id) ? [`    rt_cell_wrap(cx, &f[${names.slots[id]}]);`] : [])] : [])),
         '    cx->shared = f;',
         ...indent(body),
         '    rt_leave(cx, &frame);',

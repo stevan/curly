@@ -649,6 +649,26 @@ Each row is in `briefs/claims.py`.
 | T344 | `my $r; push $r->@*, defined($r) ? "made" : "not";`; the same with `$s->@* = (...)` and `$t->@[0] = (...)` | `made not not`: `push` makes the array before its list is worked out; an assignment, to the whole or a slice, works its right side out first | 13b | Agree, in that order |
 | T345 | `sort $r->@*`, and `sort $r ->@*` | `1,2,3` each: an arrow after the scalar is no comparator's name | 13b | `sort $r->@*` is in, the arrow hard against the variable; with a blank it stays refused, as `sort $r` is |
 
+## Found building step 13c
+
+Each row is in `briefs/claims.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T346 | `my $x = 1; my $r = \$x; say $$r + ($x = 5);`; `say h($$r, ($x = 5));` with `h` joining its two; `say $$r . "a" . ($x = 5);` | `10`; `55`; `5a5`: the scalar through a reference is the scalar itself, read when its operator runs, as a variable is (D14) | 13c | The obvious build reads it into a temporary, and prints `6`, `15`, `1a5`. Refused by D109: the scalar through a reference names what references reach, and a store to a scalar whose reference is taken changes it. `$x + ($$r = 5)` is `10` here too, the variable read late through its cell |
+| T347 | `for my $v ($$r) { $$r = 9; say $v }`; `for my $v ($x) { $$r = 9; say $v }` with `$r = \$x`; the same with `$x = 9` in the first | `9` each: perl's loop walks the scalar itself, under whatever name it is stored to | 13c | Refused (D77 with D109): a loop over the scalar through a reference, or over a scalar whose reference is taken, may not store to a scalar a reference reaches, by name, through a reference, or in a sub it calls. A store through an element or a whole container through a reference is allowed: no element has a reference of its own (D110) |
+| T348 | `my $x; my @a = (\$x); my $i = 5; ${ $a[$i = 0] } = $i . "v"; say $x;` | `0v`: T230's, through the scalar through a reference | 13c | Refused by T230's rule, the reference's head for the index |
+| T349 | `my $r; ($$r, my $x) = ($r, 1); say ref $$r;` | `REF`: making the scalar assigns `$r`, which the right side's list holds itself (T249's) | 13c | Refused: the store makes what the right side has already taken |
+| T350 | `my $r;` and `defined $$r`, `for my $v ($$r) { }`, `map { 1 } $$r`, `f($$r)`; against `my $v = $$r;` | The first four make `$r` a reference to a new scalar, in silence; the last dies: `Can't use an undefined value as a SCALAR reference` | 13c | One fault for all of them (D107) |
+
+## Found on Stevan's Mac
+
+Each row is in `briefs/claims.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T351 | `my $r = [1]; say("a" x $r);` and `my @l = (1 .. $r);` in a fault test; against `my $x = "" x 5000000000;` and `my @l = (5000000000 .. 1);` | perl takes a reference's address for the count: on Linux about 94 trillion, and perl dies at once; on a Mac a few billion, and perl builds and prints gigabytes, which the oracle stops at 16 MB. An empty string repeated and a range that runs down are nothing, whatever the count (`0`, `0`) | 13a | No test asks perl for work the size of an address (D46, T131's kin): 1872 repeats an empty string and 1874 runs its range down. Every fault test that gives perl a reference for a number was read as if the address were 5,000,000,000: the rest cost perl nothing |
+
 ## Found by the review of step 14
 
 | | Program | perl prints | Step | Way out |

@@ -1,0 +1,2 @@
+t/2313-sref-brace-first-in-the-braces.pl:4:6: '{' first in the braces of ${ ... }: perl takes it for a block, and does not compile it; write ${ +{ ... } }
+exit: 1

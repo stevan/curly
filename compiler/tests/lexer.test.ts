@@ -389,7 +389,7 @@ test('a variable is a dollar and a name, hard against it (D55)', () => {
     assert.deepEqual(tokens[1], { kind: 'var', text: '$x', name: 'x', pos: { line: 1, col: 4 } });
     const message = "after '$' comes a name: a letter or '_', then letters, digits and '_'";
     refused('say $ x;', message, 1, 5);
-    refused('say ${x};', '${ ... }: a scalar through a reference is not in the language yet (step 13c); a variable is written $name', 1, 5);
+    refused('say ${x};', 'a word alone in ${ ... } is the name of a variable, to perl (${x} is $x): D114 refuses it; name a variable, ${ $r }', 1, 6);
     refused('say $1;', message, 1, 5);
     refused('say $$;', message, 1, 5);
     refused('say $', message, 1, 5);
@@ -576,9 +576,23 @@ test('a brace where a value may begin is a new hash; where a statement may, a bl
     // After a new hash, as after any value, `x` repeats and `%` divides.
     assert.deepEqual(lex('my $x = [1] x 2; my $y = {} % 3;').filter(t => t.kind === 'op').map(t => t.text), ['=', 'x', '=', '%']);
     refused('$r->foo;', "'->' and a name: a method call, and classes are not in the language yet (step 17)", 1, 3);
-    refused('$r->$*;', '->$*: a scalar through a reference is not in the language yet (step 13c)', 1, 3);
     refused('say @$r;', '@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }', 1, 5);
-    refused('say $$r[0];', '$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)', 1, 5);
+    refused('say $$r[0];', '$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }', 1, 5);
+});
+
+// Step 13c: the scalar through a reference, its tokens, and what may not
+// follow it (D108).
+test('the scalar through a reference: a postfix form is one token, braces a cast and a brace', () => {
+    const shown = (src: string) => lex(src).map(t => `${t.kind}${(t.kind === '{' || t.kind === '}') && t.deref ? '!' : ''} ${t.text}`);
+    assert.deepEqual(shown('$r->$* ${ $r }'), ['var $r', 'op ->$*', 'cast $', '{! {', 'var $r', '}! }', 'eof ']);
+    // After each a value has ended, and a step after it is one too.
+    assert.deepEqual(lex('$r->$* x 2; ${$r} % 2; $r->$*++ - 1;').filter(t => t.kind === 'op').map(t => t.text), ['->$*', 'x', '%', '->$*', '++', '-']);
+    refused('say $$$r;', '$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }', 1, 5);
+    refused('say ${$r}[0];', 'a subscript after the braces of a dereference is cut (D108): write $r->[...], $r->{...}, or the slice $r->@[...], $r->@{...}', 1, 9);
+    refused('say ${$r}->[0];', 'an arrow after ${ ... }: going on through a reference that a scalar through a reference holds is not in the language; take the scalar into a my first, my $s = ${ $r }; $s->[0]', 1, 9);
+    refused('say $r->$*[0];', 'a subscript after ->$*: perl does not compile it, or dies; take the element through the reference itself, $r->[...]', 1, 7);
+    refused('say $r->$*\n->[0];', 'an arrow after ->$*: going on through a reference that a scalar through a reference holds is not in the language; take the scalar into a my first, my $s = $r->$*; $s->[0]', 1, 7);
+    refused('say ${};', '${} has nothing in its braces: perl does not compile it', 1, 6);
 });
 
 // Step 13b: the whole container through a reference, its tokens, and what

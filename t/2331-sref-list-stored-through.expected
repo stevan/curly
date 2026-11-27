@@ -1,0 +1,2 @@
+t/2331-sref-list-stored-through.pl:6:10: a list where one value is wanted: perl gives its last value, and warns of the others
+exit: 1

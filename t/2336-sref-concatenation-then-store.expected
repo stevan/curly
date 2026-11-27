@@ -1,0 +1,2 @@
+t/2336-sref-concatenation-then-store.pl:6:29: a later piece of a concatenation changes what references reach, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own
+exit: 1

@@ -1172,6 +1172,45 @@ CLAIMS += [
     c('15-defined-or', 'PLAN 15', 'sub boom() { die "x\\n" } my %i; try { $i{k} //= boom() } catch ($e) { } my @e; try { $e[2] ||= boom() } catch ($e) { } say exists $i{k} ? "made" : "not", scalar(@e);', out='made3\n'),
 ]
 
+# ---- step 13c, references to scalars (PLAN 13, "13c, as built"; TRAPS
+# T346 to T350)
+CLAIMS += [
+    c('13c-ref', 'PLAN 13c; TRAPS T242', 'my $x = 1; my $y = \\$x; say ref \\$x; say ref \\$y; say ref $y; my $u; say ref \\$u; $x = [1]; say ref $y;', out='SCALAR\nREF\nSCALAR\nSCALAR\nREF\n'),
+    c('13c-made', 'PLAN 13c; TRAPS T248', 'my $r; $$r = 5; say ref $r, " ", $$r; my $s; $s->$*++; say $$s; my %h; $h{a}->$* = 5; say ref $h{a}; my @a; ${ $a[0] } .= "x"; say ${ $a[0] };', out='SCALAR 5\n1\nSCALAR\nx\n'),
+    c('13c-read-undef', 'PLAN 13c; D107', 'my $r; my $v = $r->$*;', out='', exit=255, err=r'^Can\'t use an undefined value as a SCALAR reference at claim\.pl line 2\.\n$'),
+    c('13c-not-scalar', 'PLAN 13c; D107', 'my $r = [1]; say $$r;', out='', exit=255, err=r'^Not a SCALAR reference at claim\.pl line 2\.\n$'),
+    c('13c-string-ref', 'PLAN 13c; T234', 'my $r = ""; ${ $r } = 1;', out='', exit=255, err=r'Can\'t use string \(""\) as a SCALAR ref'),
+    c('13c-call-head', 'PLAN 13c; T252', 'my ($r, $s); ($r || $s)->$* = 5;', out='', exit=255, err=r'Can\'t use an undefined value as a SCALAR reference'),
+    c('13c-identity', 'PLAN 13c; D112', 'my $x = 1; say \\$x == \\$x ? "same" : "diff"; my $r = \\$x; say $r == [1] ? "s" : "d";', out='same\nd\n'),
+    c('13c-new-each-time', 'PLAN 13c; TRAPS T240', 'my @r; for (1..3) { my $x = $_; push @r, \\$x } say join ",", map { $_->$* } @r; my @w; my @q = (1, 2); while (my $e = shift @q) { push @w, \\$e } say join ",", map { $_->$* } @w; my @c; for (my $i = 0; $i < 3; $i++) { push @c, \\$i } say join ",", map { $_->$* } @c;', out='1,2,3\n1,2\n3,3,3\n'),
+    c('13c-sub-cells', 'PLAN 13c', 'sub f($n) { my $x = $n; return \\$x } my $p = f(1); my $q = f(2); say $p->$*, $q->$*, $p == $q ? "s" : "d"; sub g($p) { $p = 7; return \\$p } my $x = 1; my $r = g($x); say $x, $r->$*;', out='12d\n17\n'),
+    c('13c-lost-assignment', 'PLAN 13c; TRAPS T129, T259', 'my $x = "a"; my $r = \\$x; my ($y, $z) = ("b", "c"); my $t = "t"; $t .= ($$r = $y . $z); say $t, "|", $x; $t .= ($r->$* = "$y$z"); say $t;', out='tbc|bc\ntbcbc\n'),
+    c('13c-arrow-after', 'PLAN 13c', 'my $x = [7]; my $r = \\$x; say $r->$*->[0]; say ${$r}->[0];', out='7\n7\n'),
+    c('13c-subscript-after-postfix', 'PLAN 13c', 'my $x = [7]; my $r = \\$x; say $r->$*[0];', compiles=False, err=r'syntax error'),
+    c('13c-orders', 'PLAN 13c; TRAPS T344', 'my $r; ${ $r } = defined($r) ? "made" : "not"; my $s; ${ $s } .= defined($s) ? "made" : "not"; my $t; ${ $t } //= defined($t) ? "made" : "not"; say $$r, $$s, $$t;', out='notmademade\n'),
+    c('13c-cycle', 'PLAN 13c', 'my $r; $$r = $r; say ref $r; say $$r == $r ? "cycle" : "no";', out='REF\ncycle\n'),
+    c('13c-thrown', 'PLAN 13c; D142', 'my $x = 1; try { die \\$x } catch ($e) { say ref $e, $e->$* }', out='SCALAR1\n'),
+    c('13c-thrown-uncaught', 'PLAN 13c; D142', 'my $x = 1; die \\$x;', out='', exit=255, err=r'^SCALAR\(0x[0-9a-f]+\)$'),
+    c('13c-reference-to-element', 'PLAN 13c; D110', 'my @a = (1); my $r = \\$a[0]; say ref $r; my $s = \\my $x; say ref $s;', out='SCALAR\nSCALAR\n'),
+    c('13c-file-cell', 'PLAN 13c; TRAPS T255', 'my $early = early(); $early->$* = 7; my $late; say $late; sub early() { return \\$late }', out='7\n'),
+    c('13c-assignment-is-the-scalar', 'PLAN 13c', 'my $x = 1; my $r = \\$x; say(($r->$* = 5), ($x = 7));', out='77\n'),
+    c('13c-list-assignment-in-a-sub', 'PLAN 13c', 'my $x = 1; my $r = \\$x; sub swap() { (${ $r }, my $z) = (5, 6); return 1; } say(${ $r }, swap());', out='51\n'),
+    c('13c-makes-what-the-scalar-is', 'PLAN 13c', 'my $x; my $r = \\$x; $x->[0] = $r->$*; say ref $x->[0], $x->[0] == $x ? " itself" : "";', out='ARRAY itself\n'),
+    c('13c-step-then-repeat', 'PLAN 13c', 'my $c = 3; my $rc = \\$c; say($rc->$*++ x 2, " ", $c); my $l = 0; my $rl = \\$l; ($rl->$*) = (7, 8); say $l;', out='33 4\n7\n'),
+    c('T346', 'TRAPS; PLAN 13c', 'my $x = 1; my $r = \\$x; say $$r + ($x = 5); $x = 1; sub h($v, $w) { return "$v$w" } say h($$r, ($x = 5)); $x = 1; say $$r . "a" . ($x = 5); $x = 1; say $x + ($$r = 5);', out='10\n55\n5a5\n10\n'),
+    c('T347', 'TRAPS; PLAN 13c', 'my $x = 1; my $r = \\$x; for my $v ($$r) { $$r = 9; say $v } $x = 1; for my $v ($x) { $$r = 9; say $v } $x = 1; for my $v ($$r) { $x = 9; say $v }', out='9\n9\n9\n'),
+    c('T348', 'TRAPS; PLAN 13c', 'my $x; my @a = (\\$x); my $i = 5; ${ $a[$i = 0] } = $i . "v"; say $x;', out='0v\n'),
+    c('T349', 'TRAPS; PLAN 13c', 'my $r; ($$r, my $x) = ($r, 1); say ref $$r;', out='REF\n'),
+    c('T350', 'TRAPS; PLAN 13c', 'my $r; my $d = defined $$r; say defined $r ? "made" : "not"; my $s; for my $v ($$s) { } say defined $s ? "made" : "not"; my $t; my @l = map { 1 } $$t; say defined $t ? "made" : "not"; my $u; sub f($v) { return } f($$u); say defined $u ? "made" : "not";', out='made\nmade\nmade\nmade\n'),
+]
+
+# ---- found on Stevan's Mac (TRAPS T351): a reference as a count is its
+# address, which no test may ask perl to build
+CLAIMS += [
+    c('T351', 'TRAPS', 'my $r = [1]; say(0 + $r > 1_000_000 ? "big" : "small"); my $x = "" x $r; say length $x; my @l = ($r .. 1); say scalar @l;', out='big\n0\n0\n'),
+    c('T351-mac', 'TRAPS', 'my $x = "" x 5000000000; my @m = (5000000000 .. 1); say length($x), scalar(@m);', out='00\n'),
+]
+
 # ---- step 17, what perl 5.42's class has of roles, the bootstrap and
 # representations (PLAN 17, "Roles, from the start")
 CLAIMS += [

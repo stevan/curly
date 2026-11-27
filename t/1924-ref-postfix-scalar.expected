@@ -1,2 +1,3 @@
-t/1924-ref-postfix-scalar.pl:5:7: ->$*: a scalar through a reference is not in the language yet (step 13c)
+before
+fault: not a reference to a scalar at t/1924-ref-postfix-scalar.pl line 7.
 exit: 1

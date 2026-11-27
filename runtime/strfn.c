@@ -67,7 +67,7 @@ rt_value rt_rindex3(rt_ctx *cx, rt_value a, rt_value b, rt_value position) {
 rt_value rt_chomp(rt_ctx *cx, rt_value a) {
     if (a.tag == RT_TAG_UNDEF) rt_fault(cx, "undef where a string is wanted");
     if (a.tag != RT_TAG_STR) {
-        if (a.tag != RT_TAG_INT && a.tag != RT_TAG_NUM && a.tag != RT_TAG_BOOL && a.tag != RT_TAG_AREF && a.tag != RT_TAG_HREF) rt_fault(cx, "not a value");
+        if (a.tag != RT_TAG_INT && a.tag != RT_TAG_NUM && a.tag != RT_TAG_BOOL && a.tag != RT_TAG_AREF && a.tag != RT_TAG_HREF && a.tag != RT_TAG_SREF) rt_fault(cx, "not a value");
         return a;
     }
     const rt_str *s = alive(cx, a.as.s);

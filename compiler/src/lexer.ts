@@ -38,8 +38,9 @@ export type Token =
     // a reference is worked out from, `@{ EXPR }` (step 13b).
     | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true }
     // The sigil of a whole container through a reference, `@`, `%` or
-    // `$#`, its brace next (step 13b; D108).
-    | { kind: 'cast'; text: '@' | '%' | '$#'; pos: Pos }
+    // `$#`, its brace next (step 13b; D108); and `$`, the scalar through
+    // one, `${ EXPR }` (step 13c).
+    | { kind: 'cast'; text: '@' | '%' | '$#' | '$'; pos: Pos }
     | { kind: 'op'; text: string; pos: Pos }
     | { kind: 'eof'; text: string; pos: Pos };
 
@@ -71,8 +72,9 @@ const isWordStart = (c: string) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= '
 const isWord = (c: string) => isWordStart(c) || isDigit(c);
 const isBlank = (c: string) => c === ' ' || c === '\t' || c === '\n';
 
-// The postfix forms of the whole container through a reference (step 13b).
-const WHOLE = new Set(['->@*', '->%*', '->$#*']);
+// The postfix forms of the whole container through a reference (step 13b),
+// and of the scalar through one (step 13c).
+const WHOLE = new Set(['->@*', '->%*', '->$#*', '->$*']);
 
 const codePoint = (c: number) => 'U+' + c.toString(16).toUpperCase().padStart(4, '0');
 
@@ -100,7 +102,8 @@ export const lex = (src: string): Token[] => {
     let signature = 0;
     // For each brace that is open, what it opened: a hash's key, a new
     // hash, or a block (step 13a).
-    const braces: ('subscript' | 'anon' | 'block' | 'deref')[] = [];
+    // (`sderef`: the braces of `${ EXPR }`, step 13c.)
+    const braces: ('subscript' | 'anon' | 'block' | 'deref' | 'sderef')[] = [];
     const at = (): string => src[i] ?? '';
     const pos = (): Pos => ({ line, col });
     const push = (t: Token): void => {
@@ -449,7 +452,9 @@ export const lex = (src: string): Token[] => {
         const last = tokens.at(-1);
         if (last?.kind === 'op' && stepOp(last.text)) {
             const target = tokens.at(-2);
-            return target?.kind === 'var' || target?.kind === ']' || (target?.kind === '}' && target.subscript === true);
+            // (And the scalar through a reference, step 13c.)
+            return target?.kind === 'var' || target?.kind === ']' || (target?.kind === '}' && (target.subscript === true || target.deref === true))
+                || (target?.kind === 'op' && target.text === '->$*');
         }
         return last?.kind === 'int' || last?.kind === 'num' || last?.kind === 'str' || last?.kind === 'qw' || last?.kind === ')' || last?.kind === 'var'
             || last?.kind === ']' || last?.kind === 'array' || last?.kind === 'lastindex' || last?.kind === 'hash'
@@ -498,10 +503,12 @@ export const lex = (src: string): Token[] => {
     // What is in the braces is an expression of one value. A word alone
     // there is a variable's name to perl, `@{true}` being `@true`, and `{`
     // first is a block it does not compile (T254, D114).
-    const cast = (sigil: '@' | '%' | '$#', start: Pos): void => {
+    // `${ EXPR }`, the scalar through a reference, is read the same way
+    // (step 13c).
+    const cast = (sigil: '@' | '%' | '$#' | '$', start: Pos): void => {
         push({ kind: 'cast', text: sigil, pos: start });
         const brace = pos();
-        braces.push('deref');
+        braces.push(sigil === '$' ? 'sderef' : 'deref');
         push({ kind: '{', text: take(), pos: brace, deref: true });
         const first = past(i, true);
         if (src[first] === '}') refuse(`${sigil}{} has nothing in its braces: perl does not compile it`, brace);
@@ -838,10 +845,13 @@ export const lex = (src: string): Token[] => {
                 push({ kind: 'lastindex', text: '$#' + array, name: array, pos: start });
                 continue;
             }
-            if (at() === '$' && (isWordStart(src[i + 1] ?? '') || src[i + 1] === '{')) {
-                refuse("$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)", start);
+            if (at() === '$' && (isWordStart(src[i + 1] ?? '') || src[i + 1] === '{' || src[i + 1] === '$')) {
+                refuse("$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }", start);
             }
-            if (at() === '{') refuse("${ ... }: a scalar through a reference is not in the language yet (step 13c); a variable is written $name", start);
+            if (at() === '{') {
+                cast('$', start);
+                continue;
+            }
             if (!isWordStart(at())) refuse("after '$' comes a name: a letter or '_', then letters, digits and '_'", start);
             const name = run(isWord);
             // `$a[0]` is an element of `@a`, which is a name an array may
@@ -949,13 +959,17 @@ export const lex = (src: string): Token[] => {
                     push(opened === 'subscript' ? { kind: '}', text: take(), pos: start, subscript: true } : { kind: '}', text: take(), pos: start, anon: true });
                     continue;
                 }
-                if (opened === 'deref') {
+                if (opened === 'deref' || opened === 'sderef') {
                     push({ kind: '}', text: take(), pos: start, deref: true });
                     // perl reads a subscript after the braces, the blank
                     // between too (`@{$r} [0]` is a slice), and an arrow
                     // after them dies (T246): the arrow says it (D108).
                     const after = past(i, true);
                     if (src[after] === '[' || src[after] === '{') refuse(`a subscript after the braces of a dereference is cut (D108): write $r->[...], $r->{...}, or the slice $r->@[...], $r->@{...}`, start);
+                    // After `${ ... }` perl takes an arrow, through the
+                    // reference the scalar holds: not at step 13c, where
+                    // nothing follows a scalar through a reference.
+                    if (src.startsWith('->', after) && opened === 'sderef') refuse("an arrow after ${ ... }: going on through a reference that a scalar through a reference holds is not in the language; take the scalar into a my first, my $s = ${ $r }; $s->[0]", start);
                     if (src.startsWith('->', after)) refuse("an arrow after the braces of a dereference: to perl it is an array used as a reference, which dies (D108); write the arrow after the reference itself", start);
                     continue;
                 }
@@ -985,11 +999,15 @@ export const lex = (src: string): Token[] => {
                 // The whole container (step 13b): one token, and nothing
                 // may be subscripted after it (perl does not compile
                 // `$r->@*[0]`, and `$r->@*->[0]` dies).
-                const whole = two === '@*' || two === '%*' ? two : src.startsWith('$#*', i) ? '$#*' : undefined;
+                // The scalar through a reference (step 13c), the same: perl
+                // does not compile `$r->$*[0]`, and takes `$r->$*->[0]`
+                // through the reference the scalar holds, which waits.
+                const whole = two === '@*' || two === '%*' || two === '$*' ? two : src.startsWith('$#*', i) ? '$#*' : undefined;
                 if (whole !== undefined) {
                     for (const _ of whole) take();
                     push({ kind: 'op', text: op + whole, pos: start });
                     const after = past(i, true);
+                    if (whole === '$*' && src.startsWith('->', after)) refuse("an arrow after ->$*: going on through a reference that a scalar through a reference holds is not in the language; take the scalar into a my first, my $s = $r->$*; $s->[0]", start);
                     if (src[after] === '[' || src[after] === '{' || src.startsWith('->', after)) refuse(`a subscript after ->${whole}: perl does not compile it, or dies; take the element through the reference itself, $r->[...]`, start);
                     continue;
                 }
@@ -1000,7 +1018,6 @@ export const lex = (src: string): Token[] => {
                     push({ kind: 'op', text: '->@', pos: start });
                     continue;
                 }
-                if (two === '$*') refuse('->$*: a scalar through a reference is not in the language yet (step 13c)', start);
                 if (two === '%[' || two === '%{') refuse(`->${two}...: a slice of keys and values is cut (D108)`, start);
                 if (next === '(') refuse('->(...): a call through a reference is not in the language yet (step 14)', start);
                 if (isWordStart(next) || next === '$') refuse("'->' and a name: a method call, and classes are not in the language yet (step 17)", start);

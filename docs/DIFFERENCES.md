@@ -6,10 +6,10 @@ be met, and where. It decides nothing. Where it and a decision
 disagree, [`DECISIONS.md`](DECISIONS.md) is right and this file has a
 mistake.
 
-**Built** means steps 0 to 12, 13a, 13b, 15 and 16a to 16c: numbers,
+**Built** means steps 0 to 12, 13a to 13c, 15 and 16a to 16c: numbers,
 strings, booleans, variables, control, subs, arrays and lists, `map`,
-`grep`, `sort`, interpolation, hashes, references to arrays and hashes
-with elements and the whole container through them, `die`, `try`, `catch` and `warn`, and `q`,
+`grep`, `sort`, interpolation, hashes, references to arrays, hashes and
+scalars, with elements, the whole container and the scalar through them, `die`, `try`, `catch` and `warn`, and `q`,
 `qq`, `qw`, heredocs, `sprintf`, `printf` and the rest of the string
 builtins. What is decided and not built is at the end.
 
@@ -165,6 +165,10 @@ every one under both.
 | `my %h; push $h{list}->@*, 1; say scalar(@{ $h{list} });` | `1` | Same |
 | `my $r = [1, 2]; say @{$r}[1];` | `2` | Refused |
 | `my $r = [1, 2]; say $$r[0];` | `1` | Refused |
+| `my $x = 1; my $r = \$x; $r->$* += 2; ${ $r } .= "!"; say $x, ref($r), ref(\$r);` | `3!SCALARREF` | Same |
+| `my $x = 1; my $r = \$x; say $$r;` | `1` | Refused |
+| `my $r; say defined $r->$* ? "d" : "u";` | `u` | Fault: `undef where a reference is wanted` |
+| `my $x = 1; my $r = \$x; for my $v ($x) { $r->$* = 9; say $v; }` | `9` | Refused |
 | `my $p = [1]; my $q = $p; say $p == $q ? "one" : "two", [] == [] ? "one" : "two";` | `onetwo` | Same |
 | `my $r = [1]; say $r + 0 > 0 ? "an address" : "no";` | `an address` | Fault: `a reference where a number is wanted` |
 | `my @a = (1); my $r = \@a; say $a[0], ($r->[0] = 5);` | `55` | Refused |
@@ -197,7 +201,7 @@ is where the feel changes.
 | `each %h`; `while (my ($k, $v) = each %h)` | Cut: `for my $k (sort keys %h)` | idiom | sometimes | data | D22, D101 |
 | A set or an index built by `map`: `my %seen = map { $_ => 1 } @list;` | Refused, for the comma in the block (perl has to guess whether the braces are a block or a hash): `map { ($_ => 1) } @list` | idiom | sometimes | data | D102 † |
 | `BEGIN`, `eval STRING`, a `require` at run time, `do FILE`, `__DATA__` | Cut: the compiler sees the whole program before any of it runs | idiom | sometimes | layout | D20 |
-| A dereference without braces: `@$r`, `%$r`, `$$r[0]`, `$#$r`, the commonest spelling in old Perl | The arrow: `$r->[0]`, `$r->{k}`; and for the whole container `$r->@*` or `@{ $r }`. (237 of the 795 census programs that wait for references use a spelling without braces) | idiom | often | data, old code | D108 |
+| A dereference without braces: `@$r`, `%$r`, `$$r`, `$$r[0]`, `$#$r`, the commonest spelling in old Perl | The arrow: `$r->[0]`, `$r->{k}`; for the whole container `$r->@*` or `@{ $r }`, and for a scalar `$r->$*` or `${ $r }`. (237 of the 795 census programs that wait for references use a spelling without braces) | idiom | often | data, old code | D108 |
 | `open(...) or die "...";`, `$ok or die "...";`: a statement joined to `die` by a word operator | Refused, as every statement joined by one is: `die "..." unless $ok;` (a guess: files, at step 21, will make it common) | idiom | sometimes | errors | D146 |
 | `chomp(my $line = <STDIN>)`, `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
@@ -264,7 +268,9 @@ someone.
 | A label in any case, on any statement | On a loop, in capitals, checked as the program compiles | habit | rarely | control | D61 † |
 | `foreach (my $i = 0; $i < 3; $i++)`: the two words are one | `for` has three parts; `foreach` is over a list | habit | rarely | loops | D81 † |
 | `for my $i (1 .. $n) { $n-- }`: perl fixes a range's ends as the loop starts | Refused: a loop may not change a scalar its list names | habit | rarely | loops | D77, D81 † |
-| A reference to an element, `\$a[0]`, `\$h{k}`; `\` before a list or a slice; a closure that keeps a loop variable's alias | Refused | idiom | rarely | data | D17, D110 |
+| A reference to an element, `\$a[0]`, `\$h{k}`; `\` before a list or a slice; a reference to a loop's variable or to `$_`, `map { \$_ } @a`; a closure that keeps a loop variable's alias | Refused (11 of the census's programs that waited for step 13c take one of these) | idiom | rarely | data | D17, D110 |
+| Going on through a reference that a scalar holds: `$r->$*->[0]`, `${ $r }->{k}` | Refused, though perl takes it: `my $s = $r->$*; $s->[0]` (a builder's default at step 13c, stricter than it has to be) | habit | rarely | data | D108 |
+| A loop over a scalar through a reference, or over a scalar whose reference is taken, whose block stores to a scalar under another name: `for my $v ($$r) { $x = 9 }` | Refused: perl's loop walks the scalar itself, and a store under any name shows in the loop's variable | habit | rarely | loops, data | D109, D77 |
 | A reference printed, joined, used as a hash's key or compared with `<`: `say $r;`, `$seen{$r}++` | Fault: `a reference where a string is wanted`, `... a number ...`. `==` and `!=` between two references say whether they are one container | habit | rarely | printing, data | D112 |
 | `$#a = N` to cut or grow an array | Refused | habit | rarely | data | D80 |
 | `%h{...}`, the slice of keys and values | Not in, and not proposed. `@h{...}` and `@a[...]` are in, on the left of `=` too | idiom | rarely | data | D100, D104 |
@@ -414,10 +420,10 @@ took work, and was done.
 What the decisions already say of steps to come. Each is proposed in
 full when its step is, and its rows join the sections above then.
 
-- **References, the rest** (steps 13c and 13d; D106, D108, D110,
-  D111). 13a and 13b are built, and their rows are above. To come:
-  `\$x` and `$r->$*`; and in a string, chains and the whole-container
-  forms, with no code in a string, `"@{[ ... ]}"` (D111).
+- **References, the rest** (step 13d; D106, D111). 13a to 13c are
+  built, and their rows are above. To come: in a string, chains, the
+  whole-container forms and the scalar through a reference, with no
+  code in a string, `"@{[ ... ]}"` (D111).
 - **Strings, the rest, 16d** (D120): the case escapes `\U \L \u \l
   \Q \E`, `substr` of four arguments, `reverse` of a string where one
   value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle

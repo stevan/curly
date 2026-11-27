@@ -1,0 +1,18 @@
+SCALAR 5
+SCALAR \2
+SCALAR \-3
+SCALAR \x
+SCALAR \4
+SCALAR \y
+SCALAR \u
+1-110
+\1\2
+[u,\3,u,\x]
+{i:\1,j:\2,k:\4}
+{a:[u,\6],b:\7,c:{d:\8}}
+[\1,\2,\3]2
+same 12
+\1 u \2
+9
+REF cycle REF
+REF REF same

@@ -1,0 +1,2 @@
+t/2337-sref-concatenation-then-a-sub.pl:10:18: a later piece of a concatenation calls set5, which can change what references reach, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the call a statement of its own
+exit: 1

@@ -305,6 +305,12 @@ export const parse = (tokens: readonly Token[]): Program => {
             // The whole container through a reference, and a slice through
             // one (step 13b): each ends the chain, and the lexer has refused
             // a subscript after it.
+            // The scalar through a reference (step 13c): it ends the chain,
+            // and the lexer has refused what may not follow it.
+            if (t.kind === 'op' && t.text === '->$*' && arrowable(e)) {
+                next();
+                return { kind: 'sderef', head: e, pos: e.pos };
+            }
             if (t.kind === 'op' && WHOLE_OPS.has(t.text) && arrowable(e)) {
                 next();
                 const d: Deref = { kind: 'deref', head: e, pos: e.pos };
@@ -343,9 +349,10 @@ export const parse = (tokens: readonly Token[]): Program => {
 
     // `++` or `--` hard after a variable, an element or one through a
     // reference, or not: they bind tighter than anything else there is.
+    // (And after the scalar through a reference, step 13c.)
     const stepAfter = (target: Expr): Expr => {
         const after = peek();
-        if (after.kind !== 'op' || !stepOp(after.text) || (target.kind !== 'var' && target.kind !== 'elem' && target.kind !== 'chain')) return target;
+        if (after.kind !== 'op' || !stepOp(after.text) || (target.kind !== 'var' && target.kind !== 'elem' && target.kind !== 'chain' && target.kind !== 'sderef')) return target;
         next();
         return { kind: 'step', op: after.text, before: false, target, pos: after.pos };
     };
@@ -752,6 +759,8 @@ export const parse = (tokens: readonly Token[]): Program => {
             inList = outer;
             const close = next();
             if (close.kind !== '}') unexpected(close, "'}'");
+            // `${ EXPR }`, the scalar through a reference (step 13c).
+            if (t.text === '$') return stepAfter({ kind: 'sderef', head, pos: t.pos });
             const d: Deref = { kind: 'deref', head, pos: t.pos };
             return t.text === '%' ? { ...d, hash: true } : t.text === '$#' ? { ...d, last: true } : d;
         }
@@ -760,9 +769,16 @@ export const parse = (tokens: readonly Token[]): Program => {
         if (t.kind === 'var') return stepAfter(place(t));
         if (t.kind === 'op' && stepOp(t.text)) {
             const v = next();
+            // `++${ $r }` (step 13c).
+            if (v.kind === 'cast' && v.text === '$') {
+                i -= 1;
+                const target = primary();
+                if (target.kind !== 'sderef') return refuse(`'${t.text}' is for a variable or an element: ${t.text}$x`, t.pos);
+                return { kind: 'step', op: t.text, before: true, target, pos: t.pos };
+            }
             if (v.kind !== 'var') return refuse(`'${t.text}' is for a variable: ${t.text}$x`, t.pos);
             const target = place(v);
-            if (target.kind !== 'var' && target.kind !== 'elem' && target.kind !== 'chain') return refuse(`'${t.text}' is for a variable or an element: ${t.text}$x`, t.pos);
+            if (target.kind !== 'var' && target.kind !== 'elem' && target.kind !== 'chain' && target.kind !== 'sderef') return refuse(`'${t.text}' is for a variable or an element: ${t.text}$x`, t.pos);
             return { kind: 'step', op: t.text, before: true, target, pos: t.pos };
         }
         // `[ LIST ]` and `{ LIST }` where a value may begin: a new array
@@ -777,6 +793,11 @@ export const parse = (tokens: readonly Token[]): Program => {
             const subscripted = after.kind === '[' || (after.kind === '{' && after.subscript === true) || (after.kind === 'op' && after.text.startsWith('->'));
             // `\$r->@*` and `\@{ $r }` (step 13b): a list of a reference to
             // each element, to perl.
+            // And `\$r->$*` and `\${ $r }` (step 13c): the reference itself
+            // is the reference.
+            if ((what.kind === 'var' && after.kind === 'op' && after.text === '->$*') || (what.kind === 'cast' && what.text === '$')) {
+                return refuse('\\ before a scalar through a reference: a reference to what a reference points at is cut (D110); the reference itself is the reference', t.pos);
+            }
             if ((what.kind === 'var' && after.kind === 'op' && (WHOLE_OPS.has(after.text) || after.text === '->@')) || what.kind === 'cast') {
                 return refuse('\\ before a dereference: perl makes a list of a reference to each element, which is cut (D110); the reference itself is the reference', t.pos);
             }
@@ -785,9 +806,12 @@ export const parse = (tokens: readonly Token[]): Program => {
             }
             if (what.kind === 'array' || what.kind === 'hash') return refuse('\\ before a slice: perl makes a list of a reference to each element, which is cut (D110)', t.pos);
             if (what.kind === 'var' && subscripted) return refuse('\\ before an element: a reference to an element is cut (D110); take a reference to the array or the hash', t.pos);
-            if (what.kind === 'var') return refuse(`\\${what.text}: a reference to a scalar is not in the language yet (step 13c)`, t.pos);
+            // `\$x` (step 13c): a reference to a scalar variable, which
+            // lives in a cell. Which variables may be taken is the
+            // resolver's to say.
+            if (what.kind === 'var') return { kind: 'ref', of: { kind: 'var', name: what.name, pos: what.pos }, pos: t.pos };
             if (what.kind === '(') return refuse('\\ before a list: perl makes a list of a reference to each, which is cut (D110)', t.pos);
-            return refuse(`\\ before ${show(what)}: \\ takes a named array or a named hash, \\@a or \\%h (D110)`, t.pos);
+            return refuse(`\\ before ${show(what)}: \\ takes a named array, a named hash or a scalar variable, \\@a, \\%h or \\$x (D110)`, t.pos);
         }
         const prefix = t.kind === 'op' ? prefixOp(t.text) : undefined;
         if (prefix) return prefixed(t, prefix.row);
@@ -877,7 +901,7 @@ export const parse = (tokens: readonly Token[]): Program => {
                 const slice = left.kind === 'slice' && left.name !== undefined;
                 if (slice && t.text !== '=') refuse(`'${t.text}' on a slice: a slice is assigned with =`, t.pos);
                 const whole = left.kind === 'deref' && !left.last;
-                const single = slice || whole || left.kind === 'var' || left.kind === 'my' || left.kind === 'elem' || left.kind === 'chain' || left.kind === 'array' || left.kind === 'myarray';
+                const single = slice || whole || left.kind === 'var' || left.kind === 'my' || left.kind === 'elem' || left.kind === 'chain' || left.kind === 'sderef' || left.kind === 'array' || left.kind === 'myarray';
                 if (left.kind === 'list' || slice || (single && left.bracketed)) {
                     if (t.text !== '=') refuse(`'${t.text}' with a list on its left: a list is assigned with =`, t.pos);
                     // (One target in brackets is that target, its brackets
@@ -895,7 +919,7 @@ export const parse = (tokens: readonly Token[]): Program => {
                     left = { kind: 'assign', op: t.text, target: left, value: expression(infix.row + 1), pos: t.pos };
                     continue;
                 }
-                if (left.kind !== 'var' && left.kind !== 'my' && left.kind !== 'elem' && left.kind !== 'chain') {
+                if (left.kind !== 'var' && left.kind !== 'my' && left.kind !== 'elem' && left.kind !== 'chain' && left.kind !== 'sderef') {
                     return refuse(`the left side of '${t.text}' is a variable, an element, an array, a hash, or a list of them in brackets`, t.pos);
                 }
                 left = { kind: 'assign', op: t.text, target: left, value: expression(infix.row + 1), pos: t.pos };

@@ -1,0 +1,2 @@
+t/2322-sref-reference-to-braces.pl:6:9: \ before a scalar through a reference: a reference to what a reference points at is cut (D110); the reference itself is the reference
+exit: 1

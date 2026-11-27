@@ -88,7 +88,7 @@ void rt_throw(rt_ctx *cx, rt_value v) {
         // perl exits with errno when it is set, and a number that
         // underflowed set it (T319, D151): the language keeps no errno.
         if (cx->underflowed) rt_fault(cx, "an uncaught die after a number underflowed: perl exits with the status of $! there, which the language does not keep");
-        if (v.tag == RT_TAG_AREF || v.tag == RT_TAG_HREF) rt_fault(cx, "a reference where a string is wanted");
+        if (v.tag == RT_TAG_AREF || v.tag == RT_TAG_HREF || v.tag == RT_TAG_SREF) rt_fault(cx, "a reference where a string is wanted");
         // Uncaught: the message on stderr, and 255 (D12).
         to_stderr(cx, v);
         release(cx);
@@ -118,7 +118,7 @@ static rt_value message(rt_ctx *cx, rt_value list, const char *empty) {
     for (uint64_t n = 0; n < a->count; n++) {
         rt_value v = a->items[n];
         // A reference among the values would be its address to perl (D112).
-        if (v.tag == RT_TAG_AREF || v.tag == RT_TAG_HREF) rt_fault(cx, "a reference where a string is wanted");
+        if (v.tag == RT_TAG_AREF || v.tag == RT_TAG_HREF || v.tag == RT_TAG_SREF) rt_fault(cx, "a reference where a string is wanted");
         if (v.tag < RT_TAG_INT || v.tag > RT_TAG_BOOL) rt_internal(cx, "a die or a warn was handed what is not a value");
         const rt_str *s = to_str(cx, v, &x);
         len += s->len;
@@ -167,7 +167,7 @@ void rt_die(rt_ctx *cx, rt_value list) {
     // (D142): a `catch` gets the container. Uncaught, perl writes its
     // address, which is D112's fault (`rt_throw`).
     rt_array *a = array_of(cx, list);
-    if (a->count == 1 && (a->items[0].tag == RT_TAG_AREF || a->items[0].tag == RT_TAG_HREF)) rt_throw(cx, a->items[0]);
+    if (a->count == 1 && (a->items[0].tag == RT_TAG_AREF || a->items[0].tag == RT_TAG_HREF || a->items[0].tag == RT_TAG_SREF)) rt_throw(cx, a->items[0]);
     rt_throw(cx, message(cx, list, "Died"));
 }
 

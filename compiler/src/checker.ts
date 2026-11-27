@@ -3,7 +3,7 @@
 // nothing; a tree that comes through is a program.
 import { refuse } from './errors.ts';
 import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, prefixOp } from './names.ts';
-import type { Chain, Deref, Expr, Invoke, My, Pragma, Program, Stmt, Sub, Var } from './ast.ts';
+import type { Chain, Deref, Expr, Invoke, My, Pragma, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
 import type { Resolution } from './resolver.ts';
 import { handsOn } from './shapes.ts';
 import { checkFormat } from './format.ts';
@@ -26,6 +26,14 @@ type Ctx = 'scalar' | 'list';
 // and a variable whose reference is taken anywhere is named and changed
 // under it as well as under its own name.
 const REACH = -1;
+// And a part of it, the scalars references reach (step 13c): what a store
+// through the scalar through a reference changes, and a store to a scalar
+// variable whose reference is taken. A store through an element or a
+// whole container through a reference changes what references reach and
+// no scalar of it, since an element has no reference of its own (D110):
+// so a loop over a scalar through a reference is refused only for what may
+// change a scalar (D77, T347).
+const CELLS = -2;
 
 // The innermost head of an element through references: a scalar variable,
 // an element of a named array or hash, or some other expression.
@@ -41,11 +49,12 @@ const chainParts = (c: Chain): Expr[] => {
 
 // What the whole container through a reference works out on its way (step
 // 13b), as a chain's last link would: its head's parts.
-const derefParts = (d: Deref): Expr[] =>
+// (The scalar through a reference is the same, step 13c.)
+const derefParts = (d: Deref | Sderef): Expr[] =>
     d.head.kind === 'chain' ? chainParts(d.head) : d.head.kind === 'elem' ? [d.head.index] : d.head.kind === 'var' ? [] : [d.head];
 // The scalar variable a store through the whole container may make, if
 // it starts from one (T248, T249).
-const derefBase = (d: Deref): Expr => (d.head.kind === 'chain' ? chainBase(d.head) : d.head);
+const derefBase = (d: Deref | Sderef): Expr => (d.head.kind === 'chain' ? chainBase(d.head) : d.head);
 // Whether a builtin through a reference makes what it goes through, as
 // perl does: `push`, `unshift` and `splice` (T248).
 const makesWhole = (e: Expr): boolean => e.kind === 'arrayop' && e.deref !== undefined && (e.op === 'push' || e.op === 'unshift' || e.op === 'splice');
@@ -54,7 +63,7 @@ const makesWhole = (e: Expr): boolean => e.kind === 'arrayop' && e.deref !== und
 // out.
 const parts = (e: Expr): readonly Expr[] =>
     e.kind === 'chain' ? [e.head, e.index]
-    : e.kind === 'deref' ? [e.head]
+    : e.kind === 'deref' || e.kind === 'sderef' ? [e.head]
     : e.kind === 'anon' ? e.items
     : e.kind === 'hashop' && e.chain !== undefined ? [e.chain]
     // (Through a reference, a builtin's or a slice's container: a `push`'s
@@ -128,7 +137,7 @@ const folds = (e: Expr): boolean =>
     e.kind === 'var' || e.kind === 'my' || e.kind === 'assign' || e.kind === 'step' || e.kind === 'invoke' || e.kind === 'interp' ? false
     // (A new container, and a reference, are made as the program runs:
     // perl does not warn of `if (my $r = [1])`.)
-    : e.kind === 'chain' || e.kind === 'anon' || e.kind === 'ref' || e.kind === 'deref' ? false
+    : e.kind === 'chain' || e.kind === 'anon' || e.kind === 'ref' || e.kind === 'deref' || e.kind === 'sderef' ? false
     // (An array, an element, and what works on one are no constants.)
     : e.kind === 'array' || e.kind === 'myarray' || e.kind === 'elem' || e.kind === 'lastindex' || e.kind === 'arrayop' || e.kind === 'hashop' || e.kind === 'listassign' ? false
     : e.kind === 'slice' && e.name !== undefined ? false
@@ -150,8 +159,9 @@ const changes = (e: Expr, into = new Set<string>()): Set<string> => {
         const base = chainBase(e.target);
         if (base.kind === 'var') into.add(base.name);
     }
-    // And a store to the whole container through one (step 13b).
-    const whole = e.kind === 'assign' && e.target.kind === 'deref' ? e.target : makesWhole(e) ? (e as { deref: Deref }).deref : undefined;
+    // And a store to the whole container through one (step 13b), and to
+    // the scalar through one (step 13c).
+    const whole = (e.kind === 'assign' || e.kind === 'step') && (e.target.kind === 'deref' || e.target.kind === 'sderef') ? e.target : makesWhole(e) ? (e as { deref: Deref }).deref : undefined;
     if (whole !== undefined && derefBase(whole).kind === 'var') into.add((derefBase(whole) as Var).name);
     parts(e).forEach(p => changes(p, into));
     return into;
@@ -195,11 +205,11 @@ const addId = (w: World, into: Set<number>, id: number): void => {
 // D114): the variable it starts from, or the named array or hash whose
 // element it starts from, which a hop that is undef is made in; and what
 // references reach, when a hop after the first is made.
-const making = (w: World, c: Chain | Deref, into = new Set<number>()): Set<number> => {
+const making = (w: World, c: Chain | Deref | Sderef, into = new Set<number>()): Set<number> => {
     // The whole container through a reference (step 13b) is made as a
     // chain's last link would be: in its head, or in what its head's chain
-    // reaches.
-    if (c.kind === 'deref') {
+    // reaches. So is the scalar through one (step 13c).
+    if (c.kind === 'deref' || c.kind === 'sderef') {
         const head = c.head;
         if (head.kind === 'var' || head.kind === 'elem') addId(w, into, w.names.of.get(head)!);
         if (head.kind === 'chain') {
@@ -222,6 +232,7 @@ const making = (w: World, c: Chain | Deref, into = new Set<number>()): Set<numbe
 // points at.
 const changesItself = (w: World, e: Expr, direct = false): number[] => {
     const id = (x: Expr): number => w.names.of.get(x)!;
+    if ((e.kind === 'assign' || e.kind === 'step') && e.target.kind === 'sderef') return direct ? [] : [REACH, CELLS, ...making(w, e.target)];
     if ((e.kind === 'assign' || e.kind === 'step') && (e.target.kind === 'chain' || e.target.kind === 'deref')) return direct ? [] : [REACH, ...making(w, e.target)];
     if (e.kind === 'assign' || e.kind === 'step') return [id(e.target)];
     // Through a reference (step 13b): what it reaches, and, for `push`,
@@ -234,6 +245,7 @@ const changesItself = (w: World, e: Expr, direct = false): number[] => {
     if (e.kind === 'hashop' && e.op === 'delete') return [id(e)];
     if (e.kind === 'listassign') {
         return e.targets.filter(t => t.kind !== 'constant').flatMap(t => (t.kind === 'slice' && t.deref !== undefined ? (direct ? [] : [REACH, ...making(w, t.deref)])
+            : t.kind === 'sderef' ? (direct ? [] : [REACH, CELLS, ...making(w, t)])
             : t.kind === 'deref' ? (direct ? [] : [REACH, ...making(w, t)])
             : t.kind !== 'chain' ? [id(t)] : direct ? [] : [REACH, ...making(w, t)]));
     }
@@ -269,16 +281,20 @@ const named = (w: World, in_: Expr, scalars: boolean, into = new Set<number>()):
     };
     // The whole container through a reference names what its head does,
     // as a chain's last link would (step 13b), and what references reach.
-    const whole = (d: Deref): void => {
+    const whole = (d: Deref | Sderef): void => {
         into.add(REACH);
         if (d.head.kind === 'var' || d.head.kind === 'elem') id(d.head);
         else if (d.head.kind === 'chain') chain(d.head);
         else named(w, d.head, true, into);
     };
     if (e.kind === 'chain') chain(e);
-    else if (e.kind === 'deref') whole(e);
+    // The scalar through a reference is read where it stands, as an
+    // element through one is (step 13c): perl reads it late, as the
+    // variable it is (T346).
+    else if (e.kind === 'deref' || e.kind === 'sderef') whole(e);
     else if ((e.kind === 'slice' || (e.kind === 'hashop' && e.op === 'values')) && e.deref !== undefined) whole(e.deref);
     else if ((e.kind === 'assign' || (e.kind === 'step' && e.before)) && e.target.kind === 'chain') chain(e.target);
+    else if ((e.kind === 'assign' || (e.kind === 'step' && e.before)) && e.target.kind === 'sderef') whole(e.target);
     else if (e.kind === 'elem' || e.kind === 'array' || e.kind === 'lastindex') id(e);
     else if (e.kind === 'slice' && e.name !== undefined) id(e);
     // `values` are the hash's own, and `keys` are copies (T217, T218).
@@ -304,7 +320,7 @@ const named = (w: World, in_: Expr, scalars: boolean, into = new Set<number>()):
     return into;
 };
 
-const sigil = (w: World, id: number): string => (id === REACH ? 'what references reach' : (w.names.isHash[id] ? '%' : w.names.isArray[id] ? '@' : '$') + w.names.names[id]);
+const sigil = (w: World, id: number): string => (id === REACH ? 'what references reach' : id === CELLS ? 'a scalar that a reference reaches' : (w.names.isHash[id] ? '%' : w.names.isArray[id] ? '@' : '$') + w.names.names[id]);
 
 // What a value is, where perl hands on the place itself and this copies it
 // (step 13a): an element, an element through a reference (somewhere in what
@@ -316,7 +332,7 @@ const sigil = (w: World, id: number): string => (id === REACH ? 'what references
 const aliases = (w: World, in_: Expr, scalars: boolean, into = new Set<number>()): Set<number> => {
     const e = plain(in_);
     if (e.kind === 'elem') addId(w, into, w.names.of.get(e)!);
-    else if (e.kind === 'chain') into.add(REACH);
+    else if (e.kind === 'chain' || e.kind === 'sderef') into.add(REACH);
     else if (e.kind === 'var' && scalars) addId(w, into, w.names.of.get(e)!);
     else if ((e.kind === 'assign' || (e.kind === 'step' && e.before)) && e.target.kind !== 'array' && e.target.kind !== 'myarray') aliases(w, e.target, true, into);
     else if (e.kind === 'ternary') { aliases(w, e.then, scalars, into); aliases(w, e.else, scalars, into); }
@@ -327,9 +343,9 @@ const aliases = (w: World, in_: Expr, scalars: boolean, into = new Set<number>()
 
 // The hops of a store through `target` are made after `value` was taken:
 // refused where making one changes what the value is (T249).
-const checkMaking = (w: World, target: Chain | Deref, value: Expr, scalars: boolean): void => {
+const checkMaking = (w: World, target: Chain | Deref | Sderef, value: Expr, scalars: boolean): void => {
     const is = aliases(w, value, scalars);
-    const base = target.kind === 'deref' ? derefBase(target) : chainBase(target);
+    const base = target.kind === 'deref' || target.kind === 'sderef' ? derefBase(target) : chainBase(target);
     for (const id of making(w, target)) {
         if (is.has(id)) refuse(`the store makes what ${base.kind === 'var' && id !== REACH ? sigil(w, id) + ' holds' : 'it goes through'}, which the right side has already taken: perl takes it after it is made; take the value into a my first`, target.pos);
     }
@@ -388,6 +404,8 @@ const children = (e: Expr, ctx: Ctx): [Expr, Ctx][] => {
     case 'chain': return [[e.head, 'scalar'], [e.index, 'scalar']];
     // Step 13b.
     case 'deref': return [[e.head, 'scalar']];
+    // Step 13c.
+    case 'sderef': return [[e.head, 'scalar']];
     case 'anon': return all(e.items, 'list');
     case 'hashop': return e.chain !== undefined ? [[e.chain, 'scalar']] : [...(e.keys !== undefined ? all(e.keys, 'list') : e.key === undefined ? [] : [[e.key, 'scalar']] as [Expr, Ctx][]), ...(e.deref !== undefined ? [[e.deref, 'list']] as [Expr, Ctx][] : [])];
     // A string's pieces: an array there is its values, not its count.
@@ -414,7 +432,8 @@ const invokes = (e: Expr, into: Invoke[] = []): Invoke[] => {
 const variables = (e: Expr, into: Expr[] = []): Expr[] => {
     // (An array's count, `$#a` and what `pop` gives are values at once.)
     // An element through a reference is read late too (T235).
-    if (e.kind === 'var' || e.kind === 'my' || e.kind === 'elem' || e.kind === 'chain') into.push(e);
+    // (And the scalar through one, step 13c.)
+    if (e.kind === 'var' || e.kind === 'my' || e.kind === 'elem' || e.kind === 'chain' || e.kind === 'sderef') into.push(e);
     parts(e).forEach(p => variables(p, into));
     return into;
 };
@@ -500,7 +519,7 @@ const checkConcat = (w: World, e: Expr): void => {
             }
         }
         reads(piece, read);
-        variables(piece).forEach(v => (v.kind === 'chain' ? readIds.add(REACH) : addId(w, readIds, w.names.of.get(v)!)));
+        variables(piece).forEach(v => (v.kind === 'chain' || v.kind === 'sderef' ? readIds.add(REACH) : addId(w, readIds, w.names.of.get(v)!)));
     }
 };
 
@@ -634,17 +653,19 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         // read late, as perl reads it (D73).
         checkOrder(w, `the arguments of ${e.name}`, e.args, e.args.some(a => listy(a) || handsOn(a, gives(w))), { changes: w.defaults[callee]!, at: e });
     }
-    if (e.kind === 'assign' && (e.target.kind === 'elem' || e.target.kind === 'chain')) {
+    // The scalar through a reference (step 13c) is stored to as an element
+    // through one is, its head's parts for the index.
+    if (e.kind === 'assign' && (e.target.kind === 'elem' || e.target.kind === 'chain' || e.target.kind === 'sderef')) {
         // `=`: the right side, then the index. The others: the index,
         // the target made, then the right side, which may not change the
         // array the target is in (T158, T159).
         // Through a reference (step 13a), the chain left to right for the
         // index, its hops made as it goes; making one may change what the
         // right side is (T249).
-        const index = e.target.kind === 'chain' ? chainParts(e.target) : [e.target.index];
+        const index = e.target.kind === 'chain' ? chainParts(e.target) : e.target.kind === 'sderef' ? derefParts(e.target) : [e.target.index];
         if (infixOp(e.op)?.rt === undefined && infixOp(e.op)?.when === undefined) {
             checkOrder(w, `'${e.op}'`, [e.value, ...index], false);
-            if (e.target.kind === 'chain') checkMaking(w, e.target, e.value, false);
+            if (e.target.kind === 'chain' || e.target.kind === 'sderef') checkMaking(w, e.target, e.value, false);
             // perl makes one operation of a concatenation and the store
             // of it, and joins the pieces after the index is worked out:
             // `$a[$i = 2] = $i . "v"` stores `2v` (T230). An interpolated
@@ -657,14 +678,15 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
             const ids = new Set<number>();
             for (const r of row) {
                 reads(r, names);
-                (r.kind === 'interp' ? r.parts : [r]).forEach(x => variables(x).forEach(v => (v.kind === 'chain' ? ids.add(REACH) : addId(w, ids, w.names.of.get(v)!))));
+                (r.kind === 'interp' ? r.parts : [r]).forEach(x => variables(x).forEach(v => (v.kind === 'chain' || v.kind === 'sderef' ? ids.add(REACH) : addId(w, ids, w.names.of.get(v)!))));
                 if (r.kind === 'interp') r.parts.forEach(x => reads(x, names));
             }
             const changed = index.flatMap(x => [...changes(x)]).find(name => names.has(name));
             const through = index.flatMap(x => [...changeSet(w, x)]).find(id => ids.has(id));
             if (changed !== undefined || through !== undefined) {
-                const at = index.find(x => changes(x).has(changed ?? '') || changeSet(w, x).has(through ?? NaN)) ?? e.target.index;
-                refuse(`the ${e.target.hash ? 'key' : 'index'} changes ${changed !== undefined ? '$' + changed : sigil(w, through!)}, which the concatenation on the right reads: perl joins its pieces as it stores, after the ${e.target.hash ? 'key' : 'index'} is worked out; take the string into a my first`, at.pos);
+                const at = index.find(x => changes(x).has(changed ?? '') || changeSet(w, x).has(through ?? NaN)) ?? e.target;
+                const what = e.target.kind === 'sderef' ? 'reference' : e.target.hash ? 'key' : 'index';
+                refuse(`the ${what} changes ${changed !== undefined ? '$' + changed : sigil(w, through!)}, which the concatenation on the right reads: perl joins its pieces as it stores, after the ${what} is worked out; take the string into a my first`, at.pos);
             }
         }
         else checkOrder(w, `'${e.op}'`, [e.target, e.value], false);
@@ -682,10 +704,10 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         // A slice or the whole container through a reference has its
         // head's parts after its indexes, and is made then (step 13b).
         const indexes = e.targets.flatMap(t => (t.kind === 'elem' ? [t.index] : t.kind === 'slice' ? [...t.indexes, ...(t.deref !== undefined ? derefParts(t.deref) : [])]
-            : t.kind === 'chain' ? chainParts(t) : t.kind === 'deref' ? derefParts(t) : []));
+            : t.kind === 'chain' ? chainParts(t) : t.kind === 'deref' || t.kind === 'sderef' ? derefParts(t) : []));
         checkOrder(w, 'this assignment', [e.value, ...indexes], true);
         e.targets.forEach(t => {
-            if (t.kind === 'chain' || t.kind === 'deref') checkMaking(w, t, e.value, true);
+            if (t.kind === 'chain' || t.kind === 'deref' || t.kind === 'sderef') checkMaking(w, t, e.value, true);
             if (t.kind === 'slice' && t.deref !== undefined) checkMaking(w, t.deref, e.value, true);
         });
         e.targets.forEach((t, n) => {
@@ -696,7 +718,7 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
                 checkSliceOfOne(t);
                 return;
             }
-            if (t.bracketed || !(t.kind === 'var' || t.kind === 'my' || t.kind === 'elem' || t.kind === 'chain' || array || (t.kind === 'constant' && t.name === 'undef'))) {
+            if (t.bracketed || !(t.kind === 'var' || t.kind === 'my' || t.kind === 'elem' || t.kind === 'chain' || t.kind === 'sderef' || array || (t.kind === 'constant' && t.name === 'undef'))) {
                 refuse('a target of a list assignment is a variable, an element, undef, or, last, an array or a hash', t.pos);
             }
             if (array && n !== e.targets.length - 1) refuse(`${t.hash ? 'a hash' : 'an array'} among the targets takes every value that is left: it is the last target`, t.pos);
@@ -714,7 +736,7 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         // operand.
         if (e.kind === 'listassign' && part !== e.value) {
             if (part.kind === 'elem') checkExpr(w, part.index, false);
-            if (part.kind === 'chain') checkExpr(w, part, false);
+            if (part.kind === 'chain' || part.kind === 'sderef') checkExpr(w, part, false);
             if (part.kind === 'slice') part.indexes.forEach(x => checkExpr(w, x, false, 'list'));
             if (part.kind === 'slice' && part.deref !== undefined) checkExpr(w, part.deref.head, false);
             if (part.kind === 'deref') checkExpr(w, part.head, false);
@@ -723,7 +745,7 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         if (e.kind === 'assign' && part === e.target) {
             // (Where a `my` may stand is asked of a target too.)
             if (part.kind === 'elem') checkExpr(w, part.index, false);
-            else if (part.kind === 'chain') checkExpr(w, part, false);
+            else if (part.kind === 'chain' || part.kind === 'sderef') checkExpr(w, part, false);
             else if (part.kind === 'deref') checkExpr(w, part.head, false);
             else if (part.kind === 'my' || part.kind === 'myarray') checkExpr(w, part, my && reached, 'list');
             continue;
@@ -800,15 +822,23 @@ const bound = (w: World, what: string, binder: string, items: readonly Expr[], b
     checkOrder(w, what, items, true);
     items.forEach(e => checkExpr(w, e, false, 'list'));
     const scalars = new Map<number, Expr>();
+    // A scalar variable whose reference is taken, and the scalar through a
+    // reference, are what references reach too (step 13c; D109): perl's
+    // loop walks the scalar itself, whoever stores to it (T347).
     const collect = (e: Expr): void => {
         if (e.kind === 'var') scalars.set(w.names.of.get(e)!, e);
+        if (e.kind === 'var' && w.names.taken.has(w.names.of.get(e)!)) scalars.set(CELLS, e);
+        if (e.kind === 'sderef') scalars.set(CELLS, e);
         parts(e).forEach(collect);
     };
     items.forEach(collect);
     const refused = (id: number, at: Expr): never =>
         refuse(`this can change ${sigil(w, id)}, which the list of ${binder} it is in names: perl's ${binder.replace('the ', '')} walks the variable itself; take the value into a my before ${binder}`, at.pos);
     const guard = (e: Expr): void => {
-        for (const id of changesItself(w, e)) if (scalars.has(id)) refused(id, e);
+        for (const id of changesItself(w, e)) {
+            if (scalars.has(id)) refused(id, e);
+            if (scalars.has(CELLS) && w.names.taken.has(id) && !w.names.isArray[id]) refused(CELLS, e);
+        }
         if (e.kind === 'invoke') for (const id of w.changed[w.names.calls.get(e)!]!) if (scalars.has(id)) refused(id, e);
         parts(e).forEach(guard);
     };
@@ -975,8 +1005,14 @@ const changedBy = (names: Resolution): ReadonlySet<number>[] => {
     const expr = (e: Expr, fn: number): void => {
         for (const id of changesItself({ names, changed: [], defaults: [] }, e)) {
             // What references reach is everyone's (D109).
-            if (id === REACH || names.owner[id] === 0) own[fn]!.add(id);
-            if (names.taken.has(id)) own[fn]!.add(REACH);
+            if (id === REACH || id === CELLS || names.owner[id] === 0) own[fn]!.add(id);
+            // (A store to a sub's own scalar is to one made since the call
+            // began, which nothing before the call has read through: so it
+            // changes nothing a reference reached before, step 13c. An
+            // array keeps 13a's rule.)
+            const own_ = names.owner[id] !== 0 && !names.isArray[id];
+            if (names.taken.has(id) && !own_) own[fn]!.add(REACH);
+            if (names.taken.has(id) && !names.isArray[id] && !own_) own[fn]!.add(CELLS);
         }
         if (e.kind === 'invoke') callees[fn]!.add(names.calls.get(e)!);
         parts(e).forEach(p => expr(p, fn));
@@ -1038,7 +1074,7 @@ export const check = (program: Program, names: Resolution): void => {
     const defaults = [new Set<number>(), ...names.subs.map(sub => {
         const set = new Set<number>();
         for (const p of sub.params) {
-            if (p.default) for (const id of changeSet(partial, p.default)) if (id === REACH || names.owner[id] === 0) set.add(id);
+            if (p.default) for (const id of changeSet(partial, p.default)) if (id === REACH || id === CELLS || names.owner[id] === 0) set.add(id);
         }
         return set;
     })];

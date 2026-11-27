@@ -1,0 +1,2 @@
+t/2316-sref-comma-in-the-braces.pl:7:10: expected '}', found ','
+exit: 1

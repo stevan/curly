@@ -1,0 +1,57 @@
+SCALAR 5 5
+8
+7
+28
+3
+27
+27z
+27z27z
+7
+sSCALAR
+SCALAR ab ab
+abc
+abcabcabc
+abcabcabc
+yes
+yes
+7
+sSCALAR
+SCALAR 0 0
+4
+0
+0
+0
+2
+7
+sSCALAR
+SCALAR u u
+3
+3x
+7
+sSCALAR
+SCALAR u u
+2
+-3
+7
+sSCALAR
+5 6
+7 7
+7 6
+5 5
+1
+-1
+same diff same
+diff diff
+33
+REF SCALAR 1 1
+\\1
+REF ARRAY \[1,2]
+REF HASH \{k:3}
+REF SCALAR \\2
+5
+SCALAR u SCALAR REF ||
+true d false f
+444444
+6744
+10!?
+w0

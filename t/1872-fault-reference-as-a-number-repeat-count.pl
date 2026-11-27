@@ -3,5 +3,5 @@
 use v5.42;
 say(1);
 my $r = [1];
-say("a" x $r);
+my $x = "" x $r;
 say(2);

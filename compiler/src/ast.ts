@@ -39,7 +39,7 @@ export type Binary = { kind: 'binary'; op: string; left: Expr; right: Expr; pos:
 // against a scalar on the left of `=`, later).
 export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Step | Unary | Binary | Ternary | Apply | Invoke
     | ArrayVar | MyArray | Elem | LastIndex | List | Slice | ArrayOp | ListAssign | ListOp | Binder | Sort | HashOp
-    | Chain | Anon | Ref | Deref;
+    | Chain | Anon | Ref | Deref | Sderef;
 
 // An element through a reference (step 13a; D107): `EXPR->[I]` and
 // `EXPR->{K}`, and either one after a subscript with the arrow left out,
@@ -60,15 +60,23 @@ export type Chain = { kind: 'chain'; head: Expr; index: Expr; hash?: true; pos: 
 // `name` is then the empty string.
 export type Deref = { kind: 'deref'; head: Expr; hash?: true; last?: true; pos: Pos; bracketed?: true };
 
+// The scalar through a reference (step 13c; D108): `EXPR->$*` and `${ EXPR
+// }`. It stands where a scalar variable may, read and stored to; `head`
+// gives the reference, as a chain's does. Reading through undef is D107's
+// fault, and a store makes the scalar where the head is undef (T248). `pos`
+// is the head's for the postfix form, the sigil's for the braces.
+export type Sderef = { kind: 'sderef'; head: Expr; pos: Pos; bracketed?: true };
+
 // `[ LIST ]`, a new array holding copies of the list's values, and with
 // `hash`, `{ LIST }`, a new hash made from it: a reference to the new
 // container (step 13a). `pos` is the opening bracket's.
 export type Anon = { kind: 'anon'; items: readonly Expr[]; hash?: true; pos: Pos; bracketed?: true };
 
 // `\@a` and `\%h`: a reference to the variable's own container (step
-// 13a; D110). `pos` is the backslash's. (13c's `\$x` will have a `var`
-// for `of`.)
-export type Ref = { kind: 'ref'; of: ArrayVar; pos: Pos; bracketed?: true };
+// 13a; D110). `pos` is the backslash's. And `\$x`, a reference to a scalar
+// variable (step 13c), whose `of` is a `var`: such a variable lives in a
+// cell, which the reference points at.
+export type Ref = { kind: 'ref'; of: ArrayVar | Var; pos: Pos; bracketed?: true };
 
 // An array, `@name`, and `my @name`, which declares one (D80).
 // With `hash`, a hash, `%name` and `my %name` (step 12): the same nodes,
@@ -135,10 +143,10 @@ export type Var = { kind: 'var'; name: string; pos: Pos; bracketed?: true };
 export type My = { kind: 'my'; name: string; pos: Pos; bracketed?: true };
 
 // `$x = E`, `$x += E`: `pos` is the operator's. Its value is the variable.
-export type Assign = { kind: 'assign'; op: string; target: Var | My | Elem | Chain | ArrayVar | MyArray | Deref; value: Expr; pos: Pos; bracketed?: true };
+export type Assign = { kind: 'assign'; op: string; target: Var | My | Elem | Chain | ArrayVar | MyArray | Deref | Sderef; value: Expr; pos: Pos; bracketed?: true };
 
 // `++$x`, `$x++`, `--$x`, `$x--`: `before` says the operator comes first.
-export type Step = { kind: 'step'; op: string; before: boolean; target: Var | Elem | Chain; pos: Pos; bracketed?: true };
+export type Step = { kind: 'step'; op: string; before: boolean; target: Var | Elem | Chain | Sderef; pos: Pos; bracketed?: true };
 
 // A word that is a value: `true`, `false`, `undef` (D47, D48).
 export type Constant = { kind: 'constant'; name: string; pos: Pos; bracketed?: true };
