@@ -1,27 +1,13 @@
 // `ucfirst`, `lcfirst`, `rindex`, and what `chomp` and `chop` make of a
 // variable (step 16c; D129 to D131), which rt.c includes.
 
-// A copy of a string, its first byte changed if it is an ASCII letter of
-// the case `from`. A first character past ASCII is a fault: perl's
-// `ucfirst` is titlecase by its tables.
-static rt_value change_first(rt_ctx *cx, rt_value a, char from, char to, const char *fault) {
-    scratch x;
-    const rt_str *s = to_str(cx, a, &x);
-    if (s->len > 0 && (unsigned char)s->bytes[0] >= 0x80) rt_fault(cx, fault);
-    char *bytes;
-    const rt_str *changed = str_new(cx, s->len, s->chars, &bytes);
-    alive(cx, s);
-    if (s->len > 0) memcpy(bytes, s->bytes, s->len);
-    if (s->len > 0 && bytes[0] >= from && bytes[0] <= from + 25) bytes[0] = (char)(bytes[0] - from + to);
-    return rt_string(changed);
-}
-
+// Past ASCII by perl's own tables since step 16d (D257), in more16d.c.
 rt_value rt_ucfirst(rt_ctx *cx, rt_value a) {
-    return change_first(cx, a, 'a', 'A', "ucfirst of a character past ASCII");
+    return case_string(cx, a, 2);
 }
 
 rt_value rt_lcfirst(rt_ctx *cx, rt_value a) {
-    return change_first(cx, a, 'A', 'a', "lcfirst of a character past ASCII");
+    return case_string(cx, a, 3);
 }
 
 // `rindex`: where `t` last begins in `s`, ending at or before the

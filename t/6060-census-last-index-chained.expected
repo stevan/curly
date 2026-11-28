@@ -1,0 +1,2 @@
+t/6060-census-last-index-chained.pl:6:11: $#b = N is a statement of its own here: perl gives it a value, which is not in the language
+exit: 1

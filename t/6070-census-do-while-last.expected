@@ -1,0 +1,2 @@
+t/6070-census-do-while-last.pl:7:5: last with no label in do { } while: it is no loop to perl, which leaves the loop round it, or dies; label the loop it is for, and say last NAME
+exit: 1

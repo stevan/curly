@@ -1,0 +1,2 @@
+t/6069-census-undef-a-in-sort.pl:4:16: $a is read-only: in perl, changing it changes the list's own element; take the value into a my
+exit: 1

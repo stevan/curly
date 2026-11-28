@@ -1,2 +1,1 @@
-t/209-escape-case.pl:4:6: \U is not an escape in the language
-exit: 1
+ABC

@@ -1,0 +1,2 @@
+t/6075-census-do-while-die.pl:7:10: die in the test of do { } while: perl 5.42 runs do { } while (die ...) for ever (T663); test in the block, or write the loop with while
+exit: 1

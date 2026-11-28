@@ -1,0 +1,2 @@
+t/6071-census-do-while-next-in-a-loop.pl:8:9: next with no label in do { } until: it is no loop to perl, which leaves the loop round it, or dies; label the loop it is for, and say next NAME
+exit: 1

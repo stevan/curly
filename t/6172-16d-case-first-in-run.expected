@@ -1,0 +1,2 @@
+t/6172-16d-case-first-in-run.pl:4:9: \l inside a run of \U, \L or \Q, after its start: perl's rules for these are its own; put it before the run
+exit: 1

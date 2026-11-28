@@ -5,7 +5,7 @@
 import { refuse } from './errors.ts';
 import { AND_ROW, COMMA_ROW, NAMED_UNARY_ROW, NAMES, NAME_MAX_LENGTH, OPERATORS, PERL_KEYWORDS, PERL_WORDS, PRAGMAS, PRECEDENCE, TERNARY_ROW, infixOp, isLabel, isVersionString, prefixOp, stepOp } from './names.ts';
 import type { Index, Key, Piece, Token } from './lexer.ts';
-import type { Arm, Attribute, CallRef, Chain, Class, Deref, Elem, Expr, Field, HashOp, Label, Param, Pos, Program, Stmt, Sub } from './ast.ts';
+import type { Arm, ArrayVar, Attribute, CallRef, Chain, Class, Deref, Elem, Expr, Field, HashOp, Label, Param, Pos, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
 
 // A token as a diagnostic names it. A string is shown if it is short.
 const show = (t: Token): string =>
@@ -31,7 +31,8 @@ const isModifier = (t: Token): boolean => {
     return kind === 'if' || kind === 'while' || kind === 'for';
 };
 
-export const parse = (tokens: readonly Token[]): Program => {
+// `file` is the program's path, as perl is given it too: `__FILE__` (D255).
+export const parse = (tokens: readonly Token[], file = '-'): Program => {
     let i = 0;
     // How many blocks of a `map` or a `grep` are open.
     let blocks = 0;
@@ -46,6 +47,9 @@ export const parse = (tokens: readonly Token[]): Program => {
     // the top level, and a `return` in a sub (D72).
     let depth = 0;
     let inSub = false;
+    // Where the statement being read begins: `$#a = N` stands there and
+    // nowhere else (step 16d, D251).
+    let statementAt: Pos | undefined;
     // Step 15 (D150): the `die`s and `warn`s read in each unit that names
     // a line of its own to perl (a statement, a test, a loop's header, a
     // default), the innermost last. perl's line for a unit over several
@@ -54,12 +58,19 @@ export const parse = (tokens: readonly Token[]): Program => {
     // line may not be made in either.
     const units: Expr[][] = [];
     // A message that ends in a newline written as such carries no line.
-    const endsInNewline = (d: Expr): boolean => {
-        if (d.kind !== 'listop') return false;
-        const last = d.args.at(-1);
-        const text = last?.kind === 'str' ? last.value : last?.kind === 'interp' && last.parts.at(-1)?.kind === 'str' ? (last.parts.at(-1) as { value: string }).value : '';
-        return text.endsWith('\n');
+    // (Step 16d, D261: and a concatenation whose last piece does, and a
+    // `sprintf` whose literal format ends in one, after its last
+    // conversion; perl adds no line to either, E24-die-concat,
+    // E24-die-sprintf.)
+    const newlineAtEnd = (e: Expr | undefined): boolean => {
+        if (e === undefined) return false;
+        if (e.kind === 'str') return e.value.endsWith('\n');
+        if (e.kind === 'interp') { const p = e.parts.at(-1); return p?.kind === 'str' && p.value.endsWith('\n'); }
+        if (e.kind === 'binary' && e.op === '.') return newlineAtEnd(e.right);
+        if (e.kind === 'listop' && e.op === 'sprintf') { const f = e.args[0]; return f?.kind === 'str' && f.value.endsWith('\n'); }
+        return false;
     };
+    const endsInNewline = (d: Expr): boolean => d.kind === 'listop' && newlineAtEnd(d.args.at(-1));
     // Where token `t` ends: a string may hold the ends of lines.
     const lastLine = (t: Token): number => t.pos.line + (t.text.match(/\n/g)?.length ?? 0);
     const unit = <T>(from: Pos, read: () => T, loopTest = false): T => {
@@ -174,9 +185,18 @@ export const parse = (tokens: readonly Token[]): Program => {
             // modifier: `$x = undef if $y;`.
             const follows = open.kind === 'op' ? infixOp(open.text)?.logic
                 : open.kind === 'word' ? isModifier(open)
-                : open.kind !== 'int' && open.kind !== 'num' && open.kind !== 'str' && open.kind !== 'version' && open.kind !== 'var' && open.kind !== '{';
+                : open.kind !== 'int' && open.kind !== 'num' && open.kind !== 'str' && open.kind !== 'version' && open.kind !== 'var' && open.kind !== '{' && open.kind !== 'array' && open.kind !== 'hash' && open.kind !== 'cast';
             if (name.bare && !follows) {
                 refuse(`${head.text} before ${show(open)}: perl takes what follows ${head.text} for its argument; write (${head.text})`, head.pos);
+            }
+            // The line of the token itself, as perl has it (T665), and the
+            // path the program was given by.
+            if (head.text === '__LINE__') return { kind: 'int', text: String(head.pos.line), value: BigInt(head.pos.line), pos: head.pos };
+            if (head.text === '__FILE__') {
+                // perl's is bytes, which a program that prints it would
+                // print otherwise than the language.
+                if (/[^\x20-\x7e]/.test(file)) refuse('__FILE__ of a path that is not printable ASCII: perl gives its bytes', head.pos);
+                return { kind: 'str', text: '__FILE__', value: file, pos: head.pos };
             }
             return { kind: 'constant', name: head.text, pos: head.pos };
         }
@@ -210,7 +230,18 @@ export const parse = (tokens: readonly Token[]): Program => {
         next();
         const args = peek().kind === ')' ? [] : list();
         closing();
-        const max = name.min + name.rt.length - 1;
+        const max = name.min + name.rt.length - 1 - (name.changes !== undefined ? 1 : 0);
+        // `substr($s, OFFSET, LENGTH, REPLACEMENT);` (step 16d, D254): a
+        // statement that begins with it and is no more than it, on a
+        // scalar variable, which `simple` makes an assignment of.
+        if (name.changes !== undefined && args.length === name.changes) {
+            const after = peek();
+            const alone = statementAt !== undefined && statementAt.line === head.pos.line && statementAt.col === head.pos.col && (ends(after) || isModifier(after));
+            if (!alone) refuse(`${head.text} of ${args.length} arguments is a statement of its own here, ${head.text}($s, ...);: perl gives it a value too, which is not in the language`, head.pos);
+            const target = args[0]!;
+            if (target.kind !== 'var' || target.bracketed) refuse(`${head.text} of ${args.length} arguments changes its first, which is a scalar variable here: $s`, target.pos);
+            return { kind: 'apply', name: head.text, args, pos: head.pos };
+        }
         if (args.length < name.min || args.length > max) {
             refuse(`${head.text} takes ${name.min} to ${max} arguments, and here are ${args.length}`, head.pos);
         }
@@ -598,21 +629,47 @@ export const parse = (tokens: readonly Token[]): Program => {
         const name = NAMES.get(head.text)!;
         if (name.kind !== 'arrayop') throw new Error('not an array builtin');
         const open = peek().kind === '(';
-        if (!open && (name.shape === 'splice' || name.shape === 'scalar')) refuse(`${head.text} needs brackets: ${head.text}(@a${name.shape === 'splice' ? ', ...' : ''})`, head.pos);
+        if (!open && name.shape === 'splice') refuse(`${head.text} needs brackets: ${head.text}(@a, ...)`, head.pos);
+        // `scalar @a`, `scalar %h`, `scalar $r->@*` (step 16d, D250): the
+        // named unary operator it is. perl's takes any expression, and
+        // reads on through anything that binds tighter than it: `scalar @a
+        // + 1` is `scalar(@a + 1)`. Here it takes an array or a hash and
+        // nothing more, and what perl would read on through is refused.
+        const bare = !open && name.shape === 'scalar';
+        if (bare) {
+            const t = peek();
+            const may = t.kind === 'array' || t.kind === 'hash' || t.kind === 'var' || t.kind === 'cast' || (t.kind === 'word' && (t.text === 'keys' || t.text === 'values' || t.text === 'reverse'));
+            if (!may) refuse(`scalar without brackets takes an array or a hash, found ${show(t)}: scalar @a, or scalar(...)`, t.pos);
+        }
+        const shut = (): void => {
+            if (bare) bareOperand(head, 'scalar @a');
+            else closing();
+        };
         if (open) next();
+        // `scalar reverse LIST` and `scalar(reverse LIST)` (step 16d,
+        // D258): the list joined and its characters reversed. perl's
+        // `reverse` where one value is wanted is that too, decided by its
+        // context, which the language does not lean on; with `scalar` the
+        // program says which it means.
+        if (name.shape === 'scalar' && peek().kind === 'word' && peek().text === 'reverse') {
+            const word = next();
+            const of = listOp(word);
+            shut();
+            return { kind: 'listop', op: 'scalar reverse', args: of.kind === 'listop' ? of.args : [], pos: head.pos };
+        }
         // `scalar(%h)`, `scalar(keys %h)` and `scalar(values %h)`: how
         // many keys the hash has (T219).
         if (name.shape === 'scalar' && (peek().kind === 'hash' || (peek().kind === 'word' && (peek().text === 'keys' || peek().text === 'values')))) {
             const first = next();
             const of: { name: string; at: Pos; deref?: Deref } = first.kind === 'hash' ? { name: first.name, at: first.pos } : hashOp(first);
-            closing();
+            shut();
             return of.deref === undefined ? { kind: 'hashop', op: 'count', name: of.name, pos: head.pos, at: of.at } : { kind: 'hashop', op: 'count', name: '', deref: of.deref, pos: head.pos, at: of.at };
         }
         const array = peek();
         // Through a reference (step 13b): `push $r->@*, ...`, `scalar(%{ $h })`.
         const d = array.kind === 'array' ? undefined : container();
         if (d !== undefined && name.shape === 'scalar' && d.kind === 'deref' && d.hash) {
-            closing();
+            shut();
             return { kind: 'hashop', op: 'count', name: '', deref: d, pos: head.pos, at: array.pos };
         }
         // perl's `shift` alone shifts the program's arguments, or a sub's
@@ -639,8 +696,8 @@ export const parse = (tokens: readonly Token[]): Program => {
             next();
             return made(itemsTo(')'));
         }
-        if (open) {
-            closing();
+        if (open || bare) {
+            shut();
             return made([]);
         }
         // `pop @a + 1` doesn't compile in perl, and `pop @a || 0` does
@@ -670,8 +727,26 @@ export const parse = (tokens: readonly Token[]): Program => {
 
     // `sort LIST` and `sort { ... } LIST`, the word just read (step 10c).
     const sort = (head: Token): Expr => {
+        // `sort(LIST)` and `sort({ ... } LIST)`, the bracket hard against
+        // the word (step 16d, D262): perl is silent for it, and reads in
+        // the brackets what it reads after a bare `sort`, so the same
+        // refusals hold there (a word or a scalar first is a sub to compare
+        // by: perl's `sort(l ("cab"))` sorts by `l`). With a blank before
+        // the bracket perl warns, as T190 has it; and it does not compile
+        // a subscript after the brackets.
+        if (peek().kind === '(') {
+            if (!touching(i - 1)) refuse('sort, a blank and a bracket: perl warns that it is read as a function, and the brackets hold all of its list; write sort(...) or sort LIST', peek().pos);
+            next();
+            if (peek().kind === ')') refuse('sort needs a list', peek().pos);
+            const made = sortBody(head);
+            closing();
+            if (peek().kind === '[') refuse("'[' after sort(...): perl does not compile it; bracket the whole, (sort(...))[...]", peek().pos);
+            return made;
+        }
+        return sortBody(head);
+    };
+    const sortBody = (head: Token): Expr => {
         const first = peek();
-        if (first.kind === '(') refuse('sort takes no brackets of its own: sort LIST, or sort { ... } LIST', first.pos);
         if (first.kind === '{') {
             next();
             const { body, items } = blockAndList(head, false);
@@ -841,6 +916,9 @@ export const parse = (tokens: readonly Token[]): Program => {
                 : p.kind === 'deref' ? (p.last ? { kind: 'deref', head: piece(p.head), last: true, pos: p.pos } : { kind: 'deref', head: piece(p.head), pos: p.pos })
                 : p.kind === 'sderef' ? { kind: 'sderef', head: piece(p.head), pos: p.pos }
                 : p.kind === 'dslice' ? { kind: 'slice', name: '', deref: { kind: 'deref', head: piece(p.head), pos: p.pos }, indexes: p.indexes.map(index), pos: p.pos }
+                // A case escape (step 16d, D256): the builtin it is, of
+                // the string its pieces make.
+                : p.kind === 'case' ? { kind: 'apply', name: p.op, args: [{ kind: 'interp', text: t.text, parts: p.pieces.length > 0 ? p.pieces.map(piece) : [{ kind: 'str', text: '', value: '', pos: p.pos }], pos: p.pos }], pos: p.pos }
                 : { kind: p.kind, name: p.name, pos: p.pos };
             const parts = t.pieces.map(piece);
             return { kind: 'interp', text: t.text, parts, pos: t.pos };
@@ -1143,6 +1221,25 @@ export const parse = (tokens: readonly Token[]): Program => {
                     left = { kind: 'assign', op: t.text, target: left, value: expression(infix.row + 1), pos: t.pos };
                     continue;
                 }
+                // `$#a = N;`, `$#{ $r } = N;`, `$r->$#* = N;` (step 16d,
+                // D251): a statement that makes the array that long. perl's
+                // has a value, and takes every assigning operator; here it
+                // is a statement alone, with `=`.
+                if ((left.kind === 'lastindex' || (left.kind === 'deref' && left.last)) && !left.bracketed) {
+                    const shown = left.kind === 'lastindex' ? `$#${left.name}` : '$#{...}';
+                    if (t.text !== '=') refuse(`'${t.text}' on ${shown}: the last index is set with =, ${shown} = N;`, t.pos);
+                    if (statementAt === undefined || statementAt.line !== left.pos.line || statementAt.col !== left.pos.col || limit !== AND_ROW) {
+                        refuse(`${shown} = N is a statement of its own here: perl gives it a value, which is not in the language`, t.pos);
+                    }
+                    const value = expression(infix.row + 1);
+                    if (left.kind === 'lastindex') {
+                        left = { kind: 'arrayop', op: '$#=', name: left.name, args: [value], pos: t.pos, at: left.pos };
+                    } else {
+                        const { last: _, ...d } = left;
+                        left = { kind: 'arrayop', op: '$#=', name: '', args: [value], deref: d, pos: t.pos, at: left.pos };
+                    }
+                    continue;
+                }
                 if (left.kind !== 'var' && left.kind !== 'my' && left.kind !== 'elem' && left.kind !== 'chain' && left.kind !== 'sderef') {
                     return refuse(`the left side of '${t.text}' is a variable, an element, an array, a hash, or a list of them in brackets`, t.pos);
                 }
@@ -1341,6 +1438,30 @@ export const parse = (tokens: readonly Token[]): Program => {
             const change: Stmt = { kind: 'do', expr: { kind: 'assign', op: '=', target: { kind: 'var', name: v.name, pos: v.pos }, value: { kind: 'apply', name: head.text, args: [target], pos: head.pos }, pos: head.pos }, pos: head.pos };
             return { kind: 'block', body: [change], pos: head.pos };
         }
+        // `undef $x;`, `undef @a;`, `undef %h;`, `undef $a[0];` and
+        // through a reference (step 16d, D252): the assignment of undef, or
+        // of an empty list to an array or a hash, which is what perl does,
+        // in a block of its own so that it is no sub's value; and so every
+        // rule about an assignment holds of it. perl's `undef @a[0, 1]`
+        // makes only the last element undef.
+        if (head.kind === 'word' && head.text === 'undef') {
+            const at = tokens[i + 1]!;
+            const inside = at.kind === '(' ? tokens[i + 2]! : at;
+            if (inside.kind === 'var' || inside.kind === 'array' || inside.kind === 'hash' || inside.kind === 'cast') {
+                next();
+                const open = peek().kind === '(' ? next() : undefined;
+                const target = primary();
+                if (open !== undefined) closing();
+                const whole = target.kind === 'array' || (target.kind === 'deref' && !target.last);
+                const one = target.kind === 'var' || target.kind === 'elem' || target.kind === 'chain' || target.kind === 'sderef';
+                if (!whole && !one) return refuse(`undef takes a scalar variable, an element, an array or a hash here, found ${target.kind === 'slice' ? 'a slice: perl makes only its last element undef' : 'something else'}`, inside.pos);
+                const after = peek();
+                if (!ends(after) && !isModifier(after)) refuse(`undef ... is a statement of its own here: perl gives it a value, which is not in the language; found ${show(after)} after it`, after.pos);
+                const value: Expr = whole ? { kind: 'list', items: [], pos: head.pos } : { kind: 'constant', name: 'undef', pos: head.pos };
+                const change: Stmt = { kind: 'do', expr: { kind: 'assign', op: '=', target: target as Var | Elem | Chain | Sderef | ArrayVar | Deref, value, pos: head.pos }, pos: head.pos };
+                return { kind: 'block', body: [change], pos: head.pos };
+            }
+        }
         if (name?.kind === 'elsif' || name?.kind === 'else') return refuse(`${head.text} without an if before it`, head.pos);
         // `last;`, `next NAME;`, and nothing else after either but an
         // `if` or `unless`: to perl what follows is an expression that
@@ -1361,8 +1482,50 @@ export const parse = (tokens: readonly Token[]): Program => {
         // block's value, and may be two joined by a word operator (`$a
         // <=> $b or $a cmp $b`); one that is not the last only has a
         // value, and the checker refuses it.
+        const outer = statementAt;
+        statementAt = blocks > 0 ? undefined : head.pos;
         const expr = expression(blocks > 0 ? Infinity : AND_ROW);
+        statementAt = outer;
+        // `EXPR or die LIST;`, `EXPR and return ...;`, `or last`, `or next`
+        // (D260): to perl the expression, then the statement after the
+        // word if its value is false (`or`) or true (`and`), which is
+        // `STATEMENT unless EXPR;`, written the other way round. A `my` on
+        // the left is declared for what follows, as perl has it. Anything
+        // else after the word is two statements joined, refused below.
+        const word = peek();
+        const then = tokens[i + 1];
+        const thenName = then?.kind === 'word' ? NAMES.get(then.text) : undefined;
+        if (blocks === 0 && word.kind === 'op' && (word.text === 'or' || word.text === 'and') && then !== undefined
+            && ((then.kind === 'word' && then.text === 'die') || thenName?.kind === 'return' || thenName?.kind === 'jump')) {
+            if (expr.kind === 'listassign' || (expr.kind === 'assign' && (expr.target.kind === 'array' || expr.target.kind === 'myarray' || expr.target.kind === 'deref'))) {
+                refuse(`'${word.text} ${then.text}' after an assignment of a list: perl tests the count of its right side; test what was assigned in a statement of its own`, word.pos);
+            }
+            // `$#a = N or die` (T676): a statement alone (D251), and perl
+            // warns `Found = in conditional` where N is a constant.
+            if (expr.kind === 'arrayop' && expr.op === '$#=') {
+                refuse(`'${word.text} ${then.text}' after $#a = N: setting an array's last index is a statement alone (D251); test the array in a statement of its own`, word.pos);
+            }
+            next();
+            const rhs = simple();
+            const after = peek();
+            if (!ends(after)) refuse(`${show(after)} after '${word.text} ${then.text} ...': a statement joined by ${word.text} ends there here; write it as two statements, or with an if`, after.pos);
+            const arm: Arm = word.text === 'or' ? { test: expr, negate: true, body: [rhs], pos: word.pos } : { test: expr, body: [rhs], pos: word.pos };
+            return { kind: 'if', arms: [arm], modifier: true, joined: true, pos: head.pos };
+        }
         loose();
+        // `$#a = N;` (D251) in a block of its own, so that it is no sub's
+        // value: perl's would be N.
+        if (expr.kind === 'arrayop' && expr.op === '$#=') return { kind: 'block', body: [{ kind: 'do', expr, pos: head.pos }], pos: head.pos };
+        // `substr($s, ...)` of four (D254): `$s` assigned the string it
+        // makes, in a block of its own, so that every rule about an
+        // assignment holds and it is no sub's value: perl's would be the
+        // piece taken out.
+        const fn = expr.kind === 'apply' ? NAMES.get(expr.name) : undefined;
+        if (expr.kind === 'apply' && fn?.kind === 'function' && fn.changes === expr.args.length) {
+            const v = expr.args[0] as Var;
+            const change: Stmt = { kind: 'do', expr: { kind: 'assign', op: '=', target: { kind: 'var', name: v.name, pos: v.pos }, value: expr, pos: head.pos }, pos: head.pos };
+            return { kind: 'block', body: [change], pos: head.pos };
+        }
         return { kind: 'do', expr, pos: head.pos };
     };
 
@@ -1535,6 +1698,34 @@ export const parse = (tokens: readonly Token[]): Program => {
         if (name?.kind === 'class') return classStatement();
         if (name?.kind === 'field' || name?.kind === 'method' || name?.kind === 'adjust') {
             return refuse(`${head.text} outside a class's block: it is a declaration of a class, class NAME { ${head.text} ... }`, head.pos);
+        }
+        // `do { ... } while TEST;` and `until` (step 16d, D253): the block
+        // runs first. To perl it is no loop (T64): a `last` or `next` in
+        // it leaves the loop round it, or dies, and a `my` in the block is
+        // not seen by the test. `do { }` as a value is not in the language.
+        if (head.kind === 'word' && head.text === 'do' && tokens[i + 1]!.kind === '{') {
+            next();
+            const open = peek();
+            const body = block();
+            const word = peek();
+            const kind = word.kind === 'word' ? NAMES.get(word.text) : undefined;
+            if (kind?.kind !== 'while') return refuse(`do { ... } is in the language followed by while or until, found ${show(word)}: do BLOCK as a value is not (D253)`, word.pos);
+            next();
+            // perl's `my` in the test is a variable of the statement's, seen
+            // after it; and its line for a die there is its own (T316).
+            for (let k = i, nested = 0; tokens[k]!.kind !== 'eof' && nested >= 0; k++) {
+                const t = tokens[k]!;
+                if (nested === 0 && (t.kind === ';' || t.kind === '}')) break;
+                nested += t.kind === '(' || t.kind === '[' || t.kind === '{' ? 1 : t.kind === ')' || t.kind === ']' || t.kind === '}' ? -1 : 0;
+                if (t.kind === 'word' && NAMES.get(t.text)?.kind === 'my') refuse(`my in the test of do { } ${word.text}: perl declares it for what follows the statement`, t.pos);
+                // perl 5.42 runs `do { } while (die "x\n")` for ever (T663).
+                if (t.kind === 'word' && t.text === 'die') refuse(`die in the test of do { } ${word.text}: perl 5.42 runs do { } while (die ...) for ever (T663); test in the block, or write the loop with while`, t.pos);
+            }
+            const test = unit(head.pos, () => expression(Infinity), true);
+            if (isModifier(peek())) refuse(`a second modifier after do { } ${word.text}: perl does not compile it`, peek().pos);
+            ending();
+            const inner: Stmt = { kind: 'block', body, pos: open.pos };
+            return { kind: 'while', test, body: [inner], post: true, pos: head.pos, ...(kind.until ? { negate: true as const } : {}) };
         }
         // `try { } catch ($e) { }` (step 15; D143). perl wants the catch
         // and its variable (T53), takes one catch, and warns of `finally`

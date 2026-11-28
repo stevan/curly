@@ -1,0 +1,2 @@
+fault: undef where a number is wanted at t/6021-census-last-index-undef.pl line 6.
+exit: 1

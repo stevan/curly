@@ -997,29 +997,15 @@ rt_value rt_length(rt_ctx *cx, rt_value a) {
     return rt_int((int64_t)to_str(cx, a, &x)->chars);
 }
 
-// `uc` and `lc` change the ASCII letters. Past ASCII perl has tables,
-// under which a string can change length (T45); until they come, a
-// character past ASCII is a fault.
-static rt_value change_case(rt_ctx *cx, rt_value a, char from, char to, const char *fault) {
-    scratch x;
-    const rt_str *s = to_str(cx, a, &x);
-    if (s->len != s->chars) rt_fault(cx, fault);
-    char *bytes;
-    const rt_str *changed = str_new(cx, s->len, s->chars, &bytes);
-    alive(cx, s);
-    for (uint64_t at = 0; at < s->len; at++) {
-        char c = s->bytes[at];
-        bytes[at] = c >= from && c <= from + 25 ? (char)(c - from + to) : c;
-    }
-    return rt_string(changed);
-}
+// Past ASCII by perl's own tables since step 16d (D257), in more16d.c.
+static rt_value case_string(rt_ctx *cx, rt_value a, int which);
 
 rt_value rt_uc(rt_ctx *cx, rt_value a) {
-    return change_case(cx, a, 'a', 'A', "uc of a character past ASCII");
+    return case_string(cx, a, 0);
 }
 
 rt_value rt_lc(rt_ctx *cx, rt_value a) {
-    return change_case(cx, a, 'A', 'a', "lc of a character past ASCII");
+    return case_string(cx, a, 1);
 }
 
 rt_value rt_ord(rt_ctx *cx, rt_value a) {
@@ -1704,3 +1690,4 @@ void rt_internal(rt_ctx *cx, const char *what) {
 #include "format.c"
 #include "strfn.c"
 #include "obj.c"
+#include "more16d.c"

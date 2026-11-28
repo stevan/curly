@@ -1,0 +1,2 @@
+t/6080-census-do-if.pl:7:3: do { ... } is in the language followed by while or until, found 'if': do BLOCK as a value is not (D253)
+exit: 1

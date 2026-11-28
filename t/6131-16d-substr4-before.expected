@@ -1,0 +1,3 @@
+xabc
+fault: substr outside of string at t/6131-16d-substr4-before.pl line 7.
+exit: 1

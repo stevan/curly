@@ -1,0 +1,2 @@
+fault: scalar reverse of an empty list: perl reverses $_ at t/6132-16d-scalar-reverse-empty.pl line 6.
+exit: 1

@@ -47,7 +47,7 @@ if (!back.equals(bytes)) {
 // the last build's would pass for a program that no longer compiles.
 let c: string;
 try {
-    const program = parse(lex(text));
+    const program = parse(lex(text), src);
     // The passes in D29's order: names, then the rules, then the C.
     const names = resolve(program);
     check(program, names);

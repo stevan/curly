@@ -1,0 +1,2 @@
+t/6272-16d-review-case-first-then-end.pl:4:10: \E hard after \u in a run: perl's answer for it is its own (T677); take the \u out
+exit: 1

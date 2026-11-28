@@ -662,6 +662,14 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         }
         // `sprintf` (step 16b): the format and the values, one list.
         if (e.op === 'sprintf') return temp(b, `rt_sprintf(cx, ${genList(e.args, b).c})`);
+        // `scalar reverse LIST` (D258): joined with nothing, then reversed.
+        if (e.op === 'scalar reverse') {
+            // perl reverses `$_` for a list with nothing in it (T672).
+            const values = genList(e.args, b);
+            b.lines.push(`rt_reverse_some(cx, ${values.c});`);
+            const joined = temp(b, `rt_join(cx, ${genExpr({ kind: 'str', text: '', value: '', pos: e.pos }, b).c}, ${values.c})`);
+            return temp(b, `rt_reverse_string(cx, ${joined.c})`);
+        }
         if (e.op !== 'join') throw new Error(`${e.op} where one value is wanted`);
         const sep = genExpr(e.args[0]!, b);
         const kept = sep.place ? sep : temp(b, sep.c);
@@ -682,6 +690,16 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
             const c = e.deref === undefined ? undefined : box(b, e, true);
             const values = genList(e.args, b);
             return temp(b, `${name.rt}(cx, ${c ?? variable(b, e)}, ${values.c})`);
+        }
+        if (name.shape === 'resize') {
+            // `$#a = N;` (D251): N first, as perl works out the right side
+            // of an assignment first, then the array, made through a
+            // reference if undef.
+            const v = genExpr(e.args[0]!, b);
+            const kept = v.place ? temp(b, v.c) : v;
+            const c = box(b, e, true);
+            b.lines.push(`${name.rt}(cx, ${c}, ${kept.c});`);
+            return { c: 'rt_undef()', place: false };
         }
         if (name.shape === 'splice') {
             // As a statement: what it removed is not wanted.
@@ -1179,6 +1197,16 @@ const genStmt = (s: Stmt, out: Out): string[] => {
     // the loop's line, and under a modifier the statement's, which is
     // where the node is (D62).
     case 'while': {
+        // `do { } while` (D253): the block, then the test; nothing jumps
+        // to it, so it has no labels.
+        if (s.post) {
+            const after = genWhole(s.test, s.pos.line, out, c => [`if (${s.negate ? 'rt_is_true' : 'rt_is_false'}(cx, ${c})) break;`]);
+            return [
+                'for (;;) {',
+                ...indent([...s.body.flatMap(t => genStmt(t, out)), '{', ...indent([...after.vars, ...after.code]), '}']),
+                '}',
+            ];
+        }
         const test = genWhole(s.test, s.pos.line, out, c => [`if (${s.negate ? 'rt_is_true' : 'rt_is_false'}(cx, ${c})) break;`]);
         const id = out.names.loops.get(s);
         return [

@@ -1,0 +1,2 @@
+t/6074-census-do-while-my-of-the-block.pl:8:10: $j is not declared: my $j
+exit: 1

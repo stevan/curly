@@ -1,0 +1,41 @@
+# the last index set: cut, grown with undefs, -1, a Num cut toward zero, a string of digits, through a reference and through undef (D251).
+use v5.42;
+my @a = (1, 2, 3);
+$#a = 1;
+say "@a";
+$#a = 3;
+say scalar(@a), " ", defined $a[3] ? "d" : "u", " ", $#a;
+$#a = 1.7;
+say scalar @a;
+$#a = "2";
+say scalar @a;
+$#a = -1;
+say scalar @a;
+@a = (1, 2, 3);
+$#a = -0.5;
+say scalar @a;
+@a = (1, 2, 3);
+$#a = -1.5;
+say scalar @a;
+my @b = (5, 6);
+$#b = $#b - 1;
+say "@b";
+my $r = [1, 2, 3];
+$#{$r} = 0;
+say scalar $r->@*;
+$r->$#* = 4;
+say scalar $r->@*;
+my $u;
+$#{$u} = 2;
+say scalar $u->@*, ref $u;
+my %h;
+$h{list}->$#* = 1;
+say scalar $h{list}->@*;
+$#a = 0 if 1;
+say scalar @a;
+sub cut() {
+    my @l = (1, 2);
+    $#l = 0;
+}
+cut();
+say "ok";

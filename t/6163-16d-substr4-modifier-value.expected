@@ -1,0 +1,2 @@
+t/6163-16d-substr4-modifier-value.pl:5:5: substr of 4 arguments is a statement of its own here, substr($s, ...);: perl gives it a value too, which is not in the language
+exit: 1

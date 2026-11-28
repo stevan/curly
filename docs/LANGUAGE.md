@@ -91,6 +91,24 @@ with any blanks or none after the `#`): perl reads that as a line
 directive, which changes the line and the file a `die` names. Indented,
 or with words between, it is a comment, as to perl.
 
+**POD** is a comment too: a line that begins `=` and a letter (`=head1`,
+`=pod`, `=begin`, `=cut` itself; not `=_x`, which perl does not
+compile) where a statement may begin, through
+to a line that begins `=cut` and no more of a word, or the end of the
+file. Anywhere else, in the middle of a statement, such a line is
+refused, as perl refuses it: and the middle of a statement is also
+after the block of a `do`, a `map`, a `grep` or a `sort`, and between
+the brackets of a `for (...; ...; ...)`. A `# line` comment is refused inside POD
+as outside it: perl reads it there too. And `__END__` or `__DATA__`,
+where a statement may begin, end the program: nothing after them is
+read. (`<DATA>`, which reads what follows `__DATA__`, is not in the
+language.)
+
+`__LINE__` is the number of the line it is written on, and `__FILE__`
+the program's path, as it was given to the compiler and to perl:
+
+    say "at ", __FILE__, " line ", __LINE__;
+
 ## Statements
 
 Every statement ends with a semicolon, and there is no empty
@@ -370,8 +388,8 @@ isn't an escape (`\q`, `\8`); `\x` with fewer than two digits; an
 octal escape of one or two digits with an `8` or a `9` after it (write
 all three digits, `\001`); a number that isn't a character
 (`\x{D800}`, `\x{110000}`); `\c`, a character by its name
-(`\N{LATIN SMALL LETTER E}`), and the case escapes `\U \L \u \l \Q
-\E`.
+(`\N{LATIN SMALL LETTER E}`), and `\F`, the one case escape that is
+not in ("Case in a string" has the others).
 
 A string may run over several lines, and then it holds the newlines. A
 tab may be written as itself; any other control character is written
@@ -511,7 +529,30 @@ other: `"user@example.com"` is refused for want of an `@example`.
 
 Not in the language: an expression in a string (`"@{[ ... ]}"`,
 `"${\ ... }"`), which is code in it: work the value out first, into a
-`my`. Not yet: the case escapes, `\U` and its kin.
+`my`.
+
+### Case in a string
+
+In double quotes, `qq` and a heredoc that interpolates, **`\U` makes
+what follows upper case, `\L` lower case, and `\Q` puts a backslash
+before every character that is not a letter, a digit or `_`**, each up
+to a `\E` or the end of the string, variables included:
+
+    my $name = "wORLD";
+    say "Hello, \u\L$name\E!";     # Hello, World!
+    say "\Q1+1\E";                  # 1\+1
+
+**`\u` and `\l` make the first character after them upper or lower
+case**, of all that follows to the end of the string, as perl has it.
+One of `\U`, `\L` and `\Q` may not stand inside another (perl's rules
+for that are its own), `\u` and `\l` stand before a run or first in
+it, `\E` with nothing to end is refused (perl warns), and so is `\F`.
+First in a run, a `\u` or `\l` ends with the run: `"\U\u$x\Eabc"`
+leaves `abc` alone. But `\L\u` and `\U\l` are `\u\L` and `\l\U` to perl,
+as if written before the run, and go on past its `\E`. A `\E` hard
+after a `\u` or `\l` in a run is refused: perl's answer there is its
+own.
+`quotemeta` is the `\Q` of a value.
 
 ### Joining and repeating
 
@@ -594,8 +635,13 @@ it is exact as ever, and so is every Int a double can't hold exactly.
 ### length, uc, lc, ord, chr
 
 `length` is the number of characters. `uc` and `lc` change the case of
-the ASCII letters, and fault on a character past ASCII, until perl's
-own tables for the rest of Unicode are in. `ord` is the number of a
+every letter, by perl's own tables, which the language carries (made
+from perl 5.42 itself): `uc "straße"` is `STRASSE`, two characters for
+the `ß`, and `lc` of a capital I with a dot is two. `ucfirst` and
+`lcfirst` use the same tables. One thing faults: `uc` of a U+0345
+(the combining Greek small iota) with a combining mark after it,
+another U+0345 or any other: perl moves the capital iota it makes past
+the marks, and makes one of two. `ord` is the number of a
 string's first character (0 for the empty string), and `chr` is the
 character with a number.
 
@@ -651,6 +697,19 @@ to be an Int is a fault. So is a string with a point that is a hair
 below a whole number, `"1.99999999999999999"`, here and as a count or
 for `chr`: its nearest double is 2, and perl cuts it to 1 or to 2 by
 what was done with the string before.
+
+**`substr` of four arguments** replaces the piece three would take with
+the fourth, in a scalar variable:
+
+    my $s = "abcdef";
+    substr($s, 1, 2, "XYZ");      # $s is aXYZdef
+    substr($s, 0, 0, "<");        # <aXYZdef
+
+It is a statement of its own, on a variable and nothing else: perl's
+gives back the piece taken out too, which the language leaves to a
+`substr` of three before it. A piece outside the string is the fault
+`substr outside of string` (perl dies), and perl's `substr` on the left
+of `=` is not in the language: the four arguments say it.
 
 ### ucfirst, lcfirst and rindex
 
@@ -889,6 +948,14 @@ else it goes in brackets, `(undef) + 1`, because perl takes whatever
 follows a bare `undef` for something to make undefined: `undef * 2`
 is not a multiplication to perl, and `undef + 1` doesn't compile.
 
+That is what `undef` is at the head of a statement: **`undef $x;`
+makes `$x` undef**, `undef @a;` and `undef %h;` empty them, and
+`undef $a[0];`, `undef $h{k};`, `undef $r->[0];`, `undef $r->@*;` do
+the same through a reference. Each is the assignment it means, `$x =
+undef;` or `@a = ();`, and every rule of an assignment holds of it. It
+is a statement alone (perl's has a value too), and a slice is refused:
+perl's `undef @a[0, 1]` makes only the last element undef.
+
 ## Variables
 
 A variable holds one value. `my` declares it, and it must be declared
@@ -1035,6 +1102,21 @@ since perl warns that each is useless. And a statement is one of
 them, not two joined: `$x = 1 and $y = 2;` is refused (perl warns of
 it too): write it as an `if`.
 
+The one joining that is in is perl's idiom of a statement and what to
+do if it fails: **an expression, `or` or `and`, and then `die LIST`,
+`return`, `last` or `next`**:
+
+    my $f = $ops{$op} or die "no operator $op\n";
+    my $n = shift_of($x) or return "none";
+    $seen{$k}++ and next;
+
+It is `die ... unless ...;` written the other way round: the
+expression first, then the rest if its value is false (`or`) or true
+(`and`). A `my` on the left is declared for the statements after, and
+not for the `die`'s message, as in perl. Nothing may follow the `die`,
+`return`, `last` or `next` but the semicolon, and a list assignment
+may not stand on the left (perl would test how many values it had).
+
 ### say and a variable
 
 After `say` or `print`, perl takes a variable for a file handle when
@@ -1176,9 +1258,24 @@ it runs again and again, the test first each time:
 so `say "never" while 0;` prints nothing. The statement is `say`,
 `print`, an assignment or a `++` or `--`, as under `if`.
 
-perl's `do { ... } while (TEST);`, which runs its block before the
-first test, is not in the language. Write `while (1) { ...; last
-unless TEST; }`.
+**`do { ... } while TEST;`**, and `until`, runs its block first and
+then tests, again and again:
+
+    my $i = 5;
+    do {
+        say $i;
+        $i++;
+    } while ($i < 3);          # prints 5, once
+
+To perl this is no loop: it is a block under a modifier that perl tests
+afterwards. So **a `last` or `next` with no label in its block is
+refused** (perl's would leave the loop round it, or die), one with a
+label goes to that labelled loop, as in perl, and it takes no label of
+its own. A `my` in the block is new each time round and is not seen by
+the test; a `my` in the test is refused, and so is a `die` there (perl
+5.42 runs `do { } while (die ...)` for ever). `do { ... }` with
+anything after it but `while` or `until`, or as a value, is not in the
+language.
 
 ### What is new each time round
 
@@ -1572,7 +1669,12 @@ an empty array.
 
 ### How many
 
-`scalar(@a)` is how many values an array holds. And **wherever one
+`scalar(@a)` is how many values an array holds; `scalar @a` too, as
+perl's named unary operator, and `scalar %h`, `scalar keys %h` and
+`scalar $r->@*`. perl's `scalar` reads on through whatever binds
+tighter than it (`scalar @a + 1` is `scalar(@a + 1)` to perl), so an
+operator of that kind after the array is refused: write `scalar(@a) +
+1`. And **wherever one
 value is wanted, an array is that count**:
 
     my $n = @a;              # how many
@@ -1637,6 +1739,16 @@ With no LENGTH, everything from OFFSET on; a negative OFFSET counts
 from the end; a negative LENGTH leaves that many at the end. An
 OFFSET past the end or before the start is a fault.
 
+**`$#a = N;`** makes the array N + 1 long: shorter, losing what is
+past the end, or longer, the new elements undef. `$#a = -1;` empties
+it. N is cut toward zero as an index is; below -1 is a fault (perl
+empties the array in silence). Through a reference, `$#{ $r } = N;` and
+`$r->$#* = N;`, an undef `$r` is made an array first, as `push` makes
+it. It is a statement of its own, with `=` alone: perl's has a value,
+and takes `+=` and `++`, which are not in the language; nor may `or
+die` or its kin follow it. It changes the
+array as `splice` does: a loop over the array may not do it.
+
 ### Slices
 
 `@a[1, 2]` is a **slice**: the elements at those indexes, as a list,
@@ -1697,16 +1809,20 @@ The array is given back however the loop is left: at its end, by
 `last`, by a `last` or `next` to a loop outside it, by `return`.
 
 "Named anywhere" is meant: `(@a, @b)`, `@a[0, 1]`, `$a[0]`, `$#a` and
-`scalar(@a)` in the list all name `@a`. So `for my $i (0 .. $#a)`
-freezes `@a` too. To change an array as you go through it, take its
-count first, which names nothing:
+`scalar(@a)` in the list all name `@a`. **But a list that is one range
+and nothing else freezes nothing**: perl works its two ends out once,
+before the first time round, and nothing the block does can change the
+loop. So the commonest loop there is runs as perl runs it:
 
-    my $n = @a;
-    for my $i (0 .. $n - 1) {
-        $a[$i] *= 2;
+    for my $i (0 .. $#a) {
+        $a[$i] *= 2;          # fine: the range was fixed as it began
     }
 
-or build a new array from the old one.
+and so does `for my $i (1 .. @a) { push @a, ... }`, which goes round as
+many times as `@a` was long when it began. A range among other items,
+`(0 .. $#a, 9)`, or under `reverse`, is a list, and freezes what it
+names. (D259 is Stevan's to veto: if he does, take the count into a
+`my` first.)
 
 The same goes for a plain variable, where there is nothing to freeze:
 **a loop whose block can change a variable its list names is
@@ -1718,8 +1834,8 @@ included.
     }
 
 That is one rule for every place the variable can stand in the list,
-and it refuses `for my $i (1 .. $n) { $n-- }` too, where perl would
-have agreed; `my $end = $n;` before the loop says what is meant.
+but a list that is one range: `for my $i (1 .. $n) { $n-- }` goes
+round as many times as `$n` said when it began, as in perl.
 
 **An element or a slice past either end of its array, in the loop's
 list, is a fault**: perl would make the element, and the array
@@ -1888,9 +2004,12 @@ leaves 14 in `$n`, there and here.
 Like `map` and `grep`, `sort` works its list out once and copies it,
 freezes every array named in it while it runs, faults for an element
 or a slice past the end of its array there, and is refused when its
-block can change a variable its list names. It is written with no
-brackets of its own, and takes everything to the end of the list it
-stands in. Unlike them it is a list only: **where one value is
+block can change a variable its list names. It takes everything to
+the end of the list it stands in, or the list in brackets hard
+against the word, `sort(keys %h)`, which is the same thing; with a
+blank before the bracket it is refused, for perl warns of it, and
+what may come first in the brackets is what may come first after a
+bare `sort`. Unlike them it is a list only: **where one value is
 wanted, `sort` is refused** (perl gives undef there). After `return`
 it is a list like any other.
 
@@ -2017,6 +2136,13 @@ brackets, nothing may index them: `(reverse(@a))[0]`, not
 For "what a list may not do", below: `reverse` hands on the things
 it was given, so what its list names, it names; and `join` reads its
 separator last, so a later item may not change it.
+
+**`scalar reverse LIST`**, with brackets or without, is the other thing
+perl's `reverse` does: the list joined into one string, its characters
+in the other order. `scalar reverse "abc"` is `cba`. The `scalar` is
+needed: perl does it wherever one value is wanted, by where the
+`reverse` stands, and the language wants that said. A list with
+nothing in it is a fault, for perl reverses `$_` then.
 
 ### What a list may not do
 
@@ -2883,8 +3009,9 @@ values of a `die`, or in a `warn`, which perl makes a string.
 It is never tested, and never the left operand of an operator:
 `if (die ...)`, `say "x" if die ...;` and `die("a") . "b"` are refused,
 since perl warns that none of them means what it looks like. Nor does
-a word operator join it to a statement: `$ok or die "...";` is
-refused, and `die "..." unless $ok;` says it.
+a word operator join it to a statement, but in the one shape that is
+a statement's: `$ok or die "...";`, as under "A statement that is an
+expression".
 
 **Where the line goes into the message, the statement is on one
 line.** perl's own idea of which line a statement is on is not always
@@ -2898,6 +3025,10 @@ no line, and may stand anywhere:
 
     die "the file ", $name,
         " is empty\n";       # fine: the last string ends in a newline
+
+The last argument may also be a concatenation whose last piece ends in
+a newline as written, or a `sprintf` whose format ends in one: perl
+adds no line to either. A `join` is not looked into.
 
 A `die` in a block, or in a sub, is in a statement of its own, and
 only that statement's lines count.

@@ -47,6 +47,8 @@ test is tested apart, on `t/000-say.pl`.)
 | `same-keys-sliced` | `(keys %h)[0]`, one key picked before the sort |
 | `same-hash-into-an-array` | A hash's values, and the hash, copied into an array that is only sorted or counted (step 12a) |
 | `same-hash-into-an-array-shown` | The same, and the array printed once as it is |
+| `same-hash-undef` | A hash made empty by `undef`, by name and through a reference (step 16d) |
+| `same-hash-undef-shown` | An `undef` beside a hash in a list, which is not of it |
 | `same-hash-into-an-array-element` | The same, and one element of the copy read |
 | `same-hash-loop-unread` | A loop or a `map` over a hash whose block never reads what it is handed; a hash handed to a sub whose last parameter is a hash (step 12b) |
 | `same-hash-loop-read` | The same loops, the value read each way it can be, and a `grep`, which hands its list on |

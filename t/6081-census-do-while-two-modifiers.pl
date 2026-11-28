@@ -1,0 +1,7 @@
+# kind: refused
+# perl does not compile it: syntax error.
+use v5.42;
+my $i = 0;
+do {
+    $i++;
+} while $i < 3 if 1;

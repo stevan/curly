@@ -1,0 +1,2 @@
+t/6087-census-or-die-modifier.pl:5:29: 'if' after 'or die ...': a statement joined by or ends there here; write it as two statements, or with an if
+exit: 1

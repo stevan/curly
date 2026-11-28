@@ -1,0 +1,2 @@
+t/6068-census-undef-it.pl:6:5: $_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+exit: 1

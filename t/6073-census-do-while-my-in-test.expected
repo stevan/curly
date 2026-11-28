@@ -1,0 +1,2 @@
+t/6073-census-do-while-my-in-test.pl:7:10: my in the test of do { } while: perl declares it for what follows the statement
+exit: 1

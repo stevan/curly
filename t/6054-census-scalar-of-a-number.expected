@@ -1,0 +1,2 @@
+t/6054-census-scalar-of-a-number.pl:4:12: scalar without brackets takes an array or a hash, found 1: scalar @a, or scalar(...)
+exit: 1

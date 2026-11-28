@@ -1,2 +1,1 @@
-t/762-last-after-and.pl:7:17: last is a statement, not a value: write 'last if ...;' or 'last unless ...;'
-exit: 1
+1

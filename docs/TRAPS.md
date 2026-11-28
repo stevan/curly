@@ -874,6 +874,45 @@ row is a program in `briefs/claimsfuzz.py`; D245 to D247 answer them.
 | T602 | `my $v; sub f() { $v = undef; return "k" } $v->{f()} = 5;`; `my $v = [1, 2]; sub f() { $v = [7, 8]; return 0 } say $v->[f()];`; `say $v->[($v = [7, 8]) ? 0 : 1];`; `$a[0][f()]` with `f` assigning `@a`; `$r->[0][f()]` with `f` storing `$r->[0]` | `Modification of a read-only value attempted`; an empty line and `Use of uninitialized value in say`: perl takes the container, the index frees it, and perl reads or stores what is gone. The language printed `undef` (it had made the hash and stored in it), `1` (the old array, which it kept) | fuzz | Refused (D246; 5720 to 5731, 5704 what stays in) |
 | T603 | `my $v = 1; my @l = ($v ? (7) x 1 : 0); say scalar(@l), " @l";`; `$v && (7) x 1`; `$z \|\| (7, 8) x 1`; `(7) x 0x1`, `(7) x (2 - 1)`; `for my $x ($v ? (7) x 1 : 0)` | `70 ` (garbage), and out of memory for the loop: perl 5.42 folds the repeat by 1 away and a jump past it lands on the wrong op. The language printed `1 7` | fuzz | Refused (D247; 5732 to 5739, 5705 what stays in) |
 
+## Found proposing step 16d, and what the census's reading asked for
+
+Found writing `PLAN.md`, step 16, "What the census's reading asked for"
+and "16d" (2026-11-27, in the worktree `step-16d`). Each row is in
+`briefs/claims16d.py`, which `briefs/claims.py` reads, but T663's hang,
+which no claim can run.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T660 | `my @a = (1, 2, 3); $#a = -2; say scalar @a;` | `0`, in silence: anything below -1 empties the array | 16 census | A fault below -1 (D251) |
+| T661 | `my @a = (1, 2, 3); undef @a[0, 1]; say "@a";` | `1  3`, and a warning: only the slice's last element is made undef | 16 census | `undef` of a slice refused (D252) |
+| T662 | `L: do { last L } while ($i < 5);` | Compiles, and dies as it runs: `Label not found for "last L"` | 16 census | No label on `do { } while` (D253, D61) |
+| T663 | `do { $i++ } while (die "x\n");` | Runs for ever, and never the block; `until (die ...)` dies once | 16 census | A `die` in the test of `do { } while` refused (D253) |
+| T664 | `uc "\x{345}\x{345}"`; `uc "\x{345}x\x{345}"` | One U+0399 for the two together; two apart | 16d | A fault for two together; the rest by the table (D257) |
+| T665 | `say "a",\n __LINE__;` | `a2`: the token's own line, where a `die` names the statement's | 16d | `__LINE__` is its token's line (D255) |
+| T666 | `say 1;\n=cut\nsay 2;\n=cut\nsay 3;` | `1`, `3`: `=cut` alone begins POD | 16d | As perl (D255) |
+| T667 | `=pod`, `# line 200 "x"`, `=cut`, then `die "here";` | `here at x line 202.`: a line directive in POD counts | 16d | Refused in POD as outside it (D255, D147) |
+| T668 | `for my $i (0 .. $#a) { push @a, 9; shift @a; @a = (); }` and kin | The loop runs as often as the array was long as it began: a range's ends are worked out once | 16 census | A loop over one range freezes nothing its ends name (D259) |
+| T669 | `my $n = 3; for my $i (1 .. $n) { push @s, sub { $i } } $n = 9;` | `1,2,3`: each sub its own number, never `$n` | 16 census | D166's refusal does not hold for a lone range (D259) |
+| T670 | `my ($p) = (0) or die "e\n"; say "here";` | `here`: the list assignment's count is tested | 16 census | `or die` after a list assignment refused (D260) |
+| T671 | `sort(l("cab"))`, `sort(l ("cab"))` | `abc`, then `cab`: with a blank, `l` is a sub to compare by | 16 census | A word first in `sort(...)` refused as after a bare `sort` (D262) |
+| T672 | `for ("abc") { my @e; say scalar reverse(@e) }` | `cba`: `scalar reverse` of an empty list reverses `$_` | 16d | A fault for an empty list (D258) |
+
+### Found by the independent review of step 16d
+
+Found by a second reader with a differential driver of its own
+(2026-11-28, `briefs/step16d-review/README.md`, "The independent
+review"; the driver and its cases are `briefs/step16d-review/reader/`).
+Each was a program the compiler took and perl answered otherwise. Each
+row is in `briefs/claims16d.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T673 | `say 1;`, then a line `=_x`, `say 2;`, `=cut`, `say 3;` | Does not compile: `syntax error ... near "="`. POD begins with `=` and a letter, and `_` is none | 16d | `=` and a letter of ASCII alone begins POD (D255) |
+| T674 | `do { $i++ }`, then `=pod`, `=cut`, then `until ($i);`; the same after the block of a `map`, `grep` or `sort`, and after a `;` in a `for`'s brackets | Does not compile: after such a block perl looks for an operator or a list, and in a `for`'s brackets for an expression, never for a statement | 16d | No statement may begin there: POD and `__END__` refused (D255) |
+| T675 | `uc("\x{345}\x{301}")`; `uc("\x{345}\x{301}\x{345}")`; `uc("a\x{345}\x{300}")` | U+0301 U+0399; U+0301 U+0399, one iota for the two; `A`, U+0300, U+0399: `uc` moves a U+0345 past every mark after it (2,501 characters, perl's `\p{M}`) | 16d | A fault for a U+0345 before a mark (D257, amended) |
+| T676 | `my @a = (1, 2); $#a = 0 or die "e\n";`; `$#a = -1 and die "e\n";` | Warns `Found = in conditional, should be ==` and dies; the second dies, -1 being true, where the compiler had it false | 16 census | `or` and `and` after `$#a = N` refused (D251, D260) |
+| T677 | `my $e = ""; say "\U\u$e\Eabc"; say "\L\l$e\EABC"; say "\U\u\Eabc";` | `abc`, `ABC`, `ABC`: a `\u` or `\l` first in a run ends with the run, but for `\L\u` and `\U\l`, which perl swaps; and one with nothing after it before `\E` is perl's own answer | 16d | In the run and ending with it, but those two; `\E` hard after it refused (D256, amended) |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

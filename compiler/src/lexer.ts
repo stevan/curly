@@ -38,7 +38,7 @@ export type Token =
     // a reference is worked out from, `@{ EXPR }` (step 13b).
     // `sub`: the brace opens or closes the block of a sub with no name,
     // whose end ends a value (step 14).
-    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true; sub?: true }
+    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true; sub?: true; inline?: true }
     // The sigil of a whole container through a reference, `@`, `%` or
     // `$#`, its brace next (step 13b; D108); and `$`, the scalar through
     // one, `${ EXPR }` (step 13c).
@@ -70,7 +70,11 @@ export type Piece =
     | { kind: 'chain'; head: Piece; index?: Index; key?: Key; pos: Pos }
     | { kind: 'deref'; head: Piece; last?: true; pos: Pos }
     | { kind: 'sderef'; head: Piece; pos: Pos }
-    | { kind: 'dslice'; head: Piece; indexes: readonly Index[]; pos: Pos };
+    | { kind: 'dslice'; head: Piece; indexes: readonly Index[]; pos: Pos }
+    // Step 16d (D256): what a case escape covers, `\U...\E`, `\L...\E`,
+    // `\Q...\E`, and `\u` or `\l`, which covers the rest of the string;
+    // `op` the builtin it is.
+    | { kind: 'case'; op: 'uc' | 'lc' | 'ucfirst' | 'lcfirst' | 'quotemeta'; pieces: readonly Piece[]; pos: Pos };
 
 // A key in a string (D99): a word, or a scalar variable.
 export type Key = { kind: 'word'; text: string } | { kind: 'var'; name: string; pos: Pos };
@@ -118,6 +122,11 @@ export const lex = (src: string): Token[] => {
     // hash, or a block (step 13a).
     // (`sderef`: the braces of `${ EXPR }`, step 13c.)
     const braces: ('subscript' | 'anon' | 'block' | 'deref' | 'sderef' | 'sub')[] = [];
+    // For each block that is open, whether it stands in an expression: the
+    // block of a `do`, a `map`, a `grep` or a `sort`, after whose closing
+    // brace perl looks for an operator or a list and never for a statement
+    // (T674).
+    const inline: boolean[] = [];
     // Whether the signature that is open is a sub's with no name, and the
     // index of the `)` that closed the last such one: the block after it is
     // that sub's (step 14).
@@ -558,14 +567,109 @@ export const lex = (src: string): Token[] => {
         }
     };
 
+    // The text and the pieces of a string that interpolates, with its case
+    // escapes (step 16d, D256). perl's rules for them nest and replace one
+    // another; the language takes a plain subset: `\U`, `\L` and `\Q`
+    // each begin a run to `\E` or the end of the string, and another of
+    // them inside one is refused; `\u` and `\l` cover all that follows
+    // them to the end of the string, as perl's do (`"\u${x}d"` with `$x`
+    // empty is `D`), and may stand first in a run: perl reads `\L\u` as
+    // `\u\L` and `\U\l` as `\l\U`, and any other is in the run and ends
+    // with it (T677); anywhere else in a run they are refused. Outside a run
+    // they nest, each over all that follows it (`"\u\lABC"` is `ABC`).
+    // `\E` with no run open is refused (perl warns),
+    // and `\F` is not in the language.
+    type CaseFrame = { op?: 'uc' | 'lc' | 'ucfirst' | 'lcfirst' | 'quotemeta'; run: boolean; pieces: Piece[]; value: string; pos: Pos };
+    const casing = (start: Pos) => {
+        const stack: CaseFrame[] = [{ run: false, pieces: [], value: '', pos: start }];
+        let used = false;
+        const top = (): CaseFrame => stack.at(-1)!;
+        const flush = (f: CaseFrame): void => {
+            if (f.value !== '') f.pieces.push({ kind: 'text', value: f.value });
+            f.value = '';
+        };
+        const close = (): void => {
+            const f = stack.pop()!;
+            flush(f);
+            const parent = top();
+            flush(parent);
+            parent.pieces.push({ kind: 'case', op: f.op!, pieces: f.pieces, pos: f.pos });
+        };
+        const run = (): CaseFrame | undefined => stack.find(f => f.run);
+        const empty = (f: CaseFrame): boolean => f.value === '' && f.pieces.length === 0;
+        return {
+            text: (s: string): void => { top().value += s; },
+            piece: (p: Piece): void => {
+                flush(top());
+                top().pieces.push(p);
+            },
+            // Whether the escape at `where`, its letter `c` next, is a case
+            // escape; if it is, it is taken.
+            escape: (c: string, where: Pos): boolean => {
+                if (!'ULQEulF'.includes(c) || c === '') return false;
+                take();
+                used = true;
+                if (c === 'F') refuse('\\F, the fold case, is not in the language: lc says it for most strings, and perl folds some characters to more than one (D256)', where);
+                if (c === 'E') {
+                    if (run() === undefined) refuse('\\E with no \\U, \\L or \\Q before it to end: perl warns that it is useless', where);
+                    // A `\u` or `\l` in a run ends with it (T677). With
+                    // nothing after it before the `\E`, perl's answer is
+                    // its own (`"\U\u\Eabc"` is `ABC`).
+                    if (!top().run && empty(top())) {
+                        refuse(`\\E hard after \\${top().op === 'ucfirst' ? 'u' : 'l'} in a run: perl's answer for it is its own (T677); take the \\${top().op === 'ucfirst' ? 'u' : 'l'} out`, where);
+                    }
+                    while (!top().run) close();
+                    close();
+                    return true;
+                }
+                if (c === 'U' || c === 'L' || c === 'Q') {
+                    const open = run();
+                    if (open !== undefined) refuse(`\\${c} inside a \\${open.op === 'uc' ? 'U' : open.op === 'lc' ? 'L' : 'Q'} that has not ended: perl's rules for these are its own; end the first with \\E`, where);
+                    stack.push({ op: c === 'U' ? 'uc' : c === 'L' ? 'lc' : 'quotemeta', run: true, pieces: [], value: '', pos: where });
+                    return true;
+                }
+                // \u and \l.
+                const op = c === 'u' ? 'ucfirst' : 'lcfirst';
+                const open = run();
+                if (open !== undefined) {
+                    // First in a run, and the run the last thing open.
+                    if (top() !== open || !empty(open)) refuse(`\\${c} inside a run of \\U, \\L or \\Q, after its start: perl's rules for these are its own; put it before the run`, where);
+                    // `\L\u` is `\u\L` to perl, and `\U\l` is `\l\U`: those
+                    // two and no others (T677), and then the `\u` or `\l`
+                    // goes on past the run's `\E`. Any other is in the run,
+                    // and ends with it.
+                    if ((open.op === 'lc' && c === 'u') || (open.op === 'uc' && c === 'l')) {
+                        stack.pop();
+                        flush(top());
+                        stack.push({ op, run: false, pieces: [], value: '', pos: where }, open);
+                    } else {
+                        stack.push({ op, run: false, pieces: [], value: '', pos: where });
+                    }
+                    return true;
+                }
+                flush(top());
+                stack.push({ op, run: false, pieces: [], value: '', pos: where });
+                return true;
+            },
+            // The string's text, or its pieces when it has a variable or a
+            // case escape in it.
+            finish: (): { value: string; pieces?: Piece[] } => {
+                while (stack.length > 1) close();
+                const root = stack[0]!;
+                if (!used && root.pieces.length === 0) return { value: root.value };
+                flush(root);
+                return { value: '', pieces: root.pieces };
+            },
+        };
+    };
+
     // A string literal. In single quotes a backslash is itself, except
     // before a backslash or the quote. In double quotes it begins an
     // escape, and a `$` or an `@` begins a variable (step 11a).
     const string = (start: Pos): Token => {
         const from = i;
         const quote = take();
-        let value = '';
-        const pieces: Piece[] = [];
+        const b = casing(start);
         for (;;) {
             if (i >= src.length) refuse(`a string that never ends: it begins with ${quote} here`, start);
             const where = pos();
@@ -573,21 +677,40 @@ export const lex = (src: string): Token[] => {
             if (c === quote) break;
             if (c !== '\\') {
                 if (quote === '"' && (c === '$' || c === '@')) {
-                    if (value !== '') pieces.push({ kind: 'text', value });
-                    value = '';
-                    pieces.push(variable(c, where));
+                    b.piece(variable(c, where));
                     continue;
                 }
-                value += c;
+                b.text(c);
             } else if (quote === '"') {
-                value += escape(where);
+                if (!b.escape(at(), where)) b.text(escape(where));
             } else {
-                value += at() === '\\' || at() === "'" ? take() : '\\';
+                b.text(at() === '\\' || at() === "'" ? take() : '\\');
             }
         }
-        if (pieces.length === 0) return { kind: 'str', text: src.slice(from, i), value, pos: start };
-        if (value !== '') pieces.push({ kind: 'text', value });
-        return { kind: 'str', text: src.slice(from, i), value: '', pos: start, pieces };
+        const made = b.finish();
+        if (made.pieces === undefined) return { kind: 'str', text: src.slice(from, i), value: made.value, pos: start };
+        return { kind: 'str', text: src.slice(from, i), value: '', pos: start, pieces: made.pieces };
+    };
+
+    // Whether a statement may begin after the last token (step 16d): at the
+    // start, after a `;` that is not in a `for`'s brackets, and after a
+    // block's braces, either one, but not the closing one of a block that
+    // stands in an expression (`do { } while`, `map { } LIST`: T674).
+    const statementMayBegin = (): boolean => {
+        const last = tokens.at(-1);
+        if (heredoc !== undefined) return false;
+        // A `;` with a round bracket open nearest is a `for`'s, and no
+        // statement begins after it (T674).
+        if (last?.kind === ';') {
+            const open: string[] = [];
+            for (const t of tokens) {
+                if (t.kind === '(' || t.kind === '{' || t.kind === '[') open.push(t.kind);
+                else if (t.kind === ')' || t.kind === '}' || t.kind === ']') open.pop();
+            }
+            return open.at(-1) !== '(';
+        }
+        return last === undefined
+            || ((last.kind === '}' || last.kind === '{') && last.subscript !== true && last.anon !== true && last.deref !== true && last.sub !== true && last.inline !== true);
     };
 
     // Whether the last token ends a value, so that an operator comes next.
@@ -712,8 +835,7 @@ export const lex = (src: string): Token[] => {
     // a `qq`'s own, before which perl takes a backslash away before it
     // interpolates, so that `qq[$x\[0\]]` is an element (T278).
     const body = (end: number, interpolate: boolean, backslashed: string, indent: string, brackets = ''): { value: string; pieces?: Piece[] } => {
-        let value = '';
-        const pieces: Piece[] = [];
+        const b = casing(pos());
         let lineStart = true;
         const inside = (): void => {
             if (i > end) refuse('what stands in this string runs past its end: perl ends the string first, and does not compile the rest', pos());
@@ -731,23 +853,19 @@ export const lex = (src: string): Token[] => {
             const c = take(true);
             lineStart = c === '\n';
             if (interpolate && (c === '$' || c === '@')) {
-                if (value !== '') pieces.push({ kind: 'text', value });
-                value = '';
-                pieces.push(variable(c, where));
+                b.piece(variable(c, where));
                 inside();
             } else if (c === '\\' && interpolate) {
                 if (brackets.includes(at())) refuse(`a backslash before '${at()}' in a qq with that bracket: perl takes it away before it reads the variables, so that what follows can go on with one (T278); write the string with other brackets`, where);
-                value += escape(where);
+                if (!b.escape(at(), where)) b.text(escape(where));
                 inside();
             } else if (c === '\\' && i < end && backslashed.includes(at())) {
-                value += take(true);
+                b.text(take(true));
             } else {
-                value += c;
+                b.text(c);
             }
         }
-        if (pieces.length === 0) return { value };
-        if (value !== '') pieces.push({ kind: 'text', value });
-        return { value: '', pieces };
+        return b.finish();
     };
 
     // `q(...)`, `qq(...)` and `qw(...)`, with any of the four brackets
@@ -869,6 +987,28 @@ export const lex = (src: string): Token[] => {
             heredoc = undefined;
             continue;
         }
+        // POD (step 16d, D255): a line that begins `=` and a letter (not `_`:
+        // perl does not compile `=_x`, T673), where a
+        // statement may begin, to a line that begins `=cut` and no more of a
+        // word, or the end of the file; a comment to the language. perl
+        // takes such a line for a syntax error anywhere else, and `=cut`
+        // alone begins POD too (T666). A `# line N` comment in it still
+        // moves the line a die names, to perl (T667).
+        if (c === '=' && start.col === 1 && /^[A-Za-z]$/.test(src[i + 1] ?? '')) {
+            if (!statementMayBegin()) refuse('a line that begins = and a word in the middle of a statement: perl takes it for POD only where a statement may begin, and does not compile it here', start);
+            let first = true;
+            while (i < src.length) {
+                const end = src.indexOf('\n', i) < 0 ? src.length : src.indexOf('\n', i);
+                const text = src.slice(i, end);
+                if (/^#[ \t]*line[ \t]+[0-9]/.test(text)) refuse("a line '# line' and a number in POD: perl takes it for a line directive even there, which changes the line and the file a die names: reword it", pos());
+                const cut = !first && /^=cut(?![A-Za-z0-9_])/.test(text);
+                first = false;
+                while (i < end) take(true);
+                if (i < src.length) take(true);
+                if (cut) break;
+            }
+            continue;
+        }
         if (isBlank(c)) {
             take();
         } else if (c === '#') {
@@ -906,9 +1046,10 @@ export const lex = (src: string): Token[] => {
             // The fat comma: a comma, the word before it a string already.
             take(); take();
             push({ kind: ',', text: '=>', pos: start });
-        } else if (c === '%' && !afterValue()) {
+        } else if (c === '%' && (!afterValue() || (tokens.at(-1)?.kind === 'word' && tokens.at(-1)!.text === 'undef' && (isWordStart(src[i + 1] ?? '') || src[i + 1] === '{' || src[i + 1] === '$')))) {
             // A hash, `%name` (step 12). After a value the same character
-            // is the modulus, as it is to perl.
+            // is the modulus, as it is to perl; but after `undef` perl
+            // takes a hash for undef's argument (step 16d, D252).
             take();
             // In a signature a `%` alone is a parameter with no name.
             if (signature > 0 && !isWordStart(at()) && at() !== '$' && at() !== '{') {
@@ -943,6 +1084,13 @@ export const lex = (src: string): Token[] => {
                 take();
                 take();
                 text += '::' + run(isWord);
+            }
+            // `__END__` and `__DATA__` (step 16d, D255) end the program,
+            // where a statement may begin; what follows is never read.
+            // (`<DATA>` is not in the language: D20.)
+            if (text === '__END__' || text === '__DATA__') {
+                if (!statementMayBegin()) refuse(`${text} in the middle of a statement: perl ends the program there, and does not compile what came before it`, start);
+                break;
             }
             if (text.includes('::') || name) {
                 if (text.length > NAME_MAX_LENGTH) refuse(`a name of more than ${NAME_MAX_LENGTH} characters: perl refuses it as too long`, start);
@@ -1141,9 +1289,18 @@ export const lex = (src: string): Token[] => {
                 push({ kind: '{', text: take(), pos: start, sub: true });
                 continue;
             }
-            if (c === '{') braces.push('block');
+            if (c === '{') {
+                braces.push('block');
+                const opener = name?.kind === '(' ? tokens.at(-2) : name;
+                const word = opener?.kind === 'word' ? NAMES.get(opener.text)?.kind : undefined;
+                inline.push(word === 'binder' || word === 'sort' || (opener?.kind === 'word' && opener.text === 'do'));
+            }
             if (c === '}') {
                 const opened = braces.pop();
+                if (opened === 'block' && inline.pop() === true) {
+                    push({ kind: '}', text: take(), pos: start, inline: true });
+                    continue;
+                }
                 if (opened === 'sub') {
                     push({ kind: '}', text: take(), pos: start, sub: true });
                     continue;

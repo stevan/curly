@@ -1,0 +1,2 @@
+t/6260-16d-review-pod-underscore.pl:5:1: expected a value, found '='
+exit: 1

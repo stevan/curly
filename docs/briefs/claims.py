@@ -998,6 +998,9 @@ CLAIMS += STEP24
 # And the fuzzer's, docs/briefs/claimsfuzz.py.
 from claimsfuzz import FUZZ  # noqa: E402
 CLAIMS += FUZZ
+# And step 16d's, docs/briefs/claims16d.py.
+from claims16d import STEP16D  # noqa: E402
+CLAIMS += STEP16D
 
 def run(perl, prelude, code, flags):
     with tempfile.TemporaryDirectory() as d:

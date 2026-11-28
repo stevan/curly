@@ -319,7 +319,8 @@ test('what a loop may not be', () => {
     refused('for $x (1) { }', 'for $x (...) borrows a variable from outside the loop: for my $x (...)', 1, 5);
     refused('foreach my ($k, $v) (1, 2) { }', 'foreach my (...) takes a list several values at a time, which is not in the language', 1, 12);
     refused('for my $x 1 { }', "expected '(' after for my $x, found 1", 1, 11);
-    refused('do { } while ($x);', "'do' is not in the language", 1, 1);
+    refused('do { } for 1;', "do { ... } is in the language followed by while or until, found 'for': do BLOCK as a value is not (D253)", 1, 8);
+    refused('do 1;', "'do' is not in the language", 1, 1);
     refused('while ($x) say 1;', "expected '{', found 'say'", 1, 12);
     refused('while $x { }', "expected '(' after while, found '$x'", 1, 7);
     refused('while ($x) { } else { }', 'else without an if before it', 1, 16);
@@ -357,8 +358,9 @@ test('last and next are statements: alone, with a label, under if or unless (T12
     refused('say last;', value('last'), 1, 5);
     refused('my $v = next;', value('next'), 1, 9);
     refused('$x = $y ? last : next;', value('last'), 1, 11);
-    refused('$x++ and last;', value('last'), 1, 10);
-    refused('$x == 2 or next;', value('next'), 1, 12);
+    // Joined to a statement by a word operator, they are in since step 16d
+    // (D260): `$x++ and last;` is `last if $x++;`.
+    refused('$x++ and last + 1;', after('last'), 1, 15);
     refused('last if $x while $y;', "expected ';', found 'while'", 1, 12);
 });
 
@@ -681,7 +683,7 @@ test('sort LIST and sort { } LIST', () => {
     const last = sort.body[1]!;
     assert.ok(last.kind === 'do' && last.expr.kind === 'binary');
     assert.deepEqual([sort.a?.name, sort.b?.name, sort.body.map(s => s.kind), last.expr.op, sort.items.map(i => i.kind)], ['a', 'b', ['do', 'do'], 'or', ['array', 'int']]);
-    refused('my @r = sort(@a);', 'sort takes no brackets of its own: sort LIST, or sort { ... } LIST', 1, 13);
+    refused('my @r = sort (@a);', 'sort, a blank and a bracket: perl warns that it is read as a function, and the brackets hold all of its list; write sort(...) or sort LIST', 1, 14);
     refused('my @r = sort f(), 1;', 'f first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block', 1, 14);
     refused('my @r = sort $x, 1;', '$x first after sort: perl takes a scalar there for a sub that compares; put a + before it, or give sort a block', 1, 14);
     refused('my @r = sort { say $a } @a;', "sort's block ends in an expression, which is its value", 1, 16);

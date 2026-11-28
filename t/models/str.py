@@ -51,8 +51,8 @@ string's past (T103).
                    cut: -0.5 too) is `negative repeat count`; n times the
                    length may not pass 2^31 - 1.
   length(v)        the number of characters of v as a string
-  uc(v), lc(v)     v as a string, its ASCII letters changed; a character
-                   past ASCII faults (T45)
+  uc(v), lc(v)     v as a string, its letters changed: past ASCII by perl's
+                   tables since step 16d, of which the model knows two
   ord(v)           the first character's number, 0 for the empty string
   chr(n)           the character whose number is n cut toward zero; a
                    number below zero, a surrogate or one past U+10FFFF is
@@ -379,10 +379,14 @@ def length(v):
     return len(to_str(v))
 
 def case(change, name):
+    # Past ASCII by perl's tables since step 16d (D257). Python's own are of
+    # another Unicode version, so the model asks them only of the two
+    # characters its tests change (158, 159), where they agree with perl's;
+    # anything else past ASCII it leaves out of its tests, as it does a fault.
     def f(v):
         s = to_str(v)
-        if any(ord(c) > 0x7f for c in s):
-            raise Fault(f'{name} of a character past ASCII')
+        if any(ord(c) > 0x7f and c not in '\xe9\u0130' for c in s):
+            raise Fault(f'{name} of a character past ASCII the model does not know')
         return change(s)
     return f
 

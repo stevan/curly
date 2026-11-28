@@ -1,0 +1,2 @@
+t/6250-freeze-list-end-changed.pl:6:8: this can change $n, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop
+exit: 1

@@ -1,0 +1,3 @@
+before
+fault: undef where a string is wanted at t/6034-census-die-sprintf-newline.pl line 7.
+exit: 1

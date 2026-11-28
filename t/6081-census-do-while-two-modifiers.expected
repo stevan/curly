@@ -1,0 +1,2 @@
+t/6081-census-do-while-two-modifiers.pl:7:16: a second modifier after do { } while: perl does not compile it
+exit: 1

@@ -1,0 +1,2 @@
+t/6175-16d-pod-mid-statement.pl:5:1: a line that begins = and a word in the middle of a statement: perl takes it for POD only where a statement may begin, and does not compile it here
+exit: 1

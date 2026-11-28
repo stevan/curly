@@ -1,0 +1,3 @@
+3
+fault: an array's last index set below -1 at t/6020-census-last-index-below-minus-one.pl line 6.
+exit: 1

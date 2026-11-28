@@ -1,0 +1,2 @@
+t/6086-census-or-die-list-assignment.pl:4:15: 'or die' after an assignment of a list: perl tests the count of its right side; test what was assigned in a statement of its own
+exit: 1

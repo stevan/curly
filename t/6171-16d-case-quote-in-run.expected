@@ -1,0 +1,2 @@
+t/6171-16d-case-quote-in-run.pl:4:9: \Q inside a \U that has not ended: perl's rules for these are its own; end the first with \E
+exit: 1

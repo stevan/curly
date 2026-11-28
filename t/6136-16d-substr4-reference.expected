@@ -1,0 +1,2 @@
+fault: a reference where a string is wanted at t/6136-16d-substr4-reference.pl line 5.
+exit: 1
