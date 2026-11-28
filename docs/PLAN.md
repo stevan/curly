@@ -7559,6 +7559,196 @@ choice between `print {$fh}` and `print $fh`, D21 and T111), `$!` and
 the clean directory per run; file tests and directories. The next to
 take step 21 starts with 21b's proposal. Not yet run on Stevan's Mac.
 
+#### 21b, the proposal
+
+**Proposed 2026-11-28, by Fable 5.2, under Stevan's standing
+instruction of 2026-11-27: each question is answered by its
+recommendation, D270 to D283, his to overturn.** Its statements about
+perl are the `STEP21B` rows of `briefs/claims21.py` (66 programs; a row
+may name files, which stand in the directory perl runs in), and
+`briefs/step21b-review/errno.py`. Size: large, as the outline said; cut
+to text files through lexical handles, with what is left listed as 21c.
+
+**The picture.** A file is read and written through a *handle*, which
+is a value: to perl a reference to a glob, and here a reference of a
+fifth kind, so that everything D112 says of a reference is said of it
+(true, defined, `==` by identity, a fault where a number or a string is
+wanted, `ref` gives `GLOB`). `open` puts one in a scalar variable; a
+line is read with `<$fh>`, which is `<STDIN>` with another handle and
+keeps every rule 21a and its review gave that (D211 to D213, D222);
+`print`, `say` and `printf` write to one. The hard part is not the
+files: it is three pieces of state perl keeps beside them, each of
+which shows in what a program prints or exits with, and each of which
+has a past.
+
+1. **errno.** An uncaught `die` exits with errno when it is not 0
+   (T319), and an `open` that *works* leaves it at 25, ENOTTY: perl
+   asks whether the new file is a terminal (T680). So `open(...); die
+   "x\n";` exits 25. A readline that meets the end of its input sets it
+   back to 0 (T681), `eof()` does not, and the end once met is not
+   looked for again. So the language keeps perl's errno (D272), which
+   it had refused to (D151), and stdin's reads are part of it.
+2. **The handle read last.** A `die` or `warn` whose message does not
+   end in a newline names the handle read last and its line, `<$fh>
+   line 3`, *while that handle lives and is not closed* (T682, T516 was
+   stdin's). Whether a handle lives is perl's count of references,
+   which a collector cannot know. So: exact for stdin, nothing for a
+   handle that was closed, and a fault for one that is still open
+   (D279).
+3. **What is written and not yet in the file.** perl holds 8192 bytes
+   back, and frees a handle, writing what it held, the moment its last
+   reference goes (T692). A collector closes it later. So no file is
+   open twice when one of the two writes: the second `open` is a fault,
+   after a collection (D276); and then nothing a program reads can tell
+   when a write reached its file.
+
+**The language at 21b.**
+
+- **`open(TARGET, MODE, PATH)`**, brackets always, three arguments
+  always. TARGET is `my $fh` (where a `my` may stand: the statement's
+  own, or in the test of an `if`, an `unless` or a `while`) or a scalar
+  variable. MODE is one of the string literals `'<'`, `'>'`, `'>>'`
+  (either quotes). PATH is one value, a string. Its value is `1`, or
+  undef when the system refuses, as perl's is. The variable is given a
+  handle either way (T686): a new one when it holds undef, the one it
+  holds, opened again, when it holds a handle (T685: every copy sees
+  the new file); anything else in it is a fault, `not a file handle`
+  (perl dies).
+- **`open(...) or die LIST;`, `open(...) || die LIST;`** and the same
+  after `close(...)`: statements (D274). `die ... unless open(...)`,
+  `if (open(...)) { } else { }` and `open(...)` alone are what they
+  were already.
+- **`close($fh)`**, and `close $fh;` as a statement: what was written
+  reaches the file, and the value is `1`. Closing a handle that is not
+  open is a fault (perl gives false, in silence: D277).
+- **`<$fh>`**: a scalar variable in the angle brackets, and everything
+  `<STDIN>` is: a line or undef where one value is wanted, every line
+  left where a list is, `while (my $l = <$fh>)` tested with `defined`,
+  the same refusals (D281). **`eof($fh)`**, brackets always, one value
+  in them.
+- **`print $fh LIST;`, `say $fh LIST;`, `printf $fh FORMAT, LIST;`**: a
+  scalar variable first after the word, a blank, and what begins a
+  value, by perl's own guess narrowed (D278); and **`print { EXPR }
+  LIST;`**, one expression in the braces. The handle is worked out
+  before the list (T683). The list is not in brackets of its own, as
+  after `STDERR`.
+- **`$!`**: a string, the system's words for why the last `open`
+  failed. It may be read only while the last `open` is one that failed
+  (D273); anywhere else it is the fault `$! where no open has just
+  failed`. In double quotes too.
+- **Bytes and characters** as stdin and stdout have them (D280):
+  without `use open ':std', ':encoding(UTF-8)'` a line read is bytes,
+  one character each, and a character past ASCII written is a fault
+  (D39); with it a file is UTF-8 both ways, a malformed or cut sequence
+  read is `malformed UTF-8 read`, a noncharacter written a fault.
+- **Only plain files** (D275): a directory, a device or a pipe that
+  `open` reaches is the fault `open of what is not a plain file`; a
+  NUL or a character past ASCII in a name is a fault.
+
+**Faults** (D277): `not a file handle`; `read of a file handle that is
+not open`, `read of a file handle opened for writing`; `write to a file
+handle that is not open`, `write to a file handle opened for reading`;
+`close of a file handle that is not open`; `eof of a file handle that
+is not open`, `... opened for writing`; `open of a file the program has
+open, one of the two for writing`; `open of what is not a plain file`;
+`a NUL in a file's name`, `a character past ASCII in a file's name`;
+`$! where no open has just failed`; `a die or a warn with no newline
+at its end while a file a line was read from is open`; `write to a
+file failed`.
+
+**Refused**, each with a message: `open` with two arguments, without
+brackets, with a mode that is not one of the three literals (`'+<'`,
+`'<:raw'`, `'< '`, a variable, a pipe), with a first argument that is
+not `my $x` or `$x`; a bareword handle (perl 5.42 refuses it too);
+`<$h{fh}>` and anything in angle brackets but `STDIN` or one scalar
+variable (a glob to perl, T693-element); `print $fh` before `(`, `\`
+(perl warns), or with no blank; `print {$fh};` with nothing to print;
+`print($fh ...)`; `close` of more than one value; `eof $fh` without
+brackets; `$!` assigned to, `${!}`, `%!`, `$!` in a string before `[`,
+`{` or an arrow and one of them (T689); `binmode`, `seek`, `tell`,
+`readline`, `fileno`, `opendir` and the rest of perl's words for files,
+as words not in the language; `local $/`, `$.`, `$,`, `$\`.
+
+**Left for 21c**: file tests (`-e -f -d -s`), `unlink`, `rename`,
+`mkdir`, `rmdir`, `opendir` and its kin. 21c must see D276: a file
+test or an `unlink` of a file the program has open for writing would
+see what perl has already written and the language has not.
+
+#### What perl does that the obvious build gets wrong (21b)
+
+T680 to T693, each a row or several of `claims21.py`: errno after an
+open that worked, and what an uncaught `die` then exits with (T680);
+a read that meets the end zeroes it, `eof()` does not (T681); the
+handle read last in a message, while it lives (T682); the handle worked
+out before the list (T683); after a handle, brackets are no argument
+list, and the guess of what is a handle (T684); `open` of a variable
+that holds a handle opens the same one again (T685); a failed `open`
+leaves a handle (T686); what perl says, and does not say, of a handle
+that is closed (T687); `open` of undef, of a name with a NUL, of a
+directory (T688); `$!` in a string (T689); the forms of `open` perl
+takes in silence (T690); bytes and characters (T691); what is written
+is held back (T692); a line assigned and tested (T693).
+
+#### The questions, each with its recommendation (21b)
+
+- **Q1. What is a handle?** (a) a reference of a new kind, with every
+  rule of D112; (b) a kind apart, with faults of its own. **(a)**
+  (D271): perl's is a reference, `ref` says `GLOB`, and every place a
+  value can stand already says what a reference does there.
+- **Q2. errno**: (a) keep perl's, by the three things that change it;
+  (b) fault every uncaught `die` once a file was opened (D151's way).
+  **(a)** (D272): (b) takes away the message of `open(...) or die
+  "...: $!"`, which is the reason to write it. The cost is a claim
+  about the whole language, that nothing else moves errno, held by
+  `errno.py` over every golden test perl runs.
+- **Q3. Where may `$!` be read?** (a) anywhere, as a string, while the
+  last `open` failed, a fault otherwise; (b) only in the `die` of
+  `open(...) or die`; (c) anywhere, perl's text whatever it is. **(a)**
+  (D273): (c) prints `Inappropriate ioctl for device` after an open
+  that worked, which is perl's past showing; (b) refuses `unless
+  (open(...)) { warn "...: $!"; return }`.
+- **Q4. `open(...) or die`**: (a) in, as a statement, with `||` too
+  and after `close`; (b) refused as D56 and D146 refuse `$x or die`.
+  **(a)** (D274): it is how Perl opens a file.
+- **Q5. `print $fh LIST` or only `print {$fh} LIST`?** (a) both; (b)
+  the braces only (D21's wariness). **(a)** (D278): the plain form is
+  what is written, and the lexer already knew perl's guess, to refuse
+  it (T111).
+- **Q6. A file open twice**: (a) a fault when one of the two writes;
+  (b) perl's buffer of 8192 bytes and its moment of freeing, copied.
+  **(a)** (D276): (b) cannot be had without counting references.
+- **Q7. The handle read last, in a message**: (a) exact for stdin and
+  for a closed handle, a fault for an open one; (b) always name an open
+  one (WRONG when perl has freed it); (c) refuse `die` without a
+  newline in any program that reads a file. **(a)** (D279).
+- **Q8. What perl answers in silence for a handle not open** (`close`
+  false, `eof` true): (a) faults; (b) perl's answers, and errno 9.
+  **(a)** (D277): each is a mistake in the program.
+- **Q9. List context for `<$fh>`**: in, since 21a built it for stdin
+  and the review held it (D281).
+- **Q10. The harness**: each run of perl and of the program in a
+  directory of its own, with the files the test's `# file:` headers
+  name and nothing else (D282).
+
+#### Tests (21b)
+
+A model, `t/models/file.py`, in which a file is a Python `bytes` and a
+handle a record, writes `same` tests (reading in every context, writing
+and reading back, appending, handles as values, `open or die` both
+ways, errno through a `die`'s exit status, the message's handle) and
+each fault's edge; refusals from a table by hand
+(`briefs/step21b-refusals.py`); a unit test in C for the collector
+closing a dropped handle and a failed write. Numbers 6400 to 6699.
+
+#### How it moves the other files (21b)
+
+`SURFACE.md`: `open`, `close`, `<$fh>`, `eof($fh)`, `print $fh`, `$!`
+to In; two-argument `open`, bareword handles, `binmode`, `seek` Cut or
+Later. `DIFFERENCES.md` gains: a `die` with no newline while a file is
+being read (a guess: habit, often); a file open twice; `$!` only after
+a failed open; `close` twice a fault; only plain files. The census: the
+rows for `open` and `<$fh>` go.
+
 ### 22. Numbers and time
 
 Referee: perl. Size: medium.

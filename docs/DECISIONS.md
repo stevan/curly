@@ -2698,3 +2698,130 @@ prints `$ENV{PATH}` passed on the machine that wrote its `.expected`
 and would fail on the next. Neither perl nor the program is found by
 it. Rejected: no `PATH` at all (a program that asks whether it is set
 is a fair test).
+
+**D270 to D283. Step 21b, files and handles: each question answered
+with its recommendation.** *(Fable 5.2, 2026-11-28, under the user's
+standing instruction of 2026-11-27, "I pre-approve all your
+recommendations"; each is his to overturn. `PLAN.md`, step 21, "21b,
+the proposal", has the text and what was rejected; `TRAPS.md`, T680 to
+T699, the programs; `briefs/claims21.py`, `STEP21B`, the claims.)*
+**D270. 21b is text files through lexical handles**: `open` with three
+arguments, `close`, `<$fh>`, `eof($fh)`, `print`, `say` and `printf` to
+a handle, and `$!`. Refused for good or until asked for: `open` with
+two arguments, a mode with a layer or a `+`, a mode that is not a
+literal, pipes, `binmode`, `seek`, `tell`, `readline`, `local $/`,
+`$.`. 21c keeps file tests, `unlink`, `rename` and directories.
+Rejected: all of it in one step.
+**D271. A file handle is a reference**, of a fifth kind beside an
+array's, a hash's, a scalar's and a sub's: true, defined, `==` and `!=`
+by identity, D112's fault wherever a number or a string is wanted
+(perl writes `GLOB(0x...)`), `ref` gives `GLOB`, a `die` throws one as
+itself. `open`'s first argument is `my $x` or a scalar variable: undef
+there is given a new handle, a handle is opened again in place, as
+perl opens the same glob again (T685), anything else is the fault `not
+a file handle`. A failed `open` leaves a handle too (T686). Rejected: a
+kind apart with faults of its own (every operator would name it);
+refusing `open` of a variable that holds a handle (perl's answer is one
+line of the runtime).
+**D272. The language keeps perl's errno.** Three things change it: an
+`open` that works sets it to what asking whether the file is a
+terminal leaves (ENOTTY, 25: the runtime asks too, with `isatty`); an
+`open` that fails sets it to the system's reason; a readline that
+meets the end of its input, a file's or stdin's, for the first time
+sets it to 0 (`eof()` does not, and the end once met is not looked for
+again). An uncaught `die` exits with it when it is not 0, as perl does
+(T680, T681). D151 stands beside it: after a number underflowed an
+uncaught `die` is still a fault. The claim this rests on, that nothing
+else in the language moves perl's errno, is held by
+`briefs/step21b-review/errno.py` over every golden test perl runs to
+its end, and every step that adds something that could (step 22's
+`sqrt`, `log`, `exp`; 21c's file tests) must rerun it. Rejected: a
+fault for every uncaught `die` after an `open` (D151's way: it takes
+away the message of `open(...) or die "...: $!"`).
+**D273. `$!` is a string, and is read only while the last `open`
+failed**: the system's words for the reason, as perl gives them
+(`strerror`). Read when no `open` has been tried, or when the last one
+worked, or after a read met the end of its input, it is the fault `$!
+where no open has just failed` (perl gives the empty string, or
+`Inappropriate ioctl for device`, by its past). Where a number is
+wanted it is a string that is no number, D40's fault (perl gives the
+number of the error, which differs between systems). In double quotes
+`$!` is a piece; before `[`, `{` or an arrow and one of them it is
+refused (perl reads `@!` or `%!`, T689). Refused: `$! = ...`, `${!}`,
+`%!`, `@!`. Rejected: only in the `die` of `open(...) or die`; perl's
+text whatever the past.
+**D274. `open(...) or die LIST;` and `open(...) || die LIST;` are
+statements, and so after `close(...)`**: the one place a statement is
+joined to another (against D56, D146), because it is how Perl opens a
+file. `open` is a value like any builtin's, `1` or undef, and stands
+where one may (`die ... unless open(...)`, the test of an `if`); as a
+statement alone it is done for what it does. A `my` in its first
+argument is the statement's own, or an `if`'s, `unless`'s or `while`'s
+test's. Rejected: `open(...) or return`, `or warn`, `or next` (an `if`
+says them).
+**D275. Only plain files.** `open` of a directory (which perl opens,
+and then reads nothing from, T688), a device or a pipe is the fault
+`open of what is not a plain file`; a NUL in a name (perl warns) and a
+character past ASCII in one (perl's bytes for it depend on the
+string's past) are faults; undef for a name is D48's (perl opens a
+file with no name). Rejected: `/dev/null` and the like (a program that
+wants no output prints none).
+**D276. No file is open twice when one of the two is for writing**:
+the `open` that would make it so is the fault `open of a file the
+program has open, one of the two for writing`, by the file itself (its
+device and number), after a collection has closed every handle nothing
+holds. perl holds back what is written (8192 bytes) and frees a handle
+the moment its last reference goes (T692); with this rule nothing a
+program reads can tell when a write reached its file, so the runtime
+buffers as it likes and a handle dropped without `close` is closed
+when it is collected, or as the program ends, whichever way it ends.
+Rejected: perl's buffer and its moment of freeing, copied (the second
+needs a count of references).
+**D277. What perl warns of, or answers in silence, for a handle used
+the wrong way is a fault**: a read or `eof` of one that is not open or
+is open for writing, a write to one that is not open or is open for
+reading (perl warns of all but `eof` of a closed one, which is true in
+silence); `close` of one that is not open (perl: false, errno 9, in
+silence); a write the system refuses. Rejected: perl's silent answers
+(each is a mistake in the program, and the second needs errno 9).
+**D278. `print $fh LIST`, and `print { EXPR } LIST`**, and so `say`
+and `printf`. A scalar variable first after the word is a handle when
+a blank follows it and then what begins a value: a quote, a digit, `$`
+or `@`, a word that is no operator, `!` not before `=` or `~`, a
+heredoc, `(`; the last is then refused as it is after `STDERR` (the
+list has no brackets of its own), and so is `\` (perl warns). T111's
+refusals stand (`print $fh -1`). In the braces one expression. The
+handle is worked out, and looked at, before the list (T683). The word
+`isa` after the blank is refused. Rejected: the braces only (D21's
+wariness: the plain form is what is written).
+**D279. A `die` or a `warn` whose message does not end in a newline,
+while the handle read last is a file's, still open, that has given a
+line, is a fault.** perl adds `, <$fh> line N` to the message while
+that handle lives (T682), and when a handle dies is perl's count of
+references. Exact where it can be: stdin's is named as before (T516);
+a handle that was closed is not named; `eof($fh)` makes `$fh` the
+handle read last, as in perl. Rejected: always naming an open handle
+(WRONG once perl has freed it); refusing every such `die` in a program
+that reads a file.
+**D280. A file's bytes and characters are stdin's and stdout's**
+(D39, D211): without `use open ':std', ':encoding(UTF-8)'` each byte
+read is a character and a character past ASCII written is a fault;
+with it both ways are UTF-8 and every malformation is a fault.
+Rejected: `'<:encoding(UTF-8)'` in the mode (one way to say it).
+**D281. `<$fh>` is `<STDIN>` with another handle**: one scalar
+variable in the angle brackets, and D211 to D213 and D222 hold of it
+word for word, a list where a list is wanted too. `eof($fh)` has
+brackets, as `eof(STDIN)` has. Rejected: `<$h{fh}>` (a glob to perl),
+`readline($fh)` (a second spelling).
+**D282. Every run of a test is in a directory of its own**, perl's
+and the program's: empty but for the files the test's `# file:
+NAME=BYTES` headers name (as `# stdin:` writes bytes), made before the
+run and removed after it, the test's own source at the path it has in
+the repository so that every message names it as before. Rejected: a
+directory a test names (two runs of perl, eight seeds each, would
+share it).
+**D283. `close $fh;` without brackets is in, as a statement on one
+scalar variable**, with `or die` or a modifier after it; `close(EXPR)`
+takes one value. Rejected: `close` with no argument (the handle
+selected last, to perl).
+

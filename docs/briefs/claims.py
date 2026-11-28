@@ -1002,6 +1002,10 @@ def run(perl, prelude, code, flags, said=None):
         open(path, 'w', encoding='utf-8', newline='').write(prelude + code + '\n')
         env = {'PATH': os.environ.get('PATH', ''), 'PERL_HASH_SEED': '1', **said.get('env', {})}
         stdin = said.get('stdin')
+        # Step 21b: and files (a dict of name to bytes), in the directory
+        # perl runs in, which is its own.
+        for name, content in said.get('files', {}).items():
+            open(os.path.join(d, name), 'wb').write(content)
         try:
             r = subprocess.run([perl, *flags, 'claim.pl', *said.get('args', [])], cwd=d, env=env,
                                input=stdin if stdin is not None else b'', capture_output=True, timeout=10)

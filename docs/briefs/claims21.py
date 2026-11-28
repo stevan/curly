@@ -191,3 +191,104 @@ STEP21 = [
     c('T522', 'TRAPS; PLAN 21, the review', 'sub f() { chomp(my $x = <STDIN>) } say f();', stdin=b'a\n', out='1\n'),
     c('T522-map', 'TRAPS', 'my @l = map { chomp(my $x = $_) } "a\\n", "b"; say "@l";', out='1 0\n'),
 ]
+
+# ---- step 21b, files and handles (PLAN 21, "21b, the proposal"; TRAPS T680
+# to T699). A row may say `files`, a dict of name to bytes, which stand in
+# the directory perl runs in.
+ABC = {'in.txt': b'a\nb\nc\n'}
+STEP21B = [
+    # T680: perl's errno after an open that worked is ENOTTY, 25 (perl asks
+    # whether the file is a terminal), and an uncaught die exits with errno.
+    c('T680', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); say 0+$!; die "x\\n";', files=ABC, out='25\n', err=r'^x\n$', exit=25),
+    c('T680-write', 'TRAPS; PLAN 21b', 'open(my $o, ">", "o.txt"); my $a = 0+$!; open(my $p, ">>", "o.txt"); say $a, " ", 0+$!; die "x\\n";', out='25 25\n', err=r'^x\n$', exit=25),
+    c('T680-fail', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "nope.txt") or die "cannot: $!";', out='', err=r'^cannot: No such file or directory at claim.pl line 2\.\n$', exit=2),
+    c('T680-value', 'PLAN 21b', 'my $r = open(my $fh, "<", "in.txt"); my $s = open(my $g, "<", "nope"); say "[$r]", defined $s ? "def" : "undef";', files=ABC, out='[1]undef\n'),
+    # T681: a readline that meets the end of its input sets errno to 0,
+    # where one value is wanted and where a list is; eof() does not, and
+    # after it the end is known and no read looks again. stdin the same.
+    c('T681', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my @e; my $l = <$fh>; push @e, 0+$!; $l = <$fh>; $l = <$fh>; push @e, 0+$!; $l = <$fh>; push @e, 0+$!; say "@e"; die "x\\n";', files=ABC, out='25 25 0\n', err=r'^x\n$', exit=255),
+    c('T681-again', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my @a = <$fh>; my @e = (0+$!); open(my $g, "<", "in.txt"); my $l = <$fh>; push @e, 0+$!; @a = <$fh>; push @e, 0+$!; say "@e";', files=ABC, out='0 25 25\n'),
+    c('T681-eof', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "e.txt"); my $x = eof($fh); my @e = (0+$!); my $l = <$fh>; push @e, 0+$!; say "@e";', files={'e.txt': b''}, out='25 25\n'),
+    c('T681-partial', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "n.txt"); my $l = <$fh>; my @e = (0+$!); $l = <$fh>; push @e, 0+$!, "[$l]"; say "@e";', files={'n.txt': b'x\ny'}, out='25 0 [y]\n'),
+    c('T681-while', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); while (my $l = <$fh>) { } die "x\\n";', files=ABC, out='', err=r'^x\n$', exit=255),
+    c('T681-stdin', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my $l = <STDIN>; my @e = (0+$!); $l = <STDIN>; push @e, 0+$!; open($fh, "<", "in.txt"); $l = <STDIN>; push @e, 0+$!; say "@e";', files=ABC, stdin=b'q\n', out='25 0 25\n'),
+    c('T681-stdin-eof', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my $x = eof(STDIN); my $l = <STDIN>; say 0+$!;', files=ABC, out='25\n'),
+    c('T681-others', 'PLAN 21b', 'open(my $o, ">", "o.txt"); my @e; $! = 7; print $o "x" x 20000; say $o "y"; printf $o "%d", 5; push @e, 0+$!; close($o); push @e, 0+$!; open(my $fh, "<", "in.txt"); $! = 7; my $l = <$fh>; my $x = eof($fh); close($fh); push @e, 0+$!; try { die "d" } catch ($e) { } warn "w\\n"; push @e, 0+$!; say "@e";', files=ABC, out='7 7 7 7\n', err=r'^w\n$'),
+    # T682: once a line has been read from a handle, a message of die or
+    # warn that does not end in a newline names it and its line, while the
+    # handle lives and is not closed; eof($fh) makes it the handle last
+    # read; a handle that is freed, or closed, is named no more.
+    c('T682', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); warn "w0"; my $e = eof($fh); warn "w1"; my $l = <$fh>; warn "w2"; $l = <STDIN>; warn "w3"; $e = eof($fh); warn "w4"; close($fh); warn "w5";', files=ABC, err=r'^w0 at claim.pl line 2\.\nw1 at claim.pl line 2\.\nw2 at claim.pl line 2, <\$fh> line 1\.\nw3 at claim.pl line 2\.\nw4 at claim.pl line 2, <\$fh> line 1\.\nw5 at claim.pl line 2\.\n$'),
+    c('T682-freed', 'TRAPS; PLAN 21b', '{ open(my $in, "<", "in.txt"); my $l = <$in>; warn "w1"; } warn "w2"; sub rd($h) { my $l = <$h>; return $l } open(my $fh, "<", "in.txt"); rd($fh); warn "w3"; my $g = $fh; undef $fh; warn "w4"; undef $g; warn "w5";', files=ABC, err=r'^w1 at claim.pl line 2, <\$in> line 1\.\nw2 at claim.pl line 2\.\nw3 at claim.pl line 2, <\$fh> line 1\.\nw4 at claim.pl line 2, <\$fh> line 1\.\nw5 at claim.pl line 2\.\n$'),
+    c('T682-all', 'PLAN 21b', 'open(my $fh, "<", "in.txt"); my @a = <$fh>; warn "w1"; open(my $o, ">", "o.txt"); print $o "x"; close($o); warn "w2"; open(my $e, "<", "e.txt"); my $l = <$e>; warn "w3";', files={**ABC, 'e.txt': b''}, err=r'^w1 at claim.pl line 2, <\$fh> line 3\.\nw2 at claim.pl line 2, <\$fh> line 3\.\nw3 at claim.pl line 2\.\n$'),
+    # T683: the handle is worked out before the list, a block too.
+    c('T683', 'TRAPS; PLAN 21b', 'open(my $a, ">", "a.txt"); open(my $b, ">", "b.txt"); my $fh = $a; sub f() { $fh = $b; return "x" } print $fh f(); print { print "block "; $a } f(), g(); sub g() { print "list\\n"; return "y" } close($a); close($b); open(my $in, "<", "a.txt"); print <$in>; say eof($in) ? " end" : " more";', out='block list\nxxy end\n'),
+    # T684: after a handle the brackets are no argument list, and perl's
+    # guess takes a variable, a blank and what begins a value for a handle.
+    c('T684', 'TRAPS; PLAN 21b', 'open(my $o, ">", "o.txt"); print $o (1+2)*3; print $o ("a") x 2; print $o -1; print $o !1; print $o "s", 5; say $o " ", 3; close($o); open(my $in, "<", "o.txt"); print <$in>;', out='9aa-1s5 3\n'),
+    c('T684-not', 'TRAPS; PLAN 21b', 'my $x = 7; my $y = 2; print $x - 1; print $x if $y; print $x x 2; print $x, "\\n";', out='67777\n'),
+    c('T684-comma', 'TRAPS; PLAN 21b', 'open(my $o, ">", "o.txt"); print $o, "a"; say $o;', outre=r'GLOB\(0x[0-9a-f]+\)aGLOB\(0x[0-9a-f]+\)\n'),
+    c('T684-no-blank', 'TRAPS; PLAN 21b', 'open(my $o, ">", "o.txt"); print $o"a";', err='String found where operator expected', out=''),
+    c('T684-backslash', 'TRAPS; PLAN 21b', 'my @a; open(my $o, ">", "o.txt"); print $o \\@a;', err='Backslash found where operator expected', out=''),
+    c('T684-brackets', 'PLAN 21b', 'open(my $o, ">", "o.txt"); print($o "a"); print {$o} "b"; print {$o}"c"; printf {$o} "%s", "d"; printf $o ("%s\\n", "e"); close($o); open(my $in, "<", "o.txt"); print <$in>;', out='abcde\n'),
+    c('T684-empty-block', 'PLAN 21b', 'open(my $o, ">", "o.txt"); print {$o};', compiles=False, err='syntax error'),
+    c('T684-not-a-handle', 'PLAN 21b', 'my $x = 5; print $x "a";', out='', exit=255, err=r'Can\'t use string \("5"\) as a symbol ref'),
+    c('T684-heredoc', 'PLAN 21b', 'open(my $o, ">", "o.txt"); print $o <<"E";\nh1\nE\nclose($o); open(my $in, "<", "o.txt"); print <$in>;', out='h1\n'),
+    # T685: open of a variable that holds a handle opens that handle again:
+    # a copy sees the new file, and the count of lines goes on.
+    c('T685', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my $g = $fh; my $l = <$fh>; open($fh, "<", "n.txt"); print "g:", scalar(<$g>); say $g == $fh ? "same" : "differ"; warn "w";', files={**ABC, 'n.txt': b'x\ny'}, out='g:x\nsame\n', err=r'^w at claim.pl line 2, <\$fh> line 2\.\n$'),
+    c('T685-fails', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my $g = $fh; open($fh, "<", "nope"); my $l = <$g>;', files=ABC, err=r'readline\(\) on closed filehandle \$fh'),
+    c('T685-not', 'TRAPS; PLAN 21b', 'my $fh = 5; open($fh, "<", "in.txt"); say "after";', files=ABC, out='', exit=255, err=r"Can't use string \(\"5\"\) as a symbol ref"),
+    c('T685-ref', 'PLAN 21b', 'my $fh = [1]; open($fh, "<", "in.txt"); say "after";', files=ABC, out='', exit=255, err='Not a GLOB reference'),
+    # T686: an open that fails leaves a handle in the variable all the same.
+    c('T686', 'TRAPS; PLAN 21b', 'my $r = open(my $fh, "<", "nope"); say defined $fh ? "def" : "undef", " ", ref($fh), " ", $fh ? "true" : "false";', out='def GLOB true\n'),
+    c('T686-kind', 'PLAN 21b', 'open(my $fh, "<", "in.txt"); open(my $h, "<", "in.txt"); my $g = $fh; say ref($fh), " ", ref(\\$fh), " ", $g == $fh ? 1 : 0, $h == $fh ? 1 : 0, $h != $fh ? 1 : 0; say "$fh" =~ /^GLOB\\(0x[0-9a-f]+\\)$/ ? "address" : "other";', files=ABC, out='GLOB REF 101\naddress\n'),
+    # T687: what perl says of a handle that is closed, or open the other way.
+    c('T687-close', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my $c = close($fh); my $d = close($fh); say "[$c][$d]", 0+$!; say eof($fh) ? "eof" : "not";', files=ABC, out='[1][]9\neof\n'),
+    c('T687-read', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); close($fh); my $l = <$fh>;', files=ABC, err=r'readline\(\) on closed filehandle \$fh'),
+    c('T687-print', 'TRAPS; PLAN 21b', 'open(my $fh, ">", "o.txt"); close($fh); print $fh "x";', err=r'print\(\) on closed filehandle \$fh'),
+    c('T687-input', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); print $fh "x"; say $fh "x"; printf $fh "x";', files=ABC, err=r'(Filehandle \$fh opened only for input at claim.pl line 2\.\n){3}'),
+    c('T687-output', 'TRAPS; PLAN 21b', 'open(my $o, ">", "o.txt"); my $l = <$o>; my @l = <$o>; my $e = eof($o);', err=r'(Filehandle \$o opened only for output at claim.pl line 2\.\n){3}'),
+    # T688: what perl opens that is no file with a name.
+    c('T688-undef', 'TRAPS; PLAN 21b', 'my $r = open(my $fh, "<", undef); say $r;', out='1\n'),
+    c('T688-nul', 'TRAPS; PLAN 21b', 'open(my $f, "<", "in.txt\\0x") or print "no: $!\\n";', files=ABC, out='no: No such file or directory\n', err=r'Invalid \\0 character in pathname for open'),
+    c('T688-dir', 'TRAPS; PLAN 21b', 'my $r = open(my $d, "<", "."); my $l = <$d>; say $r, defined $l ? "line" : "undef", " $!";', out='1undef Is a directory\n'),
+    c('T688-dir-write', 'PLAN 21b', 'open(my $d, ">", ".") or print "no: $!\\n";', out='no: Is a directory\n'),
+    c('T688-empty', 'PLAN 21b', 'open(my $f, "<", "") or print "no: $!\\n";', out='no: No such file or directory\n'),
+    # T689: $! in a string, and what perl reads on into.
+    c('T689', 'TRAPS; PLAN 21b', 'open(my $q, "<", "nope") or print "e1: $!\\n"; print "e2: $!.\\n"; print "e3: $!::x\\n"; print "e4: ${!}\\n"; print "e5: $!->\\n"; say "e6: " . $!; say $! + 0; say $! ? "t" : "f";', out='e1: No such file or directory\ne2: No such file or directory.\ne3: No such file or directory::x\ne4: No such file or directory\ne5: No such file or directory->\ne6: No such file or directory\n2\nt\n'),
+    c('T689-element', 'TRAPS; PLAN 21b', 'open(my $q, "<", "nope"); print "$!{ENOENT}|"; print "$![0]\\n";', outre=r'\d+\|\n', err=r'Use of uninitialized value \$!\[0\]'),
+    c('T689-arrow', 'PLAN 21b', 'open(my $q, "<", "nope"); print "$!->[0]\\n";', out='', exit=2, err='as an ARRAY ref'),
+    c('T689-past', 'TRAPS; PLAN 21b', 'say "[$!]"; open(my $f, "<", "in.txt"); say "[$!]";', files=ABC, out='[]\n[Inappropriate ioctl for device]\n'),
+    # T690: the forms of open perl takes in silence.
+    c('T690', 'TRAPS; PLAN 21b', 'open(my $a, "in.txt"); open(my $b, "<in.txt"); open(my $c, "<:raw", "in.txt"); open(my $d, "+<", "in.txt"); open(my $e, "< ", "in.txt"); my $m = "<"; open(my $f, $m, "in.txt"); open my $g, "<", "in.txt" or die; print scalar(<$a>), scalar(<$b>), scalar(<$c>), scalar(<$d>), scalar(<$e>), scalar(<$f>), scalar(<$g>);', files=ABC, out='a\n' * 7),
+    c('T690-bareword', 'TRAPS; PLAN 21b', 'open(FH, "<", "in.txt");', compiles=False, err='Bareword filehandle "FH" not allowed'),
+    c('T690-mode', 'PLAN 21b', 'open(my $f, "r", "in.txt");', out='', exit=255, err="Unknown open\\(\\) mode 'r'"),
+    # T691: bytes and characters, as stdin and stdout have them (T502).
+    c('T691', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "u.txt"); my $l = <$fh>; say length($l); open(my $o, ">", "o.txt"); print $o chr(233); close($o); open($fh, "<", "o.txt"); $l = <$fh>; say length($l), " ", ord($l);', files={'u.txt': b'caf\xc3\xa9\n'}, out='6\n1 233\n'),
+    c('T691-wide', 'TRAPS; PLAN 21b', 'open(my $o, ">", "o.txt"); print $o chr(9786);', err='Wide character in print'),
+    c('T691-open', 'TRAPS; PLAN 21b', OPEN + 'open(my $fh, "<", "u.txt"); my $l = <$fh>; say length($l); open(my $o, ">", "o.txt"); print $o chr(233), chr(9786); close($o); say -s "o.txt"; open($fh, "<", "o.txt"); $l = <$fh>; say length($l), " ", ord($l);', files={'u.txt': b'caf\xc3\xa9\n'}, out='5\n5\n2 233\n'),
+    c('T691-malformed', 'TRAPS; PLAN 21b', OPEN + 'open(my $fh, "<", "b.txt"); my $l = <$fh>; say length($l);', files={'b.txt': b'x\xe9y\n'}, out='7\n', err='does not map to Unicode'),
+    c('T691-cut', 'TRAPS; PLAN 21b', OPEN + 'open(my $fh, "<", "c.txt"); my $l = <$fh>; say length($l);', files={'c.txt': b'a\xc3'}, out='1\n'),
+    c('T691-nonchar', 'PLAN 21b', OPEN + 'open(my $o, ">", "o.txt"); print $o chr(0xFFFF);', err='non-character U\\+FFFF'),
+    c('T691-crlf', 'PLAN 21b', 'open(my $fh, "<", "r.txt"); my $l = <$fh>; say length($l); $l = <$fh>; say length($l);', files={'r.txt': b'a\r\nb\r'}, out='3\n2\n'),
+    # T692: what is printed to a file is held back, so a second handle on
+    # the file sees it late: after 8192 bytes, or when the first is closed.
+    c('T692', 'TRAPS; PLAN 21b', 'open(my $o, ">", "o.txt"); print $o "abc\\n"; open(my $in, "<", "o.txt"); my $l = <$in>; say defined $l ? "seen" : "not yet"; close($o); $l = <$in>; say defined $l ? "seen" : "not yet"; open(my $p, ">", "p.txt"); print $p "x" x 8191; say -s "p.txt"; print $p "y"; say -s "p.txt";', out='not yet\nnot yet\n0\n8192\n'),
+    c('T692-dropped', 'TRAPS; PLAN 21b', 'sub save($t) { open(my $o, ">", "o.txt"); print $o $t; } save("kept\\n"); open(my $in, "<", "o.txt"); print <$in>;', out='kept\n'),
+    # T693: while (my $l = <$fh>) is tested with defined, as stdin's is, and
+    # the other shapes warn or are $_'s as stdin's do (T501, T511, T518).
+    c('T693', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "z.txt"); while (my $l = <$fh>) { print "[$l]" } say "end";', files={'z.txt': b'a\n0'}, out='[a\n][0]end\n'),
+    c('T693-if', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); if (my $l = <$fh>) { print $l }', files=ABC, out='a\n', err=r'Value of <HANDLE> construct can be "0"'),
+    c('T693-list', 'PLAN 21b', 'open(my $fh, "<", "in.txt"); my ($p, @rest) = <$fh>; print $p, scalar(@rest), "\\n"; my @none = <$fh>; say scalar(@none);', files=ABC, out='a\n2\n0\n'),
+    # (An element in the angle brackets is a glob, of the handle's address.)
+    c('T693-element', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my %h = (fh => $fh); my $l = <$h{fh}>; say $l =~ /^GLOB\\(0x[0-9a-f]+\\)$/ ? "a glob" : "a line";', files=ABC, out='a glob\n'),
+    # A handle is thrown as itself, and is in a closure, a hash, an argument.
+    c('21b-values', 'PLAN 21b', 'open(my $fh, "<", "in.txt"); try { die $fh } catch ($e) { print scalar(<$e>) } my %h = (in => $fh); my $rd = sub { my $h = $h{in}; return scalar(<$h>) }; print $rd->(); sub third($h) { return scalar(<$h>) } print third($fh);', files=ABC, out='a\nb\nc\n'),
+    c('21b-append', 'PLAN 21b', 'open(my $o, ">", "o.txt"); print $o "a\\n"; close($o); open($o, ">>", "o.txt"); print $o "b\\n"; close($o); open($o, ">>", "new.txt"); print $o "n\\n"; close($o); open($o, ">", "o2.txt"); close($o); open(my $in, "<", "o.txt"); print <$in>; open($in, "<", "new.txt"); print <$in>; open($in, "<", "o2.txt"); my @l = <$in>; say scalar(@l);', out='a\nb\nn\n0\n'),
+    c('21b-or-die', 'PLAN 21b', 'open(my $fh, "<", "in.txt") or die "no: $!"; open(my $g, "<", "in.txt") || die "no: $!"; close($fh) or die "no close: $!"; close $g; print "ok\\n"; open(my $h, "<", "nope") || die "no: $!\\n";', files=ABC, out='ok\n', err=r'^no: No such file or directory\n$', exit=2),
+    c('21b-unflushed', 'PLAN 21b', 'open(my $o, ">", "o.txt"); print $o "kept\\n"; open(my $q, ">", "q.txt"); print $q "too\\n"; exit 3;', out='', exit=3),
+    c('21b-isa', 'PLAN 21b', 'my $x = 5; print $x isa Foo; say "after";', out='after\n'),
+]
+STEP21 += STEP21B
+
