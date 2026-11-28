@@ -46,6 +46,10 @@ pvm/dereferencing-06.pl	D108	a subscript after the braces of a dereference is cu
 pvm/dereferencing-07.pl	D108	$#$ before a name is cut (D108): the last index through a reference is written $r->$#* (step 13b)
 pvm/eval-replacement-03.pl	D13	expected a value, found 'eval'
 pvm/formats-01.pl	D17	'format' is not in the language
+pvm/handles-01.pl	D110	\ before "x\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+pvm/handles-02.pl	D110	\ before "one\ntwo\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+pvm/handles-03.pl	D110	\ before "one\ntwo\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+pvm/handles-04.pl	D110	\ before "only\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
 pvm/jumps-01.pl	D13	'redo' is not in the language
 pvm/jumps-02.pl	D13	'goto' is not in the language
 pvm/list-operators-in-context-01.pl	D80	reverse where one value is wanted: perl joins its arguments and reverses the characters there, which is another function
@@ -91,7 +95,9 @@ pvm/tie-02.pl	D19	'package' is not in the language
 pvm/unary-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/unary-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/vstrings-01.pl	D38	65.66.67 is not a number in the language
+pvm/writing-01.pl	D110	\ before 'my': \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
 pvm/writing-03.pl	D16	'use feature' is not in the language
+pvm/writing-04.pl	D110	\ before 'my': \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
 son-audit/a/aue1.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/a/aue3.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/a/aue4.pl	D17	'srand' is not in the language
@@ -1020,6 +1026,8 @@ son-audit/p/im5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/p/im7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im9.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
+son-audit/p/io3.pl	D270	'select' is not in the language
+son-audit/p/io6.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/la2.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/p/la3.pl	D19	'our' is not in the language
 son-audit/p/la4.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
@@ -1938,7 +1946,11 @@ son-audit/y/yn24.pl	D19	'local' is not in the language
 son-audit/y/yn27.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yn29.pl	D13	'eval' is not in the language
 son-audit/y/yn41.pl	D21	print is a statement, and has no value
+son-audit/y/yn43.pl	D110	\ before "l1\nl2\nl3": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
 son-audit/y/yn44.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/y/yn45.pl	D110	\ before "a\nb\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+son-audit/y/yn47.pl	D110	\ before "abcdef": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+son-audit/y/yn49.pl	D110	\ before "3\n4\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
 son-audit/y/yn52.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/yn53.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yn55.pl	D92	'[' hard after $h{k} in a string: another index, to perl; write $h{k}\[
@@ -2574,9 +2586,15 @@ son-corpus/bl-dp2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not
 son-corpus/bl-ea3.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-corpus/bl-ea4.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-corpus/bl-er.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-corpus/bl-h1.pl	D110	\ before "a\nb\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
 son-corpus/bl-h152.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/bl-h152a.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/bl-h3.pl	D110	\ before "one\ntwo\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+son-corpus/bl-hp1.pl	D110	\ before "a\nb\nc\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+son-corpus/bl-hp2.pl	D110	\ before 'my': \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+son-corpus/bl-hp3.pl	D270	expected a value, found 'select'
 son-corpus/bl-hp5.pl	D110	\ before a list: perl makes a list of a reference to each, which is cut (D110)
+son-corpus/bl-hp6.pl	D110	\ before "x\ny\n": \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
 son-corpus/bl-rd1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/bl-sp1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/bl-sp2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language

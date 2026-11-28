@@ -289,7 +289,7 @@ def main(argv):
                 if verdict == 'fault':
                     faults[why.split(' at p.pl')[0]] = faults.get(why.split(' at p.pl')[0], 0) + 1
                 if verdict in ('WRONG', 'BROKE', 'no end') or show:
-                    print(f'{verdict}: {case[0]}\n{case[1]}\n  {why}\n')
+                    print(f'{verdict}: {case[0]}\n{case[1]}\n  {why}\n', flush=True)
     for family in wanted:
         print(family + ':', ', '.join(f'{n} {v}' for (f, v), n in sorted(counts.items()) if f == family))
     print('the faults:', ', '.join(f'{n} {w}' for w, n in sorted(faults.items(), key=lambda x: -x[1])))

@@ -7749,6 +7749,184 @@ being read (a guess: habit, often); a file open twice; `$!` only after
 a failed open; `close` twice a fault; only plain files. The census: the
 rows for `open` and `<$fh>` go.
 
+#### What the review found (21b)
+
+No second agent could be started in the session that built 21b, as
+none could in 21a's; so the review is the builder's, in two passes held
+to perl, and 21a's lesson stands (its builder's pass found one WRONG,
+and the reader who came after found six): **21b wants a second reader
+too**. `briefs/step21b-review/README.md` has the account.
+
+**The claim under D272**, that nothing else in the language moves
+perl's errno, is `errno.py`: every golden test that perl runs to its
+end, run again with `$! = 77;` after its pragmas. 258 of 295 end with
+77; the 17 that end with 0 each read stdin to its end, the 4 with 34
+each underflow (D151), and 16 end by `exit`.
+
+**The hunt**, `hunt.py`: 3,453 programs in seven families (21a's 74
+places for a readline, with `<$fh>`; a handle wherever a value stands;
+what follows `print $x `; `$!` and a `die`'s status after each thing
+that moves errno; files of bytes; sequences drawn by chance; and, written
+after T696 was found, a variable first after each list operator), each run
+by perl and by the compiler in directories of their own, stdout, stderr
+and the exit status compared. Of 21b's own it found nothing, before
+the mending below or after it.
+
+**Three WRONGs were found by reading**, two of them 21b's own, asking of
+each argument what a value of the language loses that perl's has, and
+each was then shown with perl:
+
+- **T694**: what follows `open`'s mode is a list, to perl. `open($fh,
+  '<', @names)` opens the file the array's one element names; the
+  compiler took the array for its count and tried a file called `1`.
+  A name that is a list by how it is written is refused (D285).
+- **T695**: `$!` is perl's own variable, read when the operator it is
+  an operand of runs, so `say $!, f();` and `$! . f()` say what `f`
+  left there. The compiler made the string where `$!` stood. `$!` now
+  stands in a string, or alone on the right of `=` to a scalar
+  variable, and nowhere else (D284).
+
+- **T696**, in steps before this one: perl's guess that a variable
+  first after a list operator is a file handle (T111, T125) is made
+  after every list operator, and `warn $x -1;`, `die $x -1;`, `join $x
+  -1, ...` and `reverse($x -1, 2)` do not compile. The compiler had
+  taken each since steps 10a and 15 and run it as a subtraction. Found
+  reading perl's lexer for what it takes for a handle; refused now, by
+  T111's rule (D286).
+
+All three are the reviewer's defaults, Stevan's to overturn. Tests 6592
+to 6608 (refusals), and the claims T694 to T696.
+
+#### 21b, as built
+
+**Built 2026-11-28, by Fable 5.2, under Stevan's standing instruction.**
+Everything proposed above, with the review's amendments. Nothing of
+the proposal was cut.
+
+**In the compiler.** The lexer: `<$name>` is a `readline` token with
+the variable's name; `$!` is a word of its own, and in a string a piece
+(`errno`), refused before a subscript; a scalar variable right after
+`say`, `print` or `printf` is marked `handle` when a blank and then what
+begins a value follow it, by perl's own guess narrowed (the lexer then
+expects a value after it), and a brace right after one of those words
+is a `handle` brace, whose closing ends no value. `names.ts` gains
+`open` (a kind of its own, which the parser reads), `close`, `$!`, and
+six names no program can write: `open <`, `open >`, `open >>`, `open
+handle`, `eof handle`, `print handle`. **`open(TARGET, MODE, PATH)` is
+built as nodes the tree already had**: the builtin named for its mode,
+applied to the path and then to the target assigned its handle (`$fh =
+open handle($fh)`, a new one for a `my`), so that the resolver, the
+walks and the code generator read it as they read any builtin and any
+assignment, and the path is worked out first. `print` to a handle is a
+`call` with `to`, whose first argument is `print handle` of the handle:
+the handle is the list's first item, worked out first, and kept there.
+`<$fh>` is the `readline` node with a `handle`; `eof($fh)` and
+`close($fh)` are builtins; `open(...) or die LIST;` is a `do` of a
+`binary`. The checker: a file statement is done for what it does, its
+`my` the statement's own; `$!` only where D284 has it (`errnoRead`);
+`open`'s path one value (D285); what opens, closes or asks of a file is
+a read for D213. The resolver reads a readline's variable. The code
+generator gained four lines.
+
+**In the runtime** (`runtime/file.c`, which rt.c includes): a handle is
+`RT_TAG_GLOB`, a reference, its payload an array's block that holds
+nothing; what it is for is an `rt_file` on the context's list (the
+`FILE *`, the mode, the lines given, the file's device and number). A
+collection closes the file of every handle it did not reach, between
+its mark and its sweep; the program's end closes the rest. `open` asks
+whether the file is open already (D276), collecting first; opens with
+`open(2)`; faults for what is no plain file; sets perl's errno to the
+system's on failure and to what `isatty` leaves on success. `io.c`'s
+reading takes a `FILE *`, and its end, once met, is not looked for
+again; a read that meets it zeroes perl's errno, `eof` does not.
+`unwind.c`: an uncaught `die` exits with perl's errno when it is not 0;
+a message with no newline faults when the handle read last is a file's
+that has given a line (D279). `format.c`'s format may be an item of its
+list other than the first.
+
+**The harness** (D282): `t/run.sh` runs each test's program in
+`build/t/NAME.dir`, made empty, with the files its `# file:` headers
+name; `t/checks.py` runs perl and the program in a directory of the
+run's own with the same files and the test's source at its path
+(`run_dir`), and the census does too. Four fixtures of the oracle
+(`same-file-header`, `same-file-not-the-repository`, which the check
+would pass if perl ran in the repository's root, `same-file-header-name`,
+`same-file-header-twice`). Every run has at most 256 files open at once
+(the cloud machine allows 20,000, and no test met the limit). The census's judge takes an uncaught `die`
+that exits with perl's own status for what it is.
+
+**The builder's defaults**, each Stevan's to overturn:
+
+- A `die` or `warn` with no newline while a file is being read is a
+  fault (D279). The alternative that agrees with perl more often, always
+  naming the handle, is WRONG whenever perl has freed it.
+- `$!` only in a string or alone on the right of `=` (D284), and only
+  while the last `open` failed (D273).
+- No file open twice when one of the two writes (D276); only plain
+  files (D275): `/dev/null` is refused.
+- `close` of a handle that is not open, and `eof` of one, are faults
+  where perl is silent (D277).
+- `print $fh (...)` and `print $fh -1` are refused where perl prints to
+  the handle (D278); `print($fh ...)` too.
+- `open(...) or die` is the only statement joined to another; `or
+  return`, `or next`, `or warn` are refused (D274).
+- `open`'s first argument is `my $fh` or a scalar variable: not an
+  element, not a field (D271).
+- `<$fh>` takes a scalar variable only; `scalar(<$fh>)` and
+  `readline($fh)` are refused (D281, and 21a's rule for `scalar`).
+- `open(my $fh, '<', \$text)`, a file in memory, is D112's fault (the
+  name is a reference): 15 of the census's probes use it, having no
+  files to read. It is cheap, and wants a decision.
+- 2656 (step 16a's refusal of `say $x <<EOT`) is a fault test now:
+  the heredoc after a variable is a list after a handle, as in perl.
+- The messages of 1937, 3145, 4818, 4819 and 4827 to 4830 changed with
+  what they refuse.
+
+**Tests.** 6400 to 6412 (`same`, and 6410 `warns`) and 6420 to 6433
+(what a program exits with: `dies` when 255, `warns` otherwise) from
+`t/models/file.py`, in which a file is bytes and a handle a record;
+6440 to 6500 the faults, from the model; 6520 to 6608 refusals from a
+table by hand (`briefs/step21b-refusals.py`); `runtime/tests/file.c`
+(a collection closes a dropped handle's file and writes what it held; a
+second open after a collection; a write the system refuses; a message
+after the handle read last was collected). 6409 opens 1,500 handles and
+drops them, with the stress knob off, so that an `open` meets the
+system's limit and collects. **2,490 golden tests, 161 unit
+tests, 1,567 statements about perl.**
+
+**Broken on purpose** (`briefs/step21b-mutations.py`): 104 of 115 caught the first time. Eight holes, closed: a handle a sub dropped, with no collection at every allocation (6409, and the runtime's own test run without the knobs too); a handle opened again while it is open for writing (6403); the system's limit on open files, which no test met on a machine that allows 20,000 (a run has 256 now, D282); `printf` to a handle not looked at for a character past ASCII (6500); the end of a file looked for again (6433); `print $x if`, `print $x x 2` and `print $x != 2` taken for a handle (6411). Two lines nothing read, taken out. One breakage nothing can see: `open` worth `true` where perl's is `1`. Run again whole, after the holes were closed and T696 mended: 113 of 114, the 114th that one.
+
+**The census** (`make census`, sorted): the census's probes have no files to read, and 20 of those that stopped at `open` or `<$fh>` open one in memory, `open($fh, '<', \$text)`, which is not in the language: 5 are LOUD (D112's fault, the name being a reference), 15 are refused by design (D110) and moved, with 3 more (2 D270, 1 D55); 2 wait for step 19 and 1 for 21c; none is SAME that was not. **1,349 SAME, 187 LOUD, 1,172 REFUSED (426 for a later step, 746 open), 4 UNJUDGED, of 2,712 run, 2,868 by design, no WRONG**, no probe left SAME.
+
+**Doubtful or left.**
+
+- No second reader (above).
+- **errno is the riskiest thing here.** The language now says what an
+  uncaught `die` exits with after any `open`, by three rules read out
+  of perl's source and held by 295 programs; a fourth thing that moves
+  perl's errno, not yet met, would be a WRONG exit status. Steps 21c
+  and 22 add such things (file tests set errno when they fail; `log`
+  and `sqrt` of a bad number).
+- Nothing was run on a Mac. The error numbers met here (2, 21, 25) are
+  the same there; the runtime asks `isatty` rather than assuming 25.
+- D279 will be met by ordinary programs; whether to give perl's message
+  where the handle is surely alive is Stevan's to say.
+- A handle dropped in a block that has ended, and its file opened again
+  in the same function, can be a fault (the collector still sees the
+  slot), where perl closed the file at the brace.
+- A program whose own stdout or stdin is a file it also opens is
+  outside D276.
+- The order of the two streams and of files on disk while a program
+  runs is the runtime's; only what a program reads back, and what it
+  has written by its end, is perl's.
+
+**Left for 21c**: file tests (`-e -f -d -s`), `unlink`, `rename`,
+`mkdir`, `rmdir`, `opendir` and its kin. It must see D276 (a file test
+or an `unlink` of a file open for writing sees what perl has written
+and the runtime has not), D272 (each sets errno when it fails), and
+D282 (a directory per run is there already).
+
+
 ### 22. Numbers and time
 
 Referee: perl. Size: medium.
