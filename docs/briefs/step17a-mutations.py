@@ -83,6 +83,9 @@ MUTATIONS = [
  ("another class's method is taken", PARSE, "                if (name.text.includes('::') && !(name.text.startsWith('SUPER::')", "                if (false && !(name.text.startsWith('SUPER::')"),
  ("a class's method is new", PARSE, "        if (name.text !== 'new') {\n            refuse(`${shown}->${name.text}:", "        if (false) {\n            refuse(`${shown}->${name.text}:"),
  ("!$x isa P is taken", PARSE, "                if (first.kind === 'unary' && !first.bracketed && prefixOp(first.op)?.bang) refuse(`'${first.op}' before 'isa'", "                if (false) refuse(`'${first.op}' before 'isa'"),
+ ("an operator after isa's class is taken", PARSE, "                if (tighter && tighter.row <= infix.row + 1) refuse(", "                if (false) refuse("),
+ ("a comparison takes the name after isa", PARSE, "if (tighter && tighter.row <= infix.row + 1) refuse(", "if (tighter && tighter.row <= infix.row) refuse("),
+ ("a comparison before an isa is taken", PARSE, "            if (right.kind === 'isa' && !right.bracketed && infix.row === infixOp('isa')!.row + 1) {", "            if (false) {"),
  ("isa isa is taken", PARSE, "                if (peek().kind === 'op' && peek().text === 'isa') refuse(", "                if (false) refuse("),
  ("blessed before an operator is taken", PARSE, "(head.text === 'ref' || head.text === 'blessed' || head.text === 'reftype') && arg.kind === 'binary'", "head.text === 'ref' && arg.kind === 'binary'"),
  ("a field has no reader", PARSE, "                if (field.reader !== undefined) {\n                    const r = field.reader;", "                if (false) {\n                    const r = field.reader!;"),
@@ -145,7 +148,10 @@ MUTATIONS = [
  ("a class has no parent", GEN, "${info.parent < 0 ? 'rt_undef()' : `f[${names.slots[names.classes[info.parent]!.slot]}]`}", "rt_undef()"),
  ("an array field is a list made once", GEN, "const list = genListWhole([field.default], line, out, c => [`${place} = ${make}_new(cx);`, `${make}_assign(cx, ${place}, ${c});`]);", "const list = genListWhole([field.default], line, out, c => [`${place} = ${c};`]);"),
  ("__CLASS__ is the class written in", GEN, "    case 'curclass': return temp(b, `rt_class_name(cx, ${selfValue(b.names, ownerFn(b))})`);", "    case 'curclass': return { c: 'rt_undef()', place: false };"),
- ("a method's label is its name alone", GEN, "    return m.how === 'adjust' ? `an ADJUST block of ${m.cls}`", "    return m.how === 'adjust' ? s.name"),
+ ("a method's label is its name alone", GEN, "m.how === 'lexical' ? `${m.cls}->&${s.name}` : `${m.cls}->${s.name}`;", "m.how === 'lexical' ? `${m.cls}->&${s.name}` : s.name;"),
+ # (One more was run, and is changed for the one above: an ADJUST block's
+ # label, which nothing in the language can show, since an ADJUST is
+ # called for no value and handed no arguments.)
 ]
 only = sys.argv[1:]
 if only == ['--match']:

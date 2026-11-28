@@ -1104,6 +1104,13 @@ export const parse = (tokens: readonly Token[]): Program => {
                 if (cls.kind !== 'word' || NAMES.has(cls.text)) refuse(`after isa comes a class's name, found ${show(cls)}: a class named by what a value holds is not in the language`, cls.pos);
                 left = { kind: 'isa', left, cls: cls.text, pos: t.pos };
                 if (peek().kind === 'op' && peek().text === 'isa') refuse("'isa' after 'isa': perl does not compile it", peek().pos);
+                // What binds tighter than `isa` perl gives the name, a
+                // bareword then, and a comparison of the row below it does
+                // not compile beside one; read from the left either would
+                // be taken here (`$o isa A - 1`, `$o isa A < 2`).
+                const after = peek();
+                const tighter = after.kind === 'op' ? infixOp(after.text) : undefined;
+                if (tighter && tighter.row <= infix.row + 1) refuse(`'${after.text}' after isa and its class: perl does not compile it; write (... isa ${cls.text}) ${after.text} ...`, after.pos);
                 continue;
             }
             // An assignment: its left side is a variable, and nothing
@@ -1151,6 +1158,11 @@ export const parse = (tokens: readonly Token[]): Program => {
                 refuse(`'${first.op}' before '${t.text}': perl warns of a precedence problem; write ${first.op}(... ${t.text} ...), or (${first.op}...) ${t.text} ...`, first.pos);
             }
             const right = expression(infix.assoc === 'right' ? infix.row + 1 : infix.row);
+            // perl does not compile `2 < $o isa A`: the comparisons of the
+            // row below `isa` take no `isa` beside them.
+            if (right.kind === 'isa' && !right.bracketed && infix.row === infixOp('isa')!.row + 1) {
+                refuse(`'${t.text}' before an isa: perl does not compile it; write ... ${t.text} (... isa ${right.cls})`, right.pos);
+            }
             left = { kind: 'binary', op: t.text, left, right, pos: t.pos };
             if (infix.range && peek().kind === 'op' && infixOp(peek().text)?.range) {
                 refuse("'..' after a range: perl does not compile a range of a range", peek().pos);

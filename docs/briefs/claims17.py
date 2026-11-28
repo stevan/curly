@@ -239,5 +239,9 @@ STEP17 += [
     c('17a-new-key-number', 'PLAN 17a', 'class P { field $x :param :reader; } P->new(1, 2);', exit=255, err=r"Required parameter 'x' is missing"),
     c('17a-nested-10000', 'PLAN 17a; TRAPS T440', "no warnings 'recursion'; class N { field $d :param; field $kid = $d < 10000 ? N->new(d => $d + 1) : undef; } N->new(d => 0); say 'done';", out='done\n'),
     c('T440', 'TRAPS; PLAN 17a', "no warnings 'recursion'; class N { field $d :param; field $kid = $d < 100000 ? N->new(d => $d + 1) : undef; } N->new(d => 0); say 'done';", out='', exit='nonzero'),
+    c('T441', 'TRAPS; PLAN 17a', 'class A { } my $o = A->new; say $o isa A - 1;', compiles=False, err=r'Bareword "A" not allowed while "strict subs" in use'),
+    c('T441-after', 'TRAPS; PLAN 17a', 'class A { } my $o = A->new; my $x = $o isa A < 2;', compiles=False, err=r'syntax error at .* near "A <"'),
+    c('T441-before', 'TRAPS; PLAN 17a', 'class A { } my $o = A->new; my $x = 2 ge $o isa A;', compiles=False, err=r'syntax error at .* near "\$o isa"'),
+    c('T441-looser', 'TRAPS; PLAN 17a', 'class A { } my $o = A->new; say $o isa A == 1 ? "y" : "n", 1 == $o isa A ? "y" : "n", 2 + $o isa A ? "y" : "n", defined $o isa A ? "y" : "n";', out='yynn\n'),
     c('17a-adjust-dispatch-die', 'PLAN 17a', 'class P { field @a = (1, 2); method boom { for my $x (@a) { die "x\\n" } } method add { push @a, 3; scalar(@a) } } my $p = P->new; try { $p->boom } catch ($e) { print "caught $e" } say $p->add;', out='caught x\n3\n'),
 ]

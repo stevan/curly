@@ -148,6 +148,21 @@ r('invocant-chain-changed', "perl prints 2:x (R17-08-invocant-chain).", 'class P
 r('loop-over-a-field-a-method-changes', "perl's loop walks the field itself, and sees the store.", 'class P { field $x = 1; method set { $x = 5; return } method go { for my $v ($x, 2) { $self->set } return } }', 'set }', "this can change $x, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop")
 r('key-changed-by-a-method', "perl joins the pieces as it stores, after the key is worked out (T230).", 'my $v = "a";\nclass P { method k { $v = "b"; return "k" } }\nmy %h;\n$h{P->new->k} = $v . "!";', 'k}', 'the key changes $v, which the concatenation on the right reads: perl joins its pieces as it stores, after the key is worked out; take the string into a my first')
 
+# ---- five more, which the breakages of the step showed no test reached
+# (briefs/step17a-mutations.py): they are written from 4214.
+r('isa-after-isa', "perl does not compile it: syntax error.", 'class A { }\nclass B { }\nmy $x = A->new isa A isa B;', 'isa B', "'isa' after 'isa': perl does not compile it")
+r('field-of-the-parent', "perl does not compile it (T56): Global symbol \"$x\" requires explicit package name.", 'class A { field $x = 1; }\nclass B :isa(A) { method m { $x } }', '$x }', '$x is not declared: my $x')
+r('method-of-a-second-class-in-a-row-of-dots', "perl reads $n late: the store of B's method shows.", 'my $n = 1;\nclass A { method bump { "a" } }\nclass B { method bump { $n = 5; return "!" } }\nsay $n . B->new->bump;', 'bump;', PIECE.format('the method bump', '$n'))
+r('argument-before-a-method-that-gives-a-list', "perl hands the sub $x itself, and reads it after the method stored 5: 5.", 'my $x = 1;\nsub first(@l) {\n    return $l[0];\n}\nclass A { method parts { $x = 5; return (1, 2) } }\nsay first($x, A->new->parts);', 'parts);', LATER.format('the arguments of first', '$x'))
+r('field-list-where-one-value', "perl gives the last value, and warns (17-field-list-scalar): Useless use of a constant in void context.", 'class P { field $x = (4, 5, 6); }', '(4', 'a list where one value is wanted: perl gives its last value, and warns of the others')
+
+# ---- three more, found finishing the step: `isa` is of the comparisons' row
+# to perl, and what binds tighter takes its class's name for a bareword. The
+# compiler read each from the left, and printed where perl does not compile.
+r('operator-after-isa', "perl does not compile it: Bareword \"A\" not allowed while \"strict subs\" in use.", 'class A { }\nmy $o = A->new;\nsay $o isa A - 1;', '- 1', "'-' after isa and its class: perl does not compile it; write (... isa A) - ...")
+r('comparison-after-isa', "perl does not compile it: syntax error, near \"A <\".", 'class A { }\nmy $o = A->new;\nmy $x = $o isa A < 2;', '< 2', "'<' after isa and its class: perl does not compile it; write (... isa A) < ...")
+r('comparison-before-isa', "perl does not compile it: syntax error, near \"$o isa\".", 'class A { }\nmy $o = A->new;\nmy $x = 2 ge $o isa A;', 'isa A;', "'ge' before an isa: perl does not compile it; write ... ge (... isa A)")
+
 def write(first, table=None):
     n = first
     for name, why, body, at, message, nth, bare in (T if table is None else table):

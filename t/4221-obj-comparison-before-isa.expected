@@ -1,0 +1,2 @@
+t/4221-obj-comparison-before-isa.pl:7:17: 'ge' before an isa: perl does not compile it; write ... ge (... isa A)
+exit: 1
