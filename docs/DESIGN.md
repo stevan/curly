@@ -357,10 +357,12 @@ step, roughly in the order it will matter:
    and `%ENV` a read-only hash, filled as the program starts; `exit`
    a statement; one environment for perl and the program in every
    check.
-9b. **Files and handles** (step 21b): settled, D270 to D283. A handle
+9b. **Files and handles** (step 21b): settled, D270 to D287. A handle
    is a reference (`GLOB`); `open` has three arguments and one of
    three modes; `<$fh>` is `<STDIN>`'s rules; `print $fh LIST` and
-   `print { EXPR } LIST`; `$!` is a string, read only while the last
+   `print { EXPR } LIST`; a handle is taken before the list or the
+   name after it is worked out, which may not change what gave it
+   (D287); `$!` is a string, read only while the last
    `open` failed; **the language keeps perl's errno**, which an
    uncaught `die` exits with; no file is open twice when one of the
    two writes, so the runtime buffers as it likes and a collection

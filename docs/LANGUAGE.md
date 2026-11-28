@@ -2925,7 +2925,11 @@ is not there. PATH is one value, a string, the file's name (an array or
 a line read there is refused: to perl it would be a list of names). `open` is worth 1, or
 undef when the system refuses, and the variable holds a handle either
 way. A variable that already holds a handle has that same handle opened
-again, so every copy of it sees the new file.
+again, so every copy of it sees the new file. The handle is made, or
+the variable looked at, before the name is worked out, as in perl: a
+name that reads the variable finds a handle there. A name that could
+change the variable, by an assignment, a sub it calls or a reference,
+is refused: perl would open a handle that nothing holds any more.
 
 The statement **`open(...) or die LIST;`** is the usual way to write it,
 and `open(...) || die LIST;` says the same. It is the one statement that
@@ -2964,7 +2968,12 @@ takes the handle from any one expression:
     say { $log{out} } "done";
     close($out) or die "cannot close report.txt: $!\n";
 
-The handle is worked out before the list. `print $fh;` and `print $fh,
+The handle is worked out before the list, and the list may not change
+what gave it: an item that assigns the handle's variable, changes the
+array or hash it was an element of, or stores through a reference it
+was reached by, is refused, itself or in a sub it calls (perl would
+write to a handle that is no more, `print() on unopened filehandle`).
+Take the handle into a `my` of its own first. `print $fh;` and `print $fh,
 "x";` print the handle itself, to perl, and are faults here.
 
 **`close($fh)`** writes what is not yet written and closes the file;

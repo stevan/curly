@@ -126,7 +126,10 @@ MUTATIONS = [
     ("open takes a mode with a layer", PARSE, "!(mode.value === '<' || mode.value === '>' || mode.value === '>>')) {", "!/^(<|>|>>)/.test(mode.value)) {"),
     ("open takes two arguments", PARSE, "        if (peek().kind === ')' ) {\n            return refuse(`open with two arguments", "        if (false) {\n            return refuse(`open with two arguments"),
     ("open takes a fourth argument", PARSE, "        if (peek().kind === ',') return refuse(`open with more than three arguments: ${shape}`, peek().pos);\n", "        while (peek().kind === ',') { next(); expression(COMMA_ROW); }\n"),
-    ("the path is worked out after the handle is made", PARSE, "args: [path, { kind: 'assign', op: '=', target, value: handle, pos: target.pos }], pos: head.pos };", "args: [{ kind: 'assign', op: '=', target, value: handle, pos: target.pos }, path], pos: head.pos };"),
+    # (Until the independent review this breakage put the handle before the
+    # path, which is the order perl has and the tree now has, T698; it was
+    # caught then only because the runtime took the two the other way round.)
+    ("the path is worked out before the handle is made", GEN, "        const args = e.args.map(a => genExpr(a, b).c);", "        const args = e.name.startsWith('open ') && e.args.length === 2 ? [...e.args].reverse().map(a => genExpr(a, b).c).reverse() : e.args.map(a => genExpr(a, b).c);"),
     ("every open reads", PARSE, "        return { kind: 'apply', name: `open ${mode.value}`, args:", "        return { kind: 'apply', name: `open <`, args:"),
     ("open of a variable makes a new handle", PARSE, "args: target.kind === 'my' ? [] : [{ kind: 'var', name: target.name, pos: target.pos }], pos: target.pos };", "args: [], pos: target.pos };"),
     ("open or anything", PARSE, "        if (opens && peek().kind === 'op' && infixOp(peek().text) && !(peek().text === 'or' && tokens[i + 1]?.kind === 'word' && tokens[i + 1]!.text === 'die')) {", "        if (false) {"),
@@ -153,7 +156,7 @@ MUTATIONS = [
     ("a my in open stands nowhere", CHECK, "            return checkExpr(w, s.expr, true, 'scalar', true);\n        }", "            return checkExpr(w, s.expr, false, 'scalar', true);\n        }"),
     ("an open in an element's index is no read", CHECK, " || fileCall(e) || (e.kind === 'apply' && e.name === 'eof handle')\n", "\n"),
     ("printf's format after a handle is the handle", CHECK, "checkFormat(s.to ? s.args.slice(1) : s.args, 'printf', s.pos);", "checkFormat(s.args.slice(s.to ? 2 : 0), 'printf', s.pos);"),
-    ("open's name may be a list", CHECK, "    if (e.kind === 'apply' && e.name.startsWith('open ') && e.name !== 'open handle' && shaped(e.args[0]!, () => false)) {", "    if (false) {"),
+    ("open's name may be a list", CHECK, "    if (e.kind === 'apply' && e.name.startsWith('open ') && e.name !== 'open handle' && shaped(e.args[1]!, () => false)) {", "    if (false) {"),
     ("$! is read anywhere", CHECK, "    if (isErrno(e) && !errnoRead.has(e)) {", "    if (false) {"),
     ("$! in a string is refused", CHECK, "    if (e.kind === 'interp') e.parts.filter(isErrno).forEach(x => errnoRead.add(x));\n", ""),
     ("$! on the right of = is refused", CHECK, "(e.target.kind === 'var' || e.target.kind === 'my') && isErrno(e.value)) errnoRead.add(e.value);", "(e.target.kind === 'var' || e.target.kind === 'my') && false) errnoRead.add(e.value);"),
@@ -164,6 +167,12 @@ MUTATIONS = [
     ("<$fh> where a list is wanted is one line", GEN, "`rt_list_add_lines_fh(cx, ${list}, ${genExpr(e.handle, b).c})`];", "`rt_list_add(cx, ${list}, rt_readline_fh(cx, ${genExpr(e.handle, b).c}))`];"),
     ("say to a handle prints", GEN, "        const rt = s.to ? `rt_${s.name}_fh${s.name === 'printf' ? '' : '_list'}`", "        const rt = s.to ? `rt_${s.name === 'say' ? 'print' : s.name}_fh${s.name === 'printf' ? '' : '_list'}`"),
     ("$! has no runtime function", GEN, "name?.kind === 'unary' || name?.kind === 'changer' || name?.kind === 'errno' ? name.rt", "name?.kind === 'unary' || name?.kind === 'changer' ? name.rt"),
+    # ---- the independent review (T697 to T699, D287)
+    ("a print's list may drop its handle", CHECK, "                    if (held.has(id)) refuse(`${s.name}'s list can change", "                    if (false) refuse(`${s.name}'s list can change"),
+    ("what gives a print's handle is named only when it is a variable", CHECK, "            const held = named(w, (s.args[0] as Expr & { kind: 'apply' }).args[0]!, true);", "            const given = (s.args[0] as Expr & { kind: 'apply' }).args[0]!;\n            const held = given.kind === 'var' ? named(w, given, true) : new Set<number>();"),
+    ("only the first item of a print's list is looked at for its handle", CHECK, "            for (const item of s.args.slice(1)) {\n                for (const id of changeSet(w, item)) {\n                    if (held.has(id)) refuse(`${s.name}'s", "            for (const item of s.args.slice(1, 2)) {\n                for (const id of changeSet(w, item)) {\n                    if (held.has(id)) refuse(`${s.name}'s"),
+    ("open's name may change its variable", CHECK, "            if (held.has(id)) refuse(`open's third argument can change", "            if (false) refuse(`open's third argument can change"),
+    ("open's name may change its variable through a reference", CHECK, "        addId(w, held, w.names.of.get(target)!);", "        held.add(w.names.of.get(target)!);"),
 ]
 
 # Where a breakage is most likely to show: the tests run first. When they
@@ -233,7 +242,7 @@ HINTS = {
     "open's mode may be worked out": ['open-mode-interpolated'],
     "open takes two arguments": ["open-two-arguments"],
     "open takes a fourth argument": ["open-four-arguments"],
-    "the path is worked out after the handle is made": ["6440"],
+    "the path is worked out before the handle is made": ["6631"],
     "every open reads": ["6427"],
     "open of a variable makes a new handle": ["6404"],
     "open or anything": ["open-or-print"],
@@ -269,6 +278,11 @@ HINTS = {
     "say to a handle prints": ["6411"],
     "$! has no runtime function": ["6466"],
     "warn $x -1 is taken": ["warn-handle-guess"],
+    "a print's list may drop its handle": ["print-list-drops-handle"],
+    "what gives a print's handle is named only when it is a variable": ["say-list-deletes-handle"],
+    "only the first item of a print's list is looked at for its handle": ["printf-list-closure-drops-handle"],
+    "open's name may change its variable": ["open-name-drops-handle"],
+    "open's name may change its variable through a reference": ["open-name-through-reference"],
 }
 
 argv = sys.argv[1:]

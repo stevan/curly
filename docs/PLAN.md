@@ -7932,6 +7932,70 @@ line of `runtime/file.c`). Both are the next reader's to run.
   runs is the runtime's; only what a program reads back, and what it
   has written by its end, is perl's.
 
+#### What the independent review found (21b)
+
+**2026-11-28, by Fable 5.2 in a session of its own that did not build
+21b.** `briefs/step21b-review/INDEPENDENT.md` has the account, the
+numbers and what stood; its driver and ten files of cases are in
+`briefs/step21b-review/reader/`. The driver compares stdout, stderr,
+the exit status and, which the builder's hunt did not, every file a run
+leaves behind.
+
+**Three WRONGs, one cause** (T697 to T699; D287, the reviewer's default,
+Stevan's to overturn): perl takes a handle before the rest of its
+statement is worked out, and its stack counts no references.
+
+- **T697.** `print $w drop(), "t";` where `drop` assigns `$w`, the
+  handle's one holder: perl writes nothing and warns `print() on
+  unopened filehandle`; the compiler wrote `st` to the file. So `say`,
+  `printf`, and a handle from an element or through a reference whose
+  container the list changes. *Refused*: no item of the list may change
+  what gives the handle, as D76 names things (6609 to 6614; 6632 is
+  what stays in, with perl's answers).
+- **T698.** `open($fh, '<', f())` where `f` assigns `$fh`: perl dies,
+  `Can't use an undefined value as filehandle reference`, having made
+  its handle before `f` ran; the compiler worked the name out first and
+  opened whatever handle `f` had put in `$fh`, another variable's.
+  *Refused*: the name may not change the variable, for a `my` too (6615
+  to 6618).
+- **T699.** `open($fh, '<', defined($fh) ? 'in.txt' : 'nonl.txt')`:
+  perl opens `in.txt`, the variable holding its handle by then; the
+  compiler opened `nonl.txt`. *Agreed*: `open` is built as its mode's
+  builtin of the target assigned its handle **and then** of the path;
+  the runtime's three functions take the handle first (6630, `same`;
+  6631, the fault for a variable that holds a number, before the name's
+  sub is called).
+
+The builder's breakage "the path is worked out after the handle is
+made" had put the two in perl's order and been caught only because the
+runtime took its arguments the other way round. It is the other way
+about now, and five more breakages stand beside it in
+`briefs/step21b-mutations.py`, each caught by a test above.
+
+**What stood**: perl's errno (D272), over 1,240 sequences taken whole
+and 1,500 by chance; `$!` (D273, D284); a file open twice (D276); the
+handle a message names (D279); perl's guess of a handle (D278); 21a's
+rules over a file's handle; the files a program leaves.
+
+**Not WRONG, and to be met**: a `my $fh` in a loop's block, written to
+and not closed, is D276's fault the second time round when the file is
+the same one (`open(my $fh, '>>', 'log.txt')` in a `for`), because the
+`print` leaves the handle in a temporary that the collection still
+sees; a `close` mends it.
+
+**What was run on the final tree** (2026-11-28, `JOBS=3 TIMEOUT=300`,
+the machine shared): `make check`; `make test` (161 unit tests, 2,503
+golden tests, the oracle over all of them, the census's check,
+`DIFFERENCES.md`: `all: 0 failed`); `make golden-clang` (2,503 tests, 0
+failed), which the builder had left unfinished; `make sanitize`, both
+passes, poison on and off (2,503 tests, 0 failed, each), which the
+builder had not run on the final tree; `make census` (1,349 SAME, 187
+LOUD, 1,172 REFUSED, 4 UNJUDGED, no WRONG: nothing moved);
+`claims.py` (1,579, the 20 that differ each a `roles` row with no roles
+perl); `step21b-mutations.py` whole (118 of 119, the 119th the
+builder's `open` worth `true`); the builder's `hunt.py` whole (3,453
+programs, its README's counts again, nothing).
+
 **Left for 21c**: file tests (`-e -f -d -s`), `unlink`, `rename`,
 `mkdir`, `rmdir`, `opendir` and its kin. It must see D276 (a file test
 or an `unlink` of a file open for writing sees what perl has written

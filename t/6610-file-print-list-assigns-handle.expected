@@ -1,0 +1,2 @@
+t/6610-file-print-list-assigns-handle.pl:5:28: print's list can change $w, which gives the file handle written to: perl has taken the handle by then, and writes to one that nothing may hold any more (T697, D287); take the handle into a my of its own first
+exit: 1

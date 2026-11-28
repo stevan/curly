@@ -2857,3 +2857,39 @@ value follow it, after every list operator (T696): `warn $x -1;` and
 `join $x -1, ...` do not compile. Steps 10a, 15 and 16b took them, and
 ran them as a subtraction. Refused, with T111's message, brackets
 between or not. Rejected: nothing; they are no Perl.
+
+**D287. The independent review of step 21b: perl has a handle in its
+hand before the rest of its statement is worked out, and counts no
+reference for it.** *(Fable 5.2, 2026-11-28, a reader who did not build
+21b, under the user's standing instruction of 2026-11-27; his to
+overturn. `briefs/step21b-review/INDEPENDENT.md`; `TRAPS.md`, T697 to
+T699.)* Two statements take a handle first and work something out
+after: `print`, `say` and `printf` to a handle, whose list comes after
+(T683), and `open`, whose name does. perl's stack counts no references,
+so what is worked out after may free the handle perl is holding: a
+print's list that assigns the handle's variable, deletes its key or
+drops the reference it was reached through leaves `print() on unopened
+filehandle` and an empty file (T697); an `open` whose name assigns its
+variable dies, or opens another variable's handle (T698). And `open`
+has made its handle, or looked at what its variable holds, before the
+name is worked out: the name sees a handle there (T699). So:
+(1) **`open` makes or takes its handle first, then works its name
+out**, as perl does; what the variable holds that is no handle is the
+fault it was, before the name. (2) **`open`'s name may not change the
+variable the file is opened in**, by an assignment, through a sub it
+calls or through a reference: refused, for `open(my $fh, ...)` too,
+whose `my` a sub written below it can assign. (3) **No item of the list
+of a `print`, `say` or `printf` to a handle may change what gives the
+handle**: the variable, the array or hash of an element, the head of a
+chain and what references reach, as D76 names them; refused. A handle
+that a call gives (`print { out() } ...`) is held by the call's value,
+and is in. Rejected: counting, for these two statements only, whether
+another reference to the handle lives (a collector does not know, D276
+and D279 are the same wall); a fault as the program runs when the
+variable no longer holds the handle that was taken (it catches the
+assignment, and not a key deleted or a reference dropped while a copy
+is held elsewhere, where perl is right and the fault would be noise);
+letting a list that only opens the handle again through (perl writes to
+the new file, and so would the language: it is refused because an
+`open` is an assignment to its variable for every walk there is, and no
+program was found that wants it).

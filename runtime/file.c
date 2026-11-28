@@ -206,15 +206,15 @@ static rt_value file_open(rt_ctx *cx, rt_value path, rt_value handle, int mode, 
     return rt_int(1);
 }
 
-rt_value rt_open_read(rt_ctx *cx, rt_value path, rt_value handle) {
+rt_value rt_open_read(rt_ctx *cx, rt_value handle, rt_value path) {
     return file_open(cx, path, handle, FILE_READ, O_RDONLY);
 }
 
-rt_value rt_open_write(rt_ctx *cx, rt_value path, rt_value handle) {
+rt_value rt_open_write(rt_ctx *cx, rt_value handle, rt_value path) {
     return file_open(cx, path, handle, FILE_WRITE, O_WRONLY | O_CREAT | O_TRUNC);
 }
 
-rt_value rt_open_append(rt_ctx *cx, rt_value path, rt_value handle) {
+rt_value rt_open_append(rt_ctx *cx, rt_value handle, rt_value path) {
     return file_open(cx, path, handle, FILE_WRITE, O_WRONLY | O_CREAT | O_APPEND);
 }
 

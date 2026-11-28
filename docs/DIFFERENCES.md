@@ -349,6 +349,7 @@ quiet has met few of them.
 | `*=`, `/=`, `**=`, `%=`, `x=` on an undef: a warning | Fault | accident | sometimes | numbers | D56 |
 | `say 0 or 2;` is `(say 0) or 2`; `not (0) \|\| 1` is `(not 0) \|\| 1` | A word operator after `say`'s argument or bare among arguments, a tighter operator after `not (...)`: refused | accident | rarely | printing | D51 |
 | `say $x -1;` takes `$x` for a file handle; `warn $x -1;`, `join $x -1, ...` do not compile, for the same guess | Refused | accident | rarely | printing | D56, D286 |
+| `print $fh next_line(), "\n";` where the sub, or the list itself, assigns `$fh` (or changes the array, hash or reference the handle was taken from); `open($fh, '<', pick())` where `pick` assigns `$fh` | Refused: perl has taken the handle before the list or the name is worked out, and writes to, or opens, one that nothing holds (`print() on unopened filehandle`). Take the handle, or the name, into a `my` first | accident | rarely | data | D287 |
 | `undef * 2` is undef of a glob named `2`, in silence | Bare `undef` only where perl can't take what follows for its argument; else `(undef)` | accident | rarely | variables | D48 |
 | A sub named for a word of perl's is never called: after `sub q($x) {...}`, `q(5)` is the string `5` | A sub may have no name perl gives a meaning to (266 words) | accident | rarely | subs | D21 |
 | `-e(2)` is a file test | A minus hard against one letter: refused | accident | rarely | subs | D73 |

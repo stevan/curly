@@ -1,0 +1,2 @@
+t/6615-file-open-name-drops-handle.pl:9:16: open's third argument can change $fh, the variable the file is opened in: perl has taken the handle by then, and opens one that nothing holds (T698, D287); take the name into a my first
+exit: 1

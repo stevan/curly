@@ -1,0 +1,2 @@
+t/6611-file-say-list-deletes-handle.pl:12:16: say's list can change %h, which gives the file handle written to: perl has taken the handle by then, and writes to one that nothing may hold any more (T697, D287); take the handle into a my of its own first
+exit: 1

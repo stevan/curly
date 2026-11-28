@@ -274,7 +274,10 @@ export const parse = (tokens: readonly Token[]): Program => {
         }
         closing();
         const handle: Expr = { kind: 'apply', name: 'open handle', args: target.kind === 'my' ? [] : [{ kind: 'var', name: target.name, pos: target.pos }], pos: target.pos };
-        return { kind: 'apply', name: `open ${mode.value}`, args: [path, { kind: 'assign', op: '=', target, value: handle, pos: target.pos }], pos: head.pos };
+        // The handle first, then the name: perl has made the handle, or taken
+        // the one the variable holds, before the name is worked out (step
+        // 21b's independent review; T698, D287).
+        return { kind: 'apply', name: `open ${mode.value}`, args: [{ kind: 'assign', op: '=', target, value: handle, pos: target.pos }, path], pos: head.pos };
     };
 
     // A sub's signature, or its block with none, next (D72): its

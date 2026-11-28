@@ -687,8 +687,20 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
     // line read there reads every line (step 21b; T694). Here it is one
     // value, so what is a list by how it is written is refused. (A call
     // that gives a list is D18's fault, as the program runs.)
-    if (e.kind === 'apply' && e.name.startsWith('open ') && e.name !== 'open handle' && shaped(e.args[0]!, () => false)) {
-        refuse("open's third argument is one value, the file's name: perl takes a list there, each of its values an argument of its own (T694); take the name into a my first", e.args[0]!.pos);
+    if (e.kind === 'apply' && e.name.startsWith('open ') && e.name !== 'open handle' && shaped(e.args[1]!, () => false)) {
+        refuse("open's third argument is one value, the file's name: perl takes a list there, each of its values an argument of its own (T694); take the name into a my first", e.args[1]!.pos);
+    }
+    // perl has the handle in its hand before the name is worked out, and
+    // nothing holds it there but the variable: a name that assigns the
+    // variable frees the handle, and perl opens what is no more (T698,
+    // D287). Refused, for a `my` too, which a sub written below may assign.
+    if (e.kind === 'apply' && e.name.startsWith('open ') && e.name !== 'open handle') {
+        const target = (e.args[0] as Expr & { kind: 'assign' }).target;
+        const held = new Set<number>();
+        addId(w, held, w.names.of.get(target)!);
+        for (const id of changeSet(w, e.args[1]!)) {
+            if (held.has(id)) refuse(`open's third argument can change ${sigil(w, id)}, the variable the file is opened in: perl has taken the handle by then, and opens one that nothing holds (T698, D287); take the name into a my first`, e.args[1]!.pos);
+        }
     }
     const of = e.kind === 'apply' && e.args.length > 0 ? plain(e.args[0]!) : undefined;
     // (And of the whole container through a reference, T256.)
@@ -945,6 +957,20 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
     case 'call':
         // (After a file handle, the format is the second item: step 21b.)
         if (s.name === 'printf') checkFormat(s.to ? s.args.slice(1) : s.args, 'printf', s.pos);
+        // perl has the handle in its hand before the list is worked out, and
+        // counts no reference for it: an item that changes what gave the
+        // handle may drop its last one, and perl then writes to a handle
+        // that is no more, `print() on unopened filehandle` (step 21b's
+        // independent review; T697, D287). What gives it is named as an
+        // item of a list is, and no item may change that.
+        if (s.to) {
+            const held = named(w, (s.args[0] as Expr & { kind: 'apply' }).args[0]!, true);
+            for (const item of s.args.slice(1)) {
+                for (const id of changeSet(w, item)) {
+                    if (held.has(id)) refuse(`${s.name}'s list can change ${sigil(w, id)}, which gives the file handle written to: perl has taken the handle by then, and writes to one that nothing may hold any more (T697, D287); take the handle into a my of its own first`, item.pos);
+                }
+            }
+        }
         checkOrder(w, `${s.name}'s list`, s.args, true);
         return s.args.forEach(a => checkExpr(w, a, false, 'list'));
     case 'do':
@@ -990,7 +1016,7 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         // The `my` of `open(my $fh, ...)` is the statement's own (D274).
         if (fileStatement(s.expr)) {
             const call = s.expr.kind === 'binary' ? s.expr.left : s.expr;
-            const opened = call.kind === 'apply' ? call.args.at(-1) : undefined;
+            const opened = call.kind === 'apply' ? call.args[0] : undefined;
             if (modified && opened?.kind === 'assign' && opened.target.kind === 'my') {
                 refuse('my under a modifier: when the test fails, perl leaves in the variable what it last held; declare it in a statement of its own', opened.target.pos);
             }

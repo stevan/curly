@@ -1,0 +1,2 @@
+t/6618-file-open-name-through-reference.pl:10:16: open's third argument can change what references reach, the variable the file is opened in: perl has taken the handle by then, and opens one that nothing holds (T698, D287); take the name into a my first
+exit: 1

@@ -129,6 +129,24 @@ r('die-handle-guess', 'perl does not compile it: Missing comma after first argum
 r('join-handle-guess', 'perl does not compile it: Missing comma after first argument to join or string function.', "my $x = 5;\nmy $s = join $x -1, 'a', 'b';", '$x -', GUESS.format('join'))
 r('reverse-handle-guess', 'perl does not compile it: Missing comma after first argument to reverse function.', 'my $x = 5;\nmy @r = reverse($x -1, 2);', '$x -', GUESS.format('reverse'))
 
+# ---- T697, T698: found by the independent review (D287). perl has the
+# handle in its hand before a print's list, or an open's name, is worked
+# out, and counts no reference for it.
+# (The place of an item that is `A // B` is its operator's.)
+W = "open(my $w, '>', 'o.txt') or die \"no\\n\";\n"
+DROP = "{0}'s list can change {1}, which gives the file handle written to: perl has taken the handle by then, and writes to one that nothing may hold any more (T697, D287); take the handle into a my of its own first"
+OPENED = "open's third argument can change {}, the variable the file is opened in: perl has taken the handle by then, and opens one that nothing holds (T698, D287); take the name into a my first"
+r('print-list-drops-handle', 'perl writes nothing to o.txt, and warns: print() on unopened filehandle (T697).', W + "sub drop() {\n    $w = undef;\n    return 's';\n}\nprint $w drop(), \"t\\n\";", 'drop(),', DROP.format('print', '$w'))
+r('print-list-assigns-handle', 'perl writes nothing, and warns: print() on unopened filehandle.', W + "print $w 'a', ($w = undef) // 'b';", "// 'b'", DROP.format('print', '$w'))
+r('say-list-deletes-handle', 'perl writes nothing, and warns: say() on unopened filehandle.', "my %h;\nopen(my $w, '>', 'o.txt') or die \"no\\n\";\n$h{fh} = $w;\n$w = undef;\nsub forget() {\n    delete $h{fh};\n    return 's';\n}\nsay { $h{fh} } forget(), 't';", 'forget(),', DROP.format('say', '%h'))
+r('printf-list-closure-drops-handle', 'perl writes nothing, and warns: printf() on unopened filehandle.', W + "my $f = sub {\n    $w = undef;\n    return 's';\n};\nprintf $w '%s%s', $f->(), 't';", '$f->(),', DROP.format('printf', '$w'))
+r('print-list-drops-reference', 'perl writes nothing, and warns: print() on unopened filehandle.', "my $r;\nopen(my $w, '>', 'o.txt') or die \"no\\n\";\n$r = [$w];\n$w = undef;\nsub clear() {\n    $r = undef;\n    return 's';\n}\nprint { $r->[0] } 'a', clear();", 'clear();', DROP.format('print', '$r'))
+r('print-list-shifts-handle', 'perl prints to the handle: what shift gives back holds it. Refused all the same: the array that gave the handle is changed.', W + "my @h = ($w);\nprint { $h[0] } 'a', ref(shift(@h));", 'ref(shift', DROP.format('print', '@h'))
+r('open-name-drops-handle', "perl dies: Can't use an undefined value as filehandle reference (T698).", "my $fh;\nsub pick() {\n    $fh = undef;\n    return 'in.txt';\n}\nopen($fh, '<', pick()) or die \"no\\n\";", 'pick())', OPENED.format('$fh'))
+r('open-name-changes-my', "perl dies: Can't use an undefined value as filehandle reference: the sub below sees the my, and the handle perl made in it is gone.", "open(my $o, '<', 'in.txt') or die \"no\\n\";\nopen(my $fh, '<', name()) or die \"no\\n\";\nsub name() {\n    $fh = $o;\n    return 'in.txt';\n}", 'name())', OPENED.format('$fh'))
+r('open-name-assigns-handle', "perl dies: Can't use an undefined value as filehandle reference.", "my $fh;\nopen($fh, '<', ($fh = undef) // 'in.txt');", "// 'in.txt'", OPENED.format('$fh'))
+r('open-name-through-reference', "perl dies: Can't use an undefined value as filehandle reference.", "my $fh;\nmy $r = \\$fh;\nsub pick() {\n    $r->$* = undef;\n    return 'in.txt';\n}\nopen($fh, '<', pick()) or die \"no\\n\";", 'pick())', OPENED.format('what references reach'))
+
 
 def write(first):
     n = first

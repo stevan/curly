@@ -148,8 +148,9 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['STDIN', { kind: 'stdin' }],
     ['eof', { kind: 'eof', rt: 'rt_eof_stdin' }],
     // Step 21b. `open(TARGET, MODE, PATH)` is built as the builtin named
-    // for its mode, of the path and of the target assigned its handle
-    // (`open handle`: a new one, or the one the variable holds); no
+    // for its mode, of the target assigned its handle (`open handle`: a
+    // new one, or the one the variable holds) and then of the path, the
+    // order perl works them out in (T698, D287); no
     // program can write a name with a blank in it. `eof handle` is `eof`
     // of a handle that is not STDIN.
     ['open', { kind: 'open' }],

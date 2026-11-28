@@ -38,7 +38,7 @@ static void body(rt_ctx *cx) {
     if (is("reap")) {
         // One handle kept, one dropped with text not yet written.
         f[0] = rt_handle_new(cx);
-        rt_open_write(cx, rt_string(&name), f[0]);
+        rt_open_write(cx, f[0], rt_string(&name));
         print_to(cx, &f[1], f[0]);
         f[2] = rt_handle_new(cx);
         f[3] = rt_string(&name);
@@ -48,7 +48,7 @@ static void body(rt_ctx *cx) {
         rt_collect(cx);
         printf("after a collection: %" PRIu64 "\n", rt_file_count(cx));
         // What it held back is in the file: another handle reads it.
-        printf("opens to read: %" PRId64 "\n", rt_open_read(cx, f[3], f[2]).as.i);
+        printf("opens to read: %" PRId64 "\n", rt_open_read(cx, f[2], f[3]).as.i);
         f[1] = rt_readline_fh(cx, f[2]);
         rt_print(cx, f[1]);
         printf("open: %" PRIu64 "\n", rt_file_count(cx));
@@ -59,21 +59,21 @@ static void body(rt_ctx *cx) {
         // A second open of a file open for writing: a collection first,
         // which closes a handle nothing holds, and then no fault.
         f[0] = rt_handle_new(cx);
-        rt_open_write(cx, rt_string(&name), f[0]);
+        rt_open_write(cx, f[0], rt_string(&name));
         print_to(cx, &f[1], f[0]);
         f[0] = rt_undef();
         f[1] = rt_undef();
         f[2] = rt_handle_new(cx);
-        printf("opens to read: %" PRId64 "\n", rt_open_read(cx, rt_string(&name), f[2]).as.i);
+        printf("opens to read: %" PRId64 "\n", rt_open_read(cx, f[2], rt_string(&name)).as.i);
         f[1] = rt_readline_fh(cx, f[2]);
         rt_print(cx, f[1]);
         // And with the writer held, the fault.
         f[0] = rt_handle_new(cx);
         f[3] = rt_handle_new(cx);
         rt_close(cx, f[2]);
-        rt_open_append(cx, rt_string(&name), f[0]);
+        rt_open_append(cx, f[0], rt_string(&name));
         fflush(stdout);
-        rt_open_read(cx, rt_string(&name), f[3]);
+        rt_open_read(cx, f[3], rt_string(&name));
         printf("not reached\n");
     }
     if (is("write-failed")) {
@@ -83,7 +83,7 @@ static void body(rt_ctx *cx) {
         int fd = open("/dev/null", O_RDONLY);
         close(fd);
         f[0] = rt_handle_new(cx);
-        rt_open_write(cx, rt_string(&name), f[0]);
+        rt_open_write(cx, f[0], rt_string(&name));
         print_to(cx, &f[1], f[0]);
         close(fd);
         printf("written\n");
@@ -96,10 +96,10 @@ static void body(rt_ctx *cx) {
         // The handle read last is collected: a message with no newline is
         // a fault if it had given a line, and names nothing if not.
         f[0] = rt_handle_new(cx);
-        rt_open_write(cx, rt_string(&name), f[0]);
+        rt_open_write(cx, f[0], rt_string(&name));
         print_to(cx, &f[1], f[0]);
         rt_close(cx, f[0]);
-        rt_open_read(cx, rt_string(&name), f[0]);
+        rt_open_read(cx, f[0], rt_string(&name));
         f[1] = is("last-read-lines") ? rt_readline_fh(cx, f[0]) : rt_eof_fh(cx, f[0]);
         f[0] = rt_undef();
         rt_collect(cx);

@@ -307,11 +307,11 @@ Opal's notation, `docs/BUILTINS.md`.
 | `rand`, `srand`, `time`, `localtime`, `gmtime`, `sleep` | Later | 22 |
 | `split`, `m//`, `s///`, `tr///`, `qr//`, `quotemeta` | In | 19, 20 |
 | `die`, `warn` | In | 15 | D142, D148: list operators; `warn` is `true`. One reference alone is thrown as itself; uncaught, among several values, or in a `warn`, D112's fault |
-| `open(my $fh, MODE, PATH)`, three arguments, `'<'`, `'>'` or `'>>'`; `open(...) or die LIST;` | In | 21b | D270, D271, D274, D275, D285, T685, T686, T688, T694: 1 or undef; the name one value by how it is written; the variable holds a handle either way, and one it held is opened again; only plain files, a name with no NUL and no character past ASCII |
+| `open(my $fh, MODE, PATH)`, three arguments, `'<'`, `'>'` or `'>>'`; `open(...) or die LIST;` | In | 21b | D270, D271, D274, D275, D285, D287, T685, T686, T688, T694, T698, T699: 1 or undef; the name one value by how it is written, worked out after the handle is made, and refused when it can change the variable; the variable holds a handle either way, and one it held is opened again; only plain files, a name with no NUL and no character past ASCII |
 | `open` with two arguments, a bareword handle, a mode with a layer or a `+`, a mode worked out, a pipe | Cut | | D270, T690 |
 | `close($fh)`, `close $fh;` | In | 21b | D277, D283: 1; of a handle that is not open, a fault (perl: false, in silence, T687) |
 | `<$fh>`, `eof($fh)` | In | 21b | D281: `<STDIN>`'s rules, word for word; a read or `eof` of a handle that is closed or open for writing is a fault (D277). `<$h{fh}>`, anything but one scalar variable in the angle brackets: Cut (a glob, T693) |
-| `print $fh LIST`, `say`, `printf`; `print { EXPR } LIST` | In | 21b | D278, T683, T684: the handle worked out before the list; a write to a handle that is closed or open for reading is a fault (D277). `print $fh (...)`, `print $fh \\...`, `print($fh ...)`: Cut |
+| `print $fh LIST`, `say`, `printf`; `print { EXPR } LIST` | In | 21b | D278, D287, T683, T684, T697: the handle worked out before the list, which may not change what gave it (refused); a write to a handle that is closed or open for reading is a fault (D277). `print $fh (...)`, `print $fh \\...`, `print($fh ...)`: Cut |
 | A file handle as a value | In | 21b | D271: a reference, `ref` gives `GLOB`; D112's faults where a number or a string is wanted |
 | A file open twice, one of the two for writing | Fault | 21b | D276, T692: perl holds back what is written |
 | A `die` or `warn` with no newline while a file's handle that has given a line is open | Fault | 21b | D279, T682: perl names the handle while it lives |

@@ -319,6 +319,27 @@ STEP21B = [
     c('T696-join', 'TRAPS; PLAN 21b', 'my $x = 5; my $s = join $x -1, "a", "b"; say $s;', compiles=False, err='Missing comma after first argument to join or string function'),
     c('T696-reverse', 'TRAPS; PLAN 21b', 'my $x = 5; my @r = reverse($x -1, 2); say "@r";', compiles=False, err='Missing comma after first argument to reverse function'),
     c('T696-not', 'PLAN 21b', 'my $x = 5; my $s = join $x - 1, "a", "b"; say $s; my @a = (1); push @a, $x -1; say "@a"; sub f { return $x -1 } say f();', out='a4b\n1 4\n4\n'),
+    # ---- found by the independent review of 21b (TRAPS T697 to T699)
+    # T697: perl has a print's handle in its hand before the list is worked
+    # out, and counts no reference for it: a list that drops the last one
+    # leaves a handle that is no more, and nothing is written.
+    c('T697', 'TRAPS; PLAN 21b', 'open(my $w, ">", "o.txt") or die "no\\n"; sub drop { $w = undef; return "s" } print $w drop(), "t"; open(my $r, "<", "o.txt") or die "no\\n"; my @l = <$r>; say scalar(@l);', files=ABC, out='0\n', err=r'^print\(\) on unopened filehandle at '),
+    c('T697-say-braces', 'TRAPS; PLAN 21b', 'open(my $w, ">", "o.txt") or die "no\\n"; my %h = (fh => $w); $w = undef; sub forget { delete $h{fh}; return "s" } say { $h{fh} } forget(), "t"; say "after";', files=ABC, out='after\n', err=r'^say\(\) on unopened filehandle at '),
+    c('T697-printf', 'TRAPS; PLAN 21b', 'open(my $w, ">", "o.txt") or die "no\\n"; my $f = sub { $w = undef; return "s" }; printf $w "%s%s", $f->(), "t"; say "after";', files=ABC, out='after\n', err=r'^printf\(\) on unopened filehandle at '),
+    c('T697-held', 'TRAPS; PLAN 21b', 'open(my $w, ">", "o.txt") or die "no\\n"; my $c = $w; sub drop { $w = undef; return "s" } print $w drop(), "t"; close($c); open(my $r, "<", "o.txt") or die "no\\n"; print <$r>, "\\n";', files=ABC, out='st\n'),
+    c('T697-shift', 'PLAN 21b', 'open(my $w, ">", "o.txt") or die "no\\n"; my @h = ($w); $w = undef; print { $h[0] } "a", ref(shift(@h)); say "after";', files=ABC, out='after\n'),
+    # T698: and an open's, before the name is worked out: a name that
+    # assigns the variable leaves perl opening a handle nothing holds.
+    c('T698', 'TRAPS; PLAN 21b', 'open(my $o, "<", "in.txt") or die "no\\n"; my $fh; sub pick { $fh = $o; return "in.txt" } open($fh, "<", pick()) or die "no\\n"; my $l = <$fh>; print $l;', files=ABC, out='', exit=25, err=r"^Can't use an undefined value as filehandle reference at "),
+    c('T698-my', 'TRAPS; PLAN 21b', 'open(my $o, "<", "in.txt") or die "no\\n"; open(my $fh, "<", name()) or die "no\\n"; sub name { $fh = $o; return "in.txt" } say "after";', files=ABC, out='', exit=25, err=r"^Can't use an undefined value as filehandle reference at "),
+    c('T698-undef', 'TRAPS; PLAN 21b', 'my $fh; open($fh, "<", ($fh = undef) // "in.txt"); say "after";', files=ABC, out='', exit=255, err=r"^Can't use an undefined value as filehandle reference at "),
+    # T699: the handle is made, or what the variable holds looked at, before
+    # the name is worked out: the name sees a handle, and a variable that
+    # holds a number stops perl before the name's sub is called.
+    c('T699', 'TRAPS; PLAN 21b', 'my $fh; sub pick { return defined($fh) ? "in.txt" : "nope" } open($fh, "<", pick()) or die "no\\n"; my $l = <$fh>; print $l; my $g; open($g, "<", ref($g) eq "GLOB" ? "in.txt" : "nope") or die "no\\n"; $l = <$g>; print $l;', files=ABC, out='a\na\n'),
+    c('T699-my', 'TRAPS; PLAN 21b', 'open(my $fh, "<", below()) or die "no\\n"; my $l = <$fh>; print $l; sub below { return defined($fh) ? "in.txt" : "nope" }', files=ABC, out='a\n'),
+    c('T699-first', 'TRAPS; PLAN 21b', 'my $fh = 5; sub name { say "in name"; return "in.txt" } say "before"; open($fh, "<", name()); say "after";', files=ABC, out='before\n', exit=255, err=r'^Can\'t use string \("5"\) as a symbol ref while "strict refs" in use at '),
+    c('T699-outer', 'PLAN 21b', 'my $name = "in.txt"; { open(my $name, "<", $name) or die "no\\n"; my $l = <$name>; print $l; }', files=ABC, out='a\n'),
 ]
 STEP21 += STEP21B
 

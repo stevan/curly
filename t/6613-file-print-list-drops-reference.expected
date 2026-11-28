@@ -1,0 +1,2 @@
+t/6613-file-print-list-drops-reference.pl:12:24: print's list can change $r, which gives the file handle written to: perl has taken the handle by then, and writes to one that nothing may hold any more (T697, D287); take the handle into a my of its own first
+exit: 1

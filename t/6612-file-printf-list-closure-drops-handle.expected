@@ -1,0 +1,2 @@
+t/6612-file-printf-list-closure-drops-handle.pl:9:19: printf's list can change $w, which gives the file handle written to: perl has taken the handle by then, and writes to one that nothing may hold any more (T697, D287); take the handle into a my of its own first
+exit: 1

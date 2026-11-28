@@ -245,9 +245,9 @@ void rt_collect(rt_ctx *cx);
 // runtime's own tests.
 rt_value rt_handle_new(rt_ctx *cx);
 rt_value rt_handle(rt_ctx *cx, rt_value v);
-rt_value rt_open_read(rt_ctx *cx, rt_value path, rt_value handle);
-rt_value rt_open_write(rt_ctx *cx, rt_value path, rt_value handle);
-rt_value rt_open_append(rt_ctx *cx, rt_value path, rt_value handle);
+rt_value rt_open_read(rt_ctx *cx, rt_value handle, rt_value path);
+rt_value rt_open_write(rt_ctx *cx, rt_value handle, rt_value path);
+rt_value rt_open_append(rt_ctx *cx, rt_value handle, rt_value path);
 rt_value rt_close(rt_ctx *cx, rt_value handle);
 rt_value rt_readline_fh(rt_ctx *cx, rt_value handle);
 void rt_list_add_lines_fh(rt_ctx *cx, rt_value list, rt_value handle);
