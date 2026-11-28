@@ -2,6 +2,7 @@
 # the decision, and what the compiler said when the probe was moved. If the language takes back
 # what refuses one, move it to t/census/run/ and take its line out.
 # probe	decision	refusal
+chalk-more/t/bootstrap/ir/data/anon-sub-as-value.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 chalk/c3t2.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 chalk/c3t3.pl	D17	'srand' is not in the language
 chalk/c3t4.pl	D17	'srand' is not in the language
@@ -11,6 +12,136 @@ chalk/fk6.pl	D19	'bless' is not in the language
 chalk/hc1.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 chalk/hc2.pl	D19	'our' is not in the language
 chalk/hc3.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+perlonjava/unit/array.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }
+perlonjava/unit/core_global_sqrt_override.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+perlonjava/unit/defer_implicit_return_cleanup.pl	D16	'use feature' is not in the language
+perlonjava/unit/defined_dynamic_code.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+perlonjava/unit/hash_interpolation_warning.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/hash_literal_anonymous_ref_cleanup.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* or %{ $r }
+perlonjava/unit/large_sub_interpreter_fallback.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+perlonjava/unit/map_source_mutation_snapshot.pl	D16	'use strict' is not in the language
+perlonjava/unit/numification_parser.pl	D38	0x1.999ap is not a number in the language
+perlonjava/unit/pod.pl	D16	'use strict' is not in the language
+perlonjava/unit/refcount/map_return_destroy.pl	D19	'package' is not in the language
+perlonjava/unit/regex/extended_class_no_multifold.pl	D38	00df is not a number in the language
+perlonjava/unit/regex/joni_possessive_literal_region.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }
+perlonjava/unit/regex/vertical_whitespace_escape.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/source_parenthesized_increment_lvalue.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/special_control_globals_stash.pl	D102	a comma in the block of a map, a grep or a sort: put the list in brackets, map { ($_ => 1) } ...
+perlonjava/unit/string_interpolation_at_caret.pl	D92	'@' in a double-quoted string begins an array, and no name is hard against it: write \@ for the character
+perlonjava/unit/substr_live_extent_modes.pl	D17	@_ is not in the language: a sub has a signature (D17)
+perlonjava/unit/utf8_downgrade_references.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* or @{ $r }
+pod/perlcall-005.pl	D17	@_ is not in the language: a sub has a signature (D17)
+pod/perldata-021.pl	D15	${name[...]} in a string: perl warns that it is ambiguous; write $name[...]
+pod/perldata-027.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pod/perldata-055.pl	D16	'use warnings' is not in the language
+pod/perldeprecation-013.pl	D123	a heredoc's terminator is a word, a letter or '_' first: <<"END"
+pod/perldeprecation-015.pl	D123	a heredoc's terminator is a word, a letter or '_' first: <<"END"
+pod/perlebcdic-043.pl	D19	'utf8' is not in the language; a call of a sub of the program's has brackets: utf8(...)
+pod/perlembed-121.pl	D17	@_ is not in the language: a sub has a signature (D17)
+pod/perlform-021.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlform-022.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlfunc-281.pl	D19	'package' is not in the language
+pod/perlfunc-283.pl	D19	'package' is not in the language
+pod/perlfunc-400.pl	D85	reverse of nothing
+pod/perlfunc-442.pl	D87	backwards first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
+pod/perlfunc-455.pl	D87	badlexi first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
+pod/perlfunc-456.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pod/perlfunc-461.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pod/perlfunc-467.pl	D17	@_ is not in the language: a sub has a signature (D17)
+pod/perlfunc-491.pl	D125	an argument by its number, %2$d..., which is not in the language (T276), in printf's format
+pod/perlfunc-508.pl	D125	%6.*2, which is no conversion: perl prints it as it is and warns (T270), in printf's format
+pod/perlfunc-522.pl	D125	an argument by its number, %2$d..., which is not in the language (T276), in printf's format
+pod/perlfunc-556.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+pod/perlfunc-557.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+pod/perlfunc-615.pl	D33	a line that starts '#!' is not in the language: perl can take switches from it
+pod/perlintro-029.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
+pod/perlmod-027.pl	D13	'END' is not in the language
+pod/perlmod-029.pl	D13	'BEGIN' is not in the language
+pod/perlop-016.pl	D56	'++' is for a variable: ++$x
+pod/perlop-174.pl	D61	a label is on a loop: after LOOP: comes while, until or for
+pod/perlop-238.pl	D123	a blank after '<<': a heredoc's terminator is a word hard against it, <<"END"
+pod/perlop-248.pl	D123	a blank after '<<': a heredoc's terminator is a word hard against it, <<"END"
+pod/perlre-117.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlre-131.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlre-161.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+pod/perlref-011.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+pod/perlsub-053.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+pod/perlsub-082.pl	D19	'local' is not in the language
+pod/perlsub-123.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+pod/perlsub-125.pl	D110	\ before '*': \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+pod/perlsub-158.pl	D13	'BEGIN' is not in the language
+pod/perlsub-161.pl	D13	'BEGIN' is not in the language
+pod/perlsyn-093.pl	D16	'use feature' is not in the language
+pod/perluniintro-034.pl	D19	'utf8' is not in the language; a call of a sub of the program's has brackets: utf8(...)
+pod/perlvar-009.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pod/perlvar-070.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pvm-more/internal/chart/testdata/defect-yield/01a0dc72-2609.pl	D38	v5 runs into ')': perl reads a version only before a blank or ';'
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-001.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-002.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-004.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-005.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-006.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-007.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-008.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-010.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-011.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-012.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-013.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-014.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-016.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-017.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-018.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-025.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-026.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-028.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-029.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parsent/Statements-Expressions-Value-QLikeValue-030.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-OpListKeywordExpr-OpKeywordPrintExpr-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-OpListKeywordExpr-OpKeywordPrintfExpr-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-OpListKeywordExpr-OpKeywordSayExpr-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-001.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-002.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-003.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-004.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-005.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-006.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-008.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-010.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-011.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-012.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-013.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-014.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-015.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-016.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-017.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-018.pl	D121	q takes a bracket hard against it, and no other delimiter: q(...), q[...], q{...} or q<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-021.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-024.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-030.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-033.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-036.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-037.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-038.pl	D121	a backslash in qw(...): perl keeps it, or takes it away before a bracket (T261); write the list in quotes
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-039.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-040.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-041.pl	D121	a backslash in qw(...): perl keeps it, or takes it away before a bracket (T261); write the list in quotes
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-042.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-044.pl	D121	a backslash in qw(...): perl keeps it, or takes it away before a bracket (T261); write the list in quotes
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-046.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-047.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-048.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-049.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-050.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-051.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-052.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-053.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-054.pl	D121	qw takes a bracket hard against it, and no other delimiter: qw(...), qw[...], qw{...} or qw<...> (D121)
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-075.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-078.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-084.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-087.pl	D16	'use feature' is not in the language
+pvm-more/internal/chart/testdata/guacamole/parses/Statements-Expressions-Value-QLikeValue-090.pl	D16	'use feature' is not in the language
 pvm/adjacency-01_literals-01.pl	D38	1. ends with a point: write 1.0
 pvm/adjacency-02_variables-01.pl	D114	a word alone in ${ ... } is the name of a variable, to perl (${x} is $x): D114 refuses it; name a variable, ${ $r }
 pvm/adjacency-05_scoping-01.pl	D16	'use feature' is not in the language
@@ -18,10 +149,12 @@ pvm/adjacency-06_control-01.pl	D92	'$' in a double-quoted string begins a variab
 pvm/adjacency-08_references-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/adjacency-12_packages-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/adjacency-13_opaque-01.pl	D17	'format' is not in the language
+pvm/aggregate-operators-05.pl	D80	splice needs brackets: splice(@a, ...)
 pvm/aggregate-operators-08.pl	D17	expected a value, found 'each'
 pvm/aggregates-in-context-03.pl	D80	a list where one value is wanted: perl gives its last value, and warns of the others
 pvm/argument-extent-01.pl	D17	@_ is not in the language: a sub has a signature (D17)
 pvm/argument-extent-04.pl	D19	'local' is not in the language
+pvm/argument-extent-05.pl	D22	'lock' is not in the language
 pvm/arguments-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/arithmetic-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/arithmetic-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -29,6 +162,7 @@ pvm/arithmetic-03.pl	D55	$a is not a name a program may declare: $a and $b are t
 pvm/arithmetic-04.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/bless-dispatch-05.pl	D19	'package' is not in the language
 pvm/bless-dispatch-08.pl	D19	'package' is not in the language
+pvm/blocks-and-terminations-03.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 pvm/blocks-and-terminations-04.pl	D13	'eval' is not in the language
 pvm/class-feature-01.pl	D16	'use feature' is not in the language
 pvm/class-feature-02.pl	D16	'use feature' is not in the language
@@ -41,6 +175,7 @@ pvm/class-feature-08.pl	D16	'use feature' is not in the language
 pvm/class-feature-09.pl	D16	'use feature' is not in the language
 pvm/class-feature-10.pl	D16	'use feature' is not in the language
 pvm/code-references-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+pvm/code-references-02.pl	D21	expected a value, found 'prototype'
 pvm/comparison-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/comparison-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/comparison-06.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -59,10 +194,14 @@ pvm/dereferencing-06.pl	D108	a subscript after the braces of a dereference is cu
 pvm/dereferencing-07.pl	D108	$#$ before a name is cut (D108): the last index through a reference is written $r->$#* (step 13b)
 pvm/eval-replacement-03.pl	D13	expected a value, found 'eval'
 pvm/formats-01.pl	D17	'format' is not in the language
+pvm/formats-02.pl	D22	after '@' comes a name: a letter or '_', then letters, digits and '_'
+pvm/hashes-05.pl	D104	@h{...} with one key: perl warns that it is better written $h{...}
 pvm/jumps-01.pl	D13	'redo' is not in the language
 pvm/jumps-02.pl	D13	'goto' is not in the language
 pvm/list-operators-in-context-01.pl	D80	reverse where one value is wanted: perl joins its arguments and reverses the characters there, which is another function
 pvm/list-operators-in-context-02.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+pvm/list-operators-in-context-04.pl	D87	map takes no brackets of its own: map { ... } LIST
+pvm/list-operators-in-context-05.pl	D87	grep takes no brackets of its own: grep { ... } LIST
 pvm/loading-01.pl	D16	'use strict' is not in the language
 pvm/loading-04.pl	D13	'require' is not in the language
 pvm/loading-05.pl	D13	'require' is not in the language
@@ -70,16 +209,22 @@ pvm/loading-06.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in
 pvm/loops-08.pl	D13	'continue' is not in the language
 pvm/named-operators-07.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/names-01.pl	D114	a word alone in ${ ... } is the name of a variable, to perl (${x} is $x): D114 refuses it; name a variable, ${ $r }
+pvm/names-03.pl	D19	after '@' comes a name: a letter or '_', then letters, digits and '_'
+pvm/names-04.pl	D19	after '%' comes a name: a letter or '_', then letters, digits and '_'
+pvm/names-05.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
+pvm/names-06.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
 pvm/numeric-point-03.pl	D38	1. ends with a point: write 1.0
 pvm/numeric-radix-04.pl	D38	0377 starts with a zero: perl reads that as octal, which the language writes 0o17
 pvm/packages-01.pl	D19	'package' is not in the language
 pvm/packages-02.pl	D19	'package' is not in the language
 pvm/packages-03.pl	D19	'package' is not in the language
+pvm/pod-and-data-03.pl	D20	expected a value, found '<'
 pvm/quote-like-terms-05.pl	D121	qq takes a bracket hard against it, and no other delimiter: qq(...), qq[...], qq{...} or qq<...> (D121)
 pvm/range-03.pl	D80	a range where one value is wanted: '..' is another operator to perl there
 pvm/strings-03.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/subroutines-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/subroutines-04.pl	D17	@_ is not in the language: a sub has a signature (D17)
+pvm/subroutines-05.pl	D21	after '$' comes a name: a letter or '_', then letters, digits and '_'
 pvm/subroutines-06.pl	D17	@_ is not in the language: a sub has a signature (D17)
 pvm/subroutines-09.pl	D17	@_ is not in the language: a sub has a signature (D17)
 pvm/subroutines-11.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -101,12 +246,15 @@ pvm/tie-01.pl	D19	'package' is not in the language
 pvm/tie-02.pl	D19	'package' is not in the language
 pvm/unary-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/unary-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pvm/unary-03.pl	D21	'*' after print (...): perl takes the brackets for all of print's arguments; bracket the whole expression
 pvm/vstrings-01.pl	D38	65.66.67 is not a number in the language
+pvm/vstrings-02.pl	D38	expected a value, found v65.66.67
 pvm/writing-03.pl	D16	'use feature' is not in the language
 son-audit/a/aue1.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/a/aue3.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/a/aue4.pl	D17	'srand' is not in the language
 son-audit/a/aue5.pl	D17	expected a value, found 'each'
+son-audit/a/auk10.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/a/auk11.pl	D13	expected a value, found 'eval'
 son-audit/a/auk12.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/a/auk13.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
@@ -162,6 +310,7 @@ son-audit/a/aum62.pl	D19	'package' is not in the language
 son-audit/a/aum63.pl	D19	'package' is not in the language
 son-audit/a/aum7.pl	D19	'our' is not in the language
 son-audit/a/aum73.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
+son-audit/a/aum76.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/a/aum8.pl	D19	'our' is not in the language
 son-audit/a/aum9.pl	D19	'our' is not in the language
 son-audit/a/aun1.pl	D19	'our' is not in the language
@@ -174,6 +323,7 @@ son-audit/a/aun111.pl	D108	$$ before a name is cut (D108): an element through a 
 son-audit/a/aun113.pl	D17	$e is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/a/aun115.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/a/aun116.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/a/aun119.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/a/aun12.pl	D19	'our' is not in the language
 son-audit/a/aun121.pl	D76	a later part of this list can change $s, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/a/aun122.pl	D76	a later part of this list can change $i, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -235,6 +385,7 @@ son-audit/a/aun30.pl	D19	'our' is not in the language
 son-audit/a/aun31.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/a/aun35.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
 son-audit/a/aun36.pl	D108	$$ in a string: a dereference without braces is cut (D108); write ${ $r } or $r->$*, and $r->[0] for an element
+son-audit/a/aun37.pl	D80	an array among the targets takes every value that is left: it is the last target
 son-audit/a/aun4.pl	D19	'our' is not in the language
 son-audit/a/aun40.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/a/aun41.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -288,6 +439,7 @@ son-audit/a/aux10.pl	D108	$$ before a name is cut (D108): an element through a r
 son-audit/a/aux11.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/a/aux12.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/a/aux2.pl	D19	'our' is not in the language
+son-audit/a/aux3.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/a/aux5.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aux6.pl	D19	'our' is not in the language
 son-audit/a/aux7.pl	D19	'our' is not in the language
@@ -301,15 +453,25 @@ son-audit/al/c06.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/al/c07.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c08.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c09.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/al/c10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/al/c11.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c12.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c13.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/al/c14.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c15.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c16.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/al/d01.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/al/d02.pl	D56	the left side of '-=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/al/d03.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/al/d04.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/al/d05.pl	D56	expected ';', found '++'
+son-audit/al/d06.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/al/d07.pl	D19	'our' is not in the language
+son-audit/al/d08.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/al/d09.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/d10.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/al/d11.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/al/d12.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/al/e01.pl	D19	'our' is not in the language
 son-audit/al/e02.pl	D19	'our' is not in the language
 son-audit/al/e03.pl	D19	'our' is not in the language
@@ -388,6 +550,7 @@ son-audit/f/a82.pl	D108	$$ before a name is cut (D108): an element through a ref
 son-audit/f/a83.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/a84.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/a85.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/f/b10.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/f/b30.pl	D13	expected a value, found 'eval'
 son-audit/f/b31.pl	D13	expected a value, found 'eval'
 son-audit/f/b32.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -400,11 +563,13 @@ son-audit/f/b42.pl	D78	an assignment of a list is a statement: perl gives the co
 son-audit/f/b43.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/f/b45.pl	D56	my $y here: a my begins a statement or a for, or stands in the test of an if or a while, where it is always reached
 son-audit/f/b46.pl	D56	my $x here: a my begins a statement or a for, or stands in the test of an if or a while, where it is always reached
+son-audit/f/b47.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/f/b53.pl	D19	'our' is not in the language
 son-audit/f/b55.pl	D130	chomp is a statement here, and has no value: perl gives how many characters it took (D130)
 son-audit/f/b56.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
 son-audit/f/b57.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/b59.pl	D13	'wantarray' is not in the language
+son-audit/f/b64.pl	D87	by first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
 son-audit/f/b65.pl	D19	'our' is not in the language
 son-audit/f/b70.pl	D17	expected a value, found 'each'
 son-audit/f/b83.pl	D13	expected a value, found 'eval'
@@ -422,6 +587,7 @@ son-audit/f/b94.pl	D13	expected a value, found 'eval'
 son-audit/f/b95.pl	D13	expected a value, found 'eval'
 son-audit/f/c06.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/f/c07.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
+son-audit/f/c12.pl	D80	an array among the targets takes every value that is left: it is the last target
 son-audit/f/c16.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/c18.pl	D19	'our' is not in the language
 son-audit/f/c19.pl	D19	'our' is not in the language
@@ -447,6 +613,8 @@ son-audit/f/d04.pl	D19	'our' is not in the language
 son-audit/f/d05.pl	D19	'our' is not in the language
 son-audit/f/d06.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/d07.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/d08.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/d09.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d10.pl	D19	'our' is not in the language
 son-audit/f/d11.pl	D19	'our' is not in the language
 son-audit/f/d12.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -459,13 +627,17 @@ son-audit/f/d18.pl	D19	'our' is not in the language
 son-audit/f/d19.pl	D19	'our' is not in the language
 son-audit/f/d20.pl	D19	'our' is not in the language
 son-audit/f/d21.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/f/d22.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d23.pl	D19	'our' is not in the language
 son-audit/f/d24.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/d25.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d26.pl	D13	expected a value, found 'eval'
 son-audit/f/d27.pl	D13	expected a value, found 'eval'
+son-audit/f/d28.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d29.pl	D13	'eval' is not in the language
 son-audit/f/d30.pl	D13	'eval' is not in the language
 son-audit/f/d31.pl	D13	'eval' is not in the language
+son-audit/f/d32.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d33.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/d34.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/d35.pl	D13	'eval' is not in the language
@@ -492,6 +664,7 @@ son-audit/f/d55.pl	D19	'our' is not in the language
 son-audit/f/d56.pl	D19	'our' is not in the language
 son-audit/f/d57.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/d58.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/d59.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d60.pl	D19	'our' is not in the language
 son-audit/f/d61.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/d62.pl	D19	'our' is not in the language
@@ -503,21 +676,32 @@ son-audit/f/d67.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/f/d68.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/d69.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/d70.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/d71.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d72.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+son-audit/f/d73.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/d74.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/d75.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/e01.pl	D13	expected a value, found 'eval'
 son-audit/f/e02.pl	D13	'eval' is not in the language
 son-audit/f/e03.pl	D13	expected a value, found 'eval'
+son-audit/f/e04.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e05.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/e06.pl	D13	expected a value, found 'eval'
 son-audit/f/e07.pl	D13	expected a value, found 'eval'
+son-audit/f/e08.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/e09.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/e10.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e11.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/e12.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/f/e13.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/f/e14.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/e15.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/e16.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e17.pl	D13	expected a value, found 'eval'
 son-audit/f/e18.pl	D13	'eval' is not in the language
 son-audit/f/e19.pl	D13	expected a value, found 'eval'
 son-audit/f/e20.pl	D13	expected a value, found 'wantarray'
+son-audit/f/e21.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e22.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/e23.pl	D13	'eval' is not in the language
 son-audit/f/e24.pl	D13	'eval' is not in the language
@@ -531,6 +715,9 @@ son-audit/f/e31.pl	D16	'use feature' is not in the language
 son-audit/f/e32.pl	D16	'use feature' is not in the language
 son-audit/f/e33.pl	D16	'use feature' is not in the language
 son-audit/f/e34.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/e35.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/e36.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/e37.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e38.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/e39.pl	D19	'our' is not in the language
 son-audit/f/e40.pl	D19	'our' is not in the language
@@ -548,11 +735,15 @@ son-audit/f/e52.pl	D13	expected a value, found 'eval'
 son-audit/f/e53.pl	D13	expected a value, found 'eval'
 son-audit/f/e54.pl	D13	expected a value, found 'eval'
 son-audit/f/e55.pl	D13	'eval' is not in the language
+son-audit/f/e56.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e57.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/e58.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/e59.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e60.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/e61.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/e62.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/f/e63.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/f/e64.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/e65.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/f/g05.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/f/g09.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -602,17 +793,29 @@ son-audit/f/h20.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/f/i01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/i02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/i03.pl	D19	'our' is not in the language
+son-audit/f/i04.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/f/i05.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/f/i06.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/f/i07.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/f/i09.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/f/i10.pl	D19	'our' is not in the language
+son-audit/f/i11.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/f/i12.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/f/i13.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/f/i14.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/i15.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/f/i16.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/i17.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/i18.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/f/i19.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-audit/f/i20.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/f/i21.pl	D56	the left side of '/=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/f/i22.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/f/i23.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/f/i24.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/i25.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/i26.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/f/i27.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/f/j01.pl	D19	'our' is not in the language
 son-audit/f/j02.pl	D19	'our' is not in the language
 son-audit/f/j03.pl	D19	'our' is not in the language
@@ -634,8 +837,12 @@ son-audit/f/j22.pl	D19	'our' is not in the language
 son-audit/f/j23.pl	D19	'our' is not in the language
 son-audit/f/j24.pl	D19	'our' is not in the language
 son-audit/f/j26.pl	D17	$v is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/f/k01.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-audit/f/k03.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/f/k06.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/k10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/f/k11.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/k12.pl	D17	shift names an array, found '}': shift(@a), or shift($r->@*)
 son-audit/f/k14.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/k15.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/k16.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -644,10 +851,12 @@ son-audit/f/k18.pl	D108	@$ before a name is cut (D108): an array through a refer
 son-audit/f/k19.pl	D16	'use feature' is not in the language
 son-audit/f/k20.pl	D16	'use feature' is not in the language
 son-audit/f/k21.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-audit/f/k22.pl	D17	shift names an array, found '}': shift(@a), or shift($r->@*)
 son-audit/f/k23.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/k24.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/k25.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/f/k27.pl	D76	a later part of print's list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/f/k29.pl	D87	$by first after sort: perl takes a scalar there for a sub that compares; put a + before it, or give sort a block
 son-audit/f/k30.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/k31.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/k32.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -655,6 +864,7 @@ son-audit/f/k33.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/f/k34.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/k40.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/k41.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/k43.pl	D17	shift names an array, found '}': shift(@a), or shift($r->@*)
 son-audit/f/l01.pl	D19	'our' is not in the language
 son-audit/f/l02.pl	D19	'our' is not in the language
 son-audit/f/l03.pl	D19	'our' is not in the language
@@ -713,10 +923,13 @@ son-audit/f/m01.pl	D17	expected a value, found 'chop'
 son-audit/f/m02.pl	D17	expected a value, found 'chop'
 son-audit/f/m03.pl	D17	expected a value, found 'chop'
 son-audit/f/m04.pl	D130	chomp is a statement here, and has no value: perl gives how many characters it took (D130)
+son-audit/f/m05.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/m06.pl	D17	'chop' is not in the language
 son-audit/f/m07.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
+son-audit/f/m08.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/m09.pl	D80	splice where one value is wanted: perl gives the last element it removed; assign it to an array
 son-audit/f/m10.pl	D80	reverse where one value is wanted: perl joins its arguments and reverses the characters there, which is another function
+son-audit/f/m17.pl	D85	ord needs an argument
 son-audit/f/m26.pl	D56	my $u here: a my begins a statement or a for, or stands in the test of an if or a while, where it is always reached
 son-audit/f/m27.pl	D80	reverse where one value is wanted: perl joins its arguments and reverses the characters there, which is another function
 son-audit/f/m30.pl	D17	expected a value, found 'chop'
@@ -791,10 +1004,13 @@ son-audit/f/s03.pl	D19	'our' is not in the language
 son-audit/f/s04.pl	D19	'our' is not in the language
 son-audit/f/s05.pl	D19	'our' is not in the language
 son-audit/f/s06.pl	D19	'our' is not in the language
+son-audit/f/s07.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/f/s08.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/f/s09.pl	D19	'our' is not in the language
 son-audit/f/s12.pl	D54	else after unless: write it as an if
 son-audit/f/s13.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/s15.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/f/s21.pl	D21	-n: a minus hard against one letter is a file test, to perl; put a blank after the minus, or brackets round what it negates
 son-audit/f/s26.pl	D19	'our' is not in the language
 son-audit/f/s27.pl	D19	'our' is not in the language
 son-audit/f/s28.pl	D19	'our' is not in the language
@@ -832,8 +1048,10 @@ son-audit/f/w18.pl	D19	'our' is not in the language
 son-audit/f/w21.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/w22.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/f/w24.pl	D19	'our' is not in the language
+son-audit/f/w25.pl	D80	an array among the targets takes every value that is left: it is the last target
 son-audit/f/w27.pl	D19	'our' is not in the language
 son-audit/f/w28.pl	D19	'our' is not in the language
+son-audit/f/w29.pl	D100	a target of a list assignment is a variable, an element, undef, or, last, an array or a hash
 son-audit/f/w30.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/l/lw1.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw10.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -849,10 +1067,12 @@ son-audit/l/lw33.pl	D108	@$ before a name is cut (D108): an array through a refe
 son-audit/l/lw36.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/l/lw37.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/l/lw39.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/l/lw4.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/l/lw40.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw41.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/l/lw44.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw47.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/l/lw48.pl	D85	map's block ends in an expression, which is its value
 son-audit/l/lw49.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw5.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw50.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -885,6 +1105,7 @@ son-audit/l/lw76.pl	D55	$_ outside the block of a for, a map or a grep: it is th
 son-audit/l/lw77.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw78.pl	D17	$e is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw79.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/l/lw8.pl	D85	length needs an argument
 son-audit/l/lw80.pl	D17	$e is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw81.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw82.pl	D17	$e is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -894,6 +1115,7 @@ son-audit/l/lw85.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/l/lw86.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/l/lw87.pl	D17	$e is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw88.pl	D17	$e is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/l/lw89.pl	D85	last out of the block of a map: a loop says it
 son-audit/l/lw9.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/l/lw90.pl	D17	$v is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/l/lw91.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -956,11 +1178,13 @@ son-audit/p/al30.pl	D17	$_ is read-only: in perl, changing it changes the list's
 son-audit/p/al4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/al6.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/p/al7.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/p/al8.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/p/ar1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ar10.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ar11.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ar12.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/ar13.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/ar14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/p/ar15.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ar16.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/ar17.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -979,9 +1203,11 @@ son-audit/p/ar9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/p/bless1.pl	D19	'bless' is not in the language
 son-audit/p/bless2.pl	D19	expected a value, found 'bless'
 son-audit/p/ca1.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-audit/p/ca10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/p/ca11.pl	D19	'package' is not in the language
 son-audit/p/ca13.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/ca14.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/ca15.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/p/ca16.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/ca17.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/p/ca19.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -989,10 +1215,12 @@ son-audit/p/ca2.pl	D13	expected a value, found 'wantarray'
 son-audit/p/ca20.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/ca21.pl	D19	'our' is not in the language
 son-audit/p/ca22.pl	D19	'our' is not in the language
+son-audit/p/ca23.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/p/ca24.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/p/ca27.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
 son-audit/p/ca28.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
 son-audit/p/ca29.pl	D21	a sub may not be called DESTROY: perl has a meaning of its own for the word
+son-audit/p/ca3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/p/ca4.pl	D19	'our' is not in the language
 son-audit/p/ca5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ca6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1016,6 +1244,7 @@ son-audit/p/dyn1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/p/dyn2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ef10.pl	D19	expected a value, found 'bless'
 son-audit/p/ef11.pl	D19	'package' is not in the language
+son-audit/p/ef2.pl	D21	printf is a statement, and has no value
 son-audit/p/ef23.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/p/ef24.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/p/ef25.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -1033,29 +1262,41 @@ son-audit/p/ev13.pl	D13	'eval' is not in the language
 son-audit/p/ev14.pl	D13	'eval' is not in the language
 son-audit/p/ev15.pl	D13	'eval' is not in the language
 son-audit/p/ev16.pl	D13	'eval' is not in the language
+son-audit/p/ev17.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/p/ev18.pl	D13	'eval' is not in the language
 son-audit/p/ev2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ev4.pl	D13	expected a value, found 'eval'
 son-audit/p/ev5.pl	D13	'eval' is not in the language
+son-audit/p/ev6.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/p/ev7.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/p/ev8.pl	D13	expected a value, found 'eval'
 son-audit/p/ev9.pl	D13	expected a value, found 'eval'
+son-audit/p/ex1.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/p/ex2.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/p/ex3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/ex4.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/p/fl12.pl	D13	expected a value, found 'eval'
 son-audit/p/fl14.pl	D16	'use warnings' is not in the language
 son-audit/p/fl20.pl	D16	'use warnings' is not in the language
 son-audit/p/fl3.pl	D13	expected a value, found 'eval'
 son-audit/p/go1.pl	D13	'goto' is not in the language
+son-audit/p/go2.pl	D61	a label is on a loop: after A1: comes while, until or for
 son-audit/p/go3.pl	D13	'goto' is not in the language
+son-audit/p/go4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/p/hs3.pl	D19	'our' is not in the language
 son-audit/p/hs7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/hs8.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/hs9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im1.pl	D19	'package' is not in the language
+son-audit/p/im10.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/p/im11.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/p/im15.pl	D87	sort takes no brackets of its own: sort LIST, or sort { ... } LIST
+son-audit/p/im16.pl	D87	cmpf first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
 son-audit/p/im17.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
+son-audit/p/im18.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/p/im19.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/p/im2.pl	D19	'package' is not in the language
+son-audit/p/im20.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/p/im21.pl	D13	expected a value, found 'eval'
 son-audit/p/im23.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/p/im3.pl	D19	'package' is not in the language
@@ -1065,8 +1306,10 @@ son-audit/p/im6.pl	D19	'package' is not in the language
 son-audit/p/im7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im9.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
+son-audit/p/io3.pl	D22	'select' is not in the language
 son-audit/p/la2.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/p/la3.pl	D19	'our' is not in the language
+son-audit/p/la31.pl	D80	an array among the targets takes every value that is left: it is the last target
 son-audit/p/la4.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/p/la7.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/lo1.pl	D19	'our' is not in the language
@@ -1075,6 +1318,7 @@ son-audit/p/lo11.pl	D19	'our' is not in the language
 son-audit/p/lo12.pl	D19	'our' is not in the language
 son-audit/p/lo13.pl	D19	'local' is not in the language
 son-audit/p/lo14.pl	D19	'our' is not in the language
+son-audit/p/lo15.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/p/lo16.pl	D19	'our' is not in the language
 son-audit/p/lo2.pl	D19	'our' is not in the language
 son-audit/p/lo20.pl	D19	'our' is not in the language
@@ -1092,6 +1336,7 @@ son-audit/p/lp16.pl	D13	'continue' is not in the language
 son-audit/p/lp17.pl	D13	'redo' is not in the language
 son-audit/p/lp23.pl	D19	'our' is not in the language
 son-audit/p/lp25.pl	D13	'goto' is not in the language
+son-audit/p/lp26.pl	D61	a label is on a loop: after AGAIN: comes while, until or for
 son-audit/p/lp28.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/p/lp8.pl	D13	'redo' is not in the language
 son-audit/p/lp9.pl	D13	'redo' is not in the language
@@ -1134,6 +1379,7 @@ son-audit/p/pl8.pl	D19	'our' is not in the language
 son-audit/p/pl9.pl	D19	'our' is not in the language
 son-audit/p/rn1.pl	D17	'srand' is not in the language
 son-audit/p/rn2.pl	D17	'srand' is not in the language
+son-audit/p/rn8.pl	D21	-s: a minus hard against one letter is a file test, to perl; put a blank after the minus, or brackets round what it negates
 son-audit/p/sg1.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/p/st1.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/st10.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -1191,6 +1437,9 @@ son-audit/q/rv15.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/q/rv2.pl	D76	a later part of print's list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/q/rv3.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/q/rv4.pl	D76	a later part of print's list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/q/rv5.pl	D78	scalar names an array, found '(': scalar(@a), or scalar($r->@*)
+son-audit/q/rv6.pl	D78	scalar names an array, found '(': scalar(@a), or scalar($r->@*)
+son-audit/q/rv7.pl	D78	scalar names an array, found '(': scalar(@a), or scalar($r->@*)
 son-audit/q/vp10.pl	D76	a later part of '+' can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/q/vp11.pl	D19	'our' is not in the language
 son-audit/q/vp12.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -1214,6 +1463,7 @@ son-audit/r/a16.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/r/a17.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/r/a18.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/r/a19.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/r/a20.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/r/a25.pl	D19	'our' is not in the language
 son-audit/r/a26.pl	D19	'our' is not in the language
 son-audit/r/a27.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -1230,7 +1480,9 @@ son-audit/r/b03.pl	D19	'our' is not in the language
 son-audit/r/b04.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/b05.pl	D19	'our' is not in the language
 son-audit/r/b06.pl	D19	'our' is not in the language
+son-audit/r/b07.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/r/b08.pl	D13	'eval' is not in the language
+son-audit/r/b09.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/r/b10.pl	D13	'eval' is not in the language
 son-audit/r/b11.pl	D19	'our' is not in the language
 son-audit/r/b12.pl	D19	'our' is not in the language
@@ -1238,10 +1490,12 @@ son-audit/r/b13.pl	D19	'our' is not in the language
 son-audit/r/b14.pl	D19	'our' is not in the language
 son-audit/r/b15.pl	D19	'our' is not in the language
 son-audit/r/b16.pl	D19	'our' is not in the language
+son-audit/r/b17.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/r/b18.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/b19.pl	D13	'eval' is not in the language
 son-audit/r/b20.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/b21.pl	D19	'our' is not in the language
+son-audit/r/b22.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/r/b23.pl	D13	'eval' is not in the language
 son-audit/r/b24.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/b25.pl	D19	'our' is not in the language
@@ -1252,6 +1506,7 @@ son-audit/r/b29.pl	D16	'use feature' is not in the language
 son-audit/r/b30.pl	D16	'use feature' is not in the language
 son-audit/r/b31.pl	D13	expected a value, found 'eval'
 son-audit/r/b32.pl	D13	expected a value, found 'eval'
+son-audit/r/b33.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/r/b34.pl	D19	'our' is not in the language
 son-audit/r/b35.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/b36.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
@@ -1317,6 +1572,7 @@ son-audit/r/e37.pl	D13	'continue' is not in the language
 son-audit/r/e38.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/r/e39.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/r/e40.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/r/f04.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/r/f07.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/r/f09.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/r/f10.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -1325,6 +1581,7 @@ son-audit/r/f15.pl	D57	a later piece of a concatenation calls a sub through a re
 son-audit/r/f16.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/r/f17.pl	D76	a later part of this list can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/r/f18.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/r/f19.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/r/g01.pl	D19	'our' is not in the language
 son-audit/r/g02.pl	D19	'our' is not in the language
 son-audit/r/g03.pl	D19	'our' is not in the language
@@ -1347,10 +1604,12 @@ son-audit/r/g20.pl	D19	'our' is not in the language
 son-audit/r/h08.pl	D19	'our' is not in the language
 son-audit/r/h09.pl	D19	'our' is not in the language
 son-audit/r/h11.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+son-audit/r/h14.pl	D100	a target of a list assignment is a variable, an element, undef, or, last, an array or a hash
 son-audit/r/h18.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/r/h23.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/r/h25.pl	D19	'our' is not in the language
 son-audit/r/h26.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+son-audit/r/h27.pl	D80	an array among the targets takes every value that is left: it is the last target
 son-audit/r/h28.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/r/i01.pl	D19	'our' is not in the language
 son-audit/r/i02.pl	D19	'our' is not in the language
@@ -1371,6 +1630,7 @@ son-audit/r/i17.pl	D19	'our' is not in the language
 son-audit/r/i18.pl	D19	'our' is not in the language
 son-audit/r/i19.pl	D19	'our' is not in the language
 son-audit/r/i20.pl	D19	'our' is not in the language
+son-audit/r/j04.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/r/j05.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/r/j09.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/r/j26.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
@@ -1409,6 +1669,7 @@ son-audit/r/m09.pl	D19	'package' is not in the language
 son-audit/r/m10.pl	D19	'package' is not in the language
 son-audit/r/m11.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/m12.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/r/m13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/r/m14.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/m15.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/m17.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -1427,10 +1688,14 @@ son-audit/r/n35.pl	D78	an assignment of a list is a statement: perl gives the co
 son-audit/r/o01.pl	D17	'srand' is not in the language
 son-audit/r/o03.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/r/o04.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/r/o07.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/r/o08.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/r/o09.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/r/o10.pl	D19	'our' is not in the language
 son-audit/r/o11.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/r/o12.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/r/o13.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
+son-audit/r/o14.pl	D21	-c: a minus hard against one letter is a file test, to perl; put a blank after the minus, or brackets round what it negates
 son-audit/r/o16.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/r/o18.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/r/o19.pl	D19	'local' is not in the language
@@ -1494,9 +1759,11 @@ son-audit/y/unverified/yf51.pl	D17	$_ is read-only: in perl, changing it changes
 son-audit/y/unverified/yi30.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/unverified/yi34.pl	D13	expected a value, found 'eval'
 son-audit/y/unverified/yj56.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+son-audit/y/unverified/yn26.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/unverified/yp158.pl	D19	'our' is not in the language
 son-audit/y/unverified/yp191.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/unverified/yp21.pl	D19	'our' is not in the language
+son-audit/y/unverified/yp22.pl	D80	a comma after an assignment's right side: perl takes the assignment for the first item of a list; put the list in brackets
 son-audit/y/unverified/yp40.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/unverified/yp41.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/unverified/yp42.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1506,11 +1773,13 @@ son-audit/y/unverified/yp58.pl	D17	$_[ is an element of perl's own @_ or %_, whi
 son-audit/y/unverified/yp59.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya01.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya02.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/ya03.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/y/ya04.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya05.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/ya06.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/ya07.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/ya08.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/ya09.pl	D17	pop names an array, found ';': pop(@a), or pop($r->@*)
 son-audit/y/ya11.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya12.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya13.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1562,6 +1831,7 @@ son-audit/y/ya60.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya61.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya62.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya63.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/ya64.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/y/ya65.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya66.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya67.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -1578,6 +1848,7 @@ son-audit/y/ya77.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya78.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya79.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya80.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/ya81.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/y/yb03.pl	D19	'package' is not in the language
 son-audit/y/yb07.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/y/yb10.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -1590,6 +1861,7 @@ son-audit/y/yb18.pl	D110	\$x: a reference to a loop's variable is cut (D110): to
 son-audit/y/yb20.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yb21.pl	D77	this can change $s, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop
 son-audit/y/yb22.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yb23.pl	D85	expected a value, found '}'
 son-audit/y/yb24.pl	D19	'our' is not in the language
 son-audit/y/yb27.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yb30.pl	D13	'eval' is not in the language
@@ -1598,14 +1870,22 @@ son-audit/y/yb33.pl	D17	$x is its loop's variable, and read-only: in perl, chang
 son-audit/y/yb48.pl	D17	$y is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yb49.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yb54.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/y/yc01.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yc02.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yc03.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yc04.pl	D56	expected ';', found '++'
+son-audit/y/yc05.pl	D56	'++' is for a variable: ++$x
+son-audit/y/yc06.pl	D56	expected ';', found '++'
 son-audit/y/yc08.pl	D17	'chop' is not in the language
 son-audit/y/yc09.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
+son-audit/y/yc10.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc101.pl	D21	a sub may not be called m: perl has a meaning of its own for the word
 son-audit/y/yc104.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yc106.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yc107.pl	D109	a later part of '+' can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc108.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc109.pl	D57	a later piece of a concatenation changes @a, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own
+son-audit/y/yc11.pl	D56	the left side of '-=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc110.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc111.pl	D76	a later part of print's list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc112.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -1613,6 +1893,7 @@ son-audit/y/yc114.pl	D76	a later part of '+' can change @a, which an earlier par
 son-audit/y/yc116.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc118.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc119.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+son-audit/y/yc12.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc120.pl	D76	a later part of this slice can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc121.pl	D109	a later part of '+' can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc122.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1623,6 +1904,7 @@ son-audit/y/yc126.pl	D108	$$ before a name is cut (D108): an element through a r
 son-audit/y/yc127.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yc128.pl	D76	a later part of this list can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc129.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yc13.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc130.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc131.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc132.pl	D19	'package' is not in the language
@@ -1631,6 +1913,7 @@ son-audit/y/yc134.pl	D76	a later part of this list can change @a, which an earli
 son-audit/y/yc135.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc136.pl	D17	expected a value, found 'chop'
 son-audit/y/yc138.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/y/yc14.pl	D56	expected ';', found '++'
 son-audit/y/yc141.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc142.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc143.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -1640,6 +1923,7 @@ son-audit/y/yc146.pl	D109	a later part of this list can change what references r
 son-audit/y/yc147.pl	D76	a later part of this list can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc148.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc149.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yc15.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc150.pl	D76	a later part of this list can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc151.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yc152.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -1650,6 +1934,7 @@ son-audit/y/yc156.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yc157.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/y/yc158.pl	D76	a later part of join can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc159.pl	D76	a later part of push can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yc16.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc161.pl	D76	a later part of sprintf can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc162.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc163.pl	D76	a later part of the loop's list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -1659,12 +1944,14 @@ son-audit/y/yc166.pl	D111	@{[ in a string puts code in it, which is cut (D111): 
 son-audit/y/yc167.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc168.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc169.pl	D19	'our' is not in the language
+son-audit/y/yc17.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc171.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc172.pl	D19	'our' is not in the language
 son-audit/y/yc173.pl	D19	'our' is not in the language
 son-audit/y/yc174.pl	D19	'our' is not in the language
 son-audit/y/yc175.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc176.pl	D76	a later part of '+' can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yc18.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yc20.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yc21.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yc22.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1675,6 +1962,9 @@ son-audit/y/yc26.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/y/yc27.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yc29.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yc30.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/y/yc31.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yc32.pl	D56	expected ';', found '++'
+son-audit/y/yc49.pl	D100	a target of a list assignment is a variable, an element, undef, or, last, an array or a hash
 son-audit/y/yc52.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/y/yc55.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc60.pl	D57	a later piece of a concatenation changes $x, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own
@@ -1768,6 +2058,7 @@ son-audit/y/yf41.pl	D17	$x is its loop's variable, and read-only: in perl, chang
 son-audit/y/yf42.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf43.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf44.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/y/yf47.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yf49.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf50.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf52.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -1781,10 +2072,13 @@ son-audit/y/yf60.pl	D17	$x is its loop's variable, and read-only: in perl, chang
 son-audit/y/yf61.pl	D13	'eval' is not in the language
 son-audit/y/yf62.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yf74.pl	D13	'continue' is not in the language
+son-audit/y/yf76.pl	D87	map takes no brackets of its own: map { ... } LIST
+son-audit/y/yf77.pl	D87	map takes no brackets of its own: map { ... } LIST
 son-audit/y/yf79.pl	D17	for $i (...) borrows a variable from outside the loop: for my $i (...)
 son-audit/y/yf80.pl	D19	'our' is not in the language
 son-audit/y/yf81.pl	D17	for $i (...) borrows a variable from outside the loop: for my $i (...)
 son-audit/y/yf87.pl	D13	'eval' is not in the language
+son-audit/y/yf88.pl	D56	'or' after a statement joins it to what follows, to perl, which binds 'or' more loosely than '=': write it as an if
 son-audit/y/yg02.pl	D38	18446744073709551614 is past the largest integer, 9223372036854775807
 son-audit/y/yg03.pl	D38	9223372036854775808 is past the largest integer, 9223372036854775807
 son-audit/y/yg04.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
@@ -1797,7 +2091,9 @@ son-audit/y/yg31.pl	D38	100000000000000000000 is past the largest integer, 92233
 son-audit/y/yg47.pl	D125	an argument by its number, %3$s..., which is not in the language (T276), in sprintf's format
 son-audit/y/yg49.pl	D125	%v, which is not in the language (a version string's format; T276), in sprintf's format
 son-audit/y/yg51.pl	D38	017 starts with a zero: perl reads that as octal, which the language writes 0o17
+son-audit/y/yg54.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yg58.pl	D130	chomp is a statement here, and has no value: perl gives how many characters it took (D130)
+son-audit/y/yg64.pl	D85	ucfirst needs an argument
 son-audit/y/yg66.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yg67.pl	D99	'{' hard after @h in a string: a slice of a hash, to perl, which is not in a string (D99): join it first; or write @{h}{ or @h\{
 son-audit/y/yg76.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
@@ -1829,6 +2125,7 @@ son-audit/y/yh22.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yh23.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yh27.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yh28.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
+son-audit/y/yh30.pl	D104	%m{...} is a slice of keys and values, and not in the language
 son-audit/y/yh31.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yh32.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yh33.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1841,6 +2138,8 @@ son-audit/y/yh44.pl	D56	my $y here: a my begins a statement or a for, or stands 
 son-audit/y/yh45.pl	D56	my $s here: a my begins a statement or a for, or stands in the test of an if or a while, where it is always reached
 son-audit/y/yh46.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/y/yh48.pl	D80	a list on the left of 'x' where one value is wanted: perl repeats its last value
+son-audit/y/yh49.pl	D56	'or' after a statement joins it to what follows, to perl, which binds 'or' more loosely than '=': write it as an if
+son-audit/y/yh52.pl	D78	scalar names an array, found 'my': scalar(@a), or scalar($r->@*)
 son-audit/y/yh54.pl	D13	'wantarray' is not in the language
 son-audit/y/yh56.pl	D21	print is a statement, and has no value
 son-audit/y/yh57.pl	D114	'{' first in the braces of %{ ... }: perl takes it for a block, and does not compile it; write %{ +{ ... } }
@@ -1881,6 +2180,7 @@ son-audit/y/yi35.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yi36.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yi38.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yi39.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yi40.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/y/yi41.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yi42.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yi43.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -1888,6 +2188,7 @@ son-audit/y/yi44.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/y/yi45.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yi46.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yi47.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/yi48.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/y/yi49.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yi50.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yi51.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -1901,10 +2202,15 @@ son-audit/y/yi58.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yi59.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
 son-audit/y/yi60.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
 son-audit/y/yi61.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yj03.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-audit/y/yj05.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-audit/y/yj06.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/y/yj08.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yj09.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yj10.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/yj11.pl	D87	map takes no brackets of its own: map { ... } LIST
 son-audit/y/yj13.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yj15.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/y/yj20.pl	D19	'our' is not in the language
 son-audit/y/yj22.pl	D19	'package' is not in the language
 son-audit/y/yj23.pl	D19	'our' is not in the language
@@ -1932,7 +2238,12 @@ son-audit/y/yj44.pl	D19	'our' is not in the language
 son-audit/y/yj45.pl	D19	'our' is not in the language
 son-audit/y/yj46.pl	D19	'our' is not in the language
 son-audit/y/yj47.pl	D19	'our' is not in the language
+son-audit/y/yj48.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yj49.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yj51.pl	D19	'local' is not in the language
+son-audit/y/yj52.pl	D85	expected a value, found ';'
+son-audit/y/yj53.pl	D85	expected a value, found '}'
+son-audit/y/yj57.pl	D85	lc needs an argument
 son-audit/y/yj59.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yj61.pl	D19	'package' is not in the language
 son-audit/y/yj62.pl	D13	'BEGIN' is not in the language
@@ -1941,6 +2252,7 @@ son-audit/y/yj64.pl	D13	'BEGIN' is not in the language
 son-audit/y/yj65.pl	D19	'our' is not in the language
 son-audit/y/yj66.pl	D13	'BEGIN' is not in the language
 son-audit/y/yj67.pl	D13	'END' is not in the language
+son-audit/y/yj68.pl	D20	'INIT' is not in the language
 son-audit/y/yj69.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }
 son-audit/y/yj70.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/y/yj72.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -1980,6 +2292,10 @@ son-audit/y/yk23.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk24.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yk25.pl	D19	'package' is not in the language
 son-audit/y/yk27.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yk28.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yk29.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yk30.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yk31.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yk32.pl	D16	'use feature' is not in the language
 son-audit/y/yk33.pl	D16	'use feature' is not in the language
 son-audit/y/yk34.pl	D16	'use feature' is not in the language
@@ -1994,46 +2310,75 @@ son-audit/y/yk42.pl	D16	'use feature' is not in the language
 son-audit/y/yk43.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yk44.pl	D16	'use feature' is not in the language
 son-audit/y/ym02.pl	D87	sort takes no brackets of its own: sort LIST, or sort { ... } LIST
+son-audit/y/ym04.pl	D87	by_num first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
+son-audit/y/ym05.pl	D85	'{' first in map's block: an anonymous hash, to perl
+son-audit/y/ym12.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/ym14.pl	D91	in a string an index is a whole number or a scalar variable (D91): take the index into a my first
+son-audit/y/ym16.pl	D104	%h{...} is a slice of keys and values, and not in the language
+son-audit/y/ym17.pl	D104	%h{...} is a slice of keys and values, and not in the language
 son-audit/y/ym20.pl	D17	expected a value, found 'each'
 son-audit/y/ym22.pl	D38	01 starts with a zero: perl reads that as octal, which the language writes 0o17
 son-audit/y/ym23.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/ym24.pl	D108	a subscript after the braces of a dereference is cut (D108): write $r->[...], $r->{...}, or the slice $r->@[...], $r->@{...}
 son-audit/y/ym25.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
+son-audit/y/ym28.pl	D78	scalar names an array, found 'my': scalar(@a), or scalar($r->@*)
+son-audit/y/ym30.pl	D15	undef before '..': perl takes what follows undef for its argument; write (undef)
 son-audit/y/ym31.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/y/ym33.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/ym34.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/ym35.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/ym36.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/y/ym37.pl	D85	expected a value, found 'for'
 son-audit/y/ym41.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
 son-audit/y/ym42.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/y/ym43.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
 son-audit/y/ym45.pl	D92	'[' hard after $m[0] in a string: another index, to perl; write $m[0]\[
+son-audit/y/ym46.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/ym47.pl	D85	defined needs an argument
 son-audit/y/ym48.pl	D91	in a string an index is a whole number or a scalar variable (D91): take the index into a my first
 son-audit/y/ym50.pl	D80	a slice where one value is wanted: perl gives its last element; write the element, $a[...]
+son-audit/y/ym51.pl	D85	expected a value, found ']'
 son-audit/y/ym53.pl	D114	'{' first in the braces of %{ ... }: perl takes it for a block, and does not compile it; write %{ +{ ... } }
 son-audit/y/ym54.pl	D102	a comma in the block of a map, a grep or a sort: put the list in brackets, map { ($_ => 1) } ...
+son-audit/y/yn01.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yn02.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn04.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/y/yn05.pl	D13	expected a value, found 'eval'
 son-audit/y/yn06.pl	D13	expected a value, found 'eval'
+son-audit/y/yn07.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yn08.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn10.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/y/yn11.pl	D13	'eval' is not in the language
 son-audit/y/yn12.pl	D13	'eval' is not in the language
 son-audit/y/yn13.pl	D13	'eval' is not in the language
 son-audit/y/yn14.pl	D13	'eval' is not in the language
+son-audit/y/yn15.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yn16.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn17.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/y/yn18.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yn19.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yn20.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn21.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yn22.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yn23.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yn24.pl	D19	'local' is not in the language
+son-audit/y/yn25.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn27.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yn29.pl	D13	'eval' is not in the language
+son-audit/y/yn30.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yn31.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-audit/y/yn32.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn41.pl	D21	print is a statement, and has no value
+son-audit/y/yn42.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn44.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/y/yn48.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yn52.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
 son-audit/y/yn53.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yn55.pl	D92	'[' hard after $h{k} in a string: another index, to perl; write $h{k}\[
 son-audit/y/yn57.pl	D17	'srand' is not in the language
+son-audit/y/yn58.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yo12.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/y/yo13.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yo18.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
 son-audit/y/yo20.pl	D16	'use strict' is not in the language
 son-audit/y/yo39.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2054,6 +2399,8 @@ son-audit/y/yp113.pl	D76	a later part of join can change @a, which an earlier pa
 son-audit/y/yp114.pl	D76	a later part of join can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yp115.pl	D76	a later part of this list can change %h, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yp116.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yp117.pl	D104	%h{...} is a slice of keys and values, and not in the language
+son-audit/y/yp118.pl	D104	%a[...] is a slice of indexes and values, and not in the language
 son-audit/y/yp119.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yp120.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yp121.pl	D17	$v is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -2065,6 +2412,16 @@ son-audit/y/yp126.pl	D17	$_ is read-only: in perl, changing it changes the list'
 son-audit/y/yp127.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yp128.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yp129.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/y/yp132.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp133.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp135.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp136.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp137.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp138.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp140.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp141.pl	D56	the left side of 'x=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp142.pl	D56	the left side of '||=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yp143.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/y/yp144.pl	D19	'our' is not in the language
 son-audit/y/yp145.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yp146.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2178,7 +2535,10 @@ son-audit/y/yp98.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/y/yp99.pl	D110	\ before an element: a reference to an element is cut (D110); take a reference to the array or the hash
 son-audit/y/yq09.pl	D13	expected a value, found 'caller'
 son-audit/y/yq10.pl	D13	expected a value, found 'caller'
+son-audit/y/yq11.pl	D21	-e: a minus hard against one letter is a file test, to perl; put a blank after the minus, or brackets round what it negates
+son-audit/y/yq13.pl	D20	'INIT' is not in the language
 son-audit/y/yq14.pl	D19	'our' is not in the language
+son-audit/y/yq15.pl	D20	'CHECK' is not in the language
 son-audit/y/yq16.pl	D19	'our' is not in the language
 son-audit/y/yq17.pl	D19	'our' is not in the language
 son-audit/y/yq18.pl	D19	'our' is not in the language
@@ -2187,11 +2547,15 @@ son-audit/y/yq20.pl	D19	'our' is not in the language
 son-audit/y/yq21.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yq22.pl	D80	a list on the left of 'x' where one value is wanted: perl repeats its last value
 son-audit/y/yq23.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/yq31.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/y/yq33.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yq34.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yq35.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yq36.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yq37.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/y/yq38.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yq41.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/y/yq42.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/cp04.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/cp05.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/cp06.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -2204,6 +2568,7 @@ son-audit/z/cp21.pl	D78	an assignment of a list is a statement: perl gives the c
 son-audit/z/cp22.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/z/cp24.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/cp27.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/z/cp29.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/cp50.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/cp51.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/cp52.pl	D19	'our' is not in the language
@@ -2219,6 +2584,7 @@ son-audit/z/cp72.pl	D108	%$ before a name is cut (D108): a hash through a refere
 son-audit/z/cp76.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
 son-audit/z/cp85.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/cp87.pl	D19	'local' is not in the language
+son-audit/z/cp88.pl	D56	my under a modifier: when the test fails, perl leaves in the variable what it last held; declare it in a statement of its own
 son-audit/z/fl01.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/z/fl03.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/fl04.pl	D111	@{[ in a string puts code in it, which is cut (D111): work the value out before the string, into a my, and put that in it
@@ -2231,9 +2597,32 @@ son-audit/z/fl24.pl	D76	a later part of this list can change @a, which an earlie
 son-audit/z/fl25.pl	D17	expected a value, found 'chop'
 son-audit/z/fl27.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/fl28.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/z/fl30.pl	D78	expected ')', found '='
+son-audit/z/lv01.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv02.pl	D56	the left side of '||=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv03.pl	D56	the left side of '//=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv04.pl	D56	the left side of '**=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv05.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv06.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv07.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv08.pl	D56	expected ';', found '++'
+son-audit/z/lv09.pl	D56	'++' is for a variable: ++$x
+son-audit/z/lv10.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv11.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv12.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv13.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv14.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv15.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv16.pl	D56	the left side of '.=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/lv19.pl	D17	'chop' is not in the language
 son-audit/z/lv20.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
+son-audit/z/lv21.pl	D56	expected ';', found '++'
+son-audit/z/lv22.pl	D56	expected ';', found '++'
+son-audit/z/lv23.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/lv24.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/z/lv25.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv26.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv27.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/lv28.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/lv29.pl	D110	\ before a list: perl makes a list of a reference to each, which is cut (D110)
 son-audit/z/lv30.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -2245,6 +2634,16 @@ son-audit/z/lv41.pl	D78	an assignment of a list is a statement: perl gives the c
 son-audit/z/lv42.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/z/lv43.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/z/lv50.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/z/lv51.pl	D56	the left side of '-=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv52.pl	D56	the left side of '/=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv53.pl	D56	expected ';', found '--'
+son-audit/z/lv54.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv55.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv56.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv57.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv58.pl	D56	the left side of 'x=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv59.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/lv60.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/lv63.pl	D57	a later piece of a concatenation changes $x, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own
 son-audit/z/lv64.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/z/lv65.pl	D76	a later part of this list can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -2260,6 +2659,9 @@ son-audit/z/lv78.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/z/lv80.pl	D19	'local' is not in the language
 son-audit/z/mi03.pl	D38	9223372036854775808 is past the largest integer, 9223372036854775807
 son-audit/z/mi08.pl	D38	18446744073709551615 is past the largest integer, 9223372036854775807
+son-audit/z/mi18.pl	D16	'no warnings' is written: no warnings 'recursion';
+son-audit/z/mi20.pl	D16	'no warnings' is written: no warnings 'recursion';
+son-audit/z/mi28.pl	D16	'no warnings' is written: no warnings 'recursion';
 son-audit/z/mi34.pl	D91	in a string an index is a whole number or a scalar variable (D91): take the index into a my first
 son-audit/z/mi39.pl	D13	'wantarray' is not in the language
 son-audit/z/mi40.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
@@ -2275,7 +2677,11 @@ son-audit/z/mi64.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and be
 son-audit/z/mi66.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/z/mi69.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/mi70.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/z/mi71.pl	D56	'=-' with a blank after it: perl warns that it reads as '-=' reversed; put a blank after the '='
 son-audit/z/mi72.pl	D102	a comma in the block of a map, a grep or a sort: put the list in brackets, map { ($_ => 1) } ...
+son-audit/z/mi80.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-audit/z/mi81.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-audit/z/mi82.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/mi83.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/mi88.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
 son-audit/z/nd01.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -2284,6 +2690,7 @@ son-audit/z/nd03.pl	D99	in a string a key is a word or a scalar variable, hard a
 son-audit/z/nd05.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
 son-audit/z/nd06.pl	D108	@$ in a string: a dereference without braces is cut (D108); write @{ $r } or $r->@*
 son-audit/z/nd10.pl	D99	in a string a key is a word or a scalar variable, hard against its braces (D99): take the key into a my first
+son-audit/z/nd11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/nd15.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/pa01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/pa02.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2354,6 +2761,7 @@ son-audit/z/pa79.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/z/pa80.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/pa81.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/pa82.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/z/pa83.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/pa84.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/pa85.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/pa86.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2373,14 +2781,19 @@ son-audit/z/pa99.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/pk24.pl	D19	'package' is not in the language
 son-audit/z/pk25.pl	D19	'package' is not in the language
 son-audit/z/pk27.pl	D19	'package' is not in the language
+son-audit/z/pk28.pl	D19	expected ';', found ':'
 son-audit/z/pk29.pl	D19	'our' is not in the language
 son-audit/z/pk30.pl	D19	'our' is not in the language
 son-audit/z/pk32.pl	D19	'::' hard after $P in a string: perl reads a variable of another package; write ${P}:: or $P\::
 son-audit/z/pk33.pl	D19	'our' is not in the language
+son-audit/z/pk34.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/z/pk35.pl	D19	'::' hard after $Q in a string: perl reads a variable of another package; write ${Q}:: or $Q\::
+son-audit/z/pk36.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/pk37.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/z/pk38.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/z/pk39.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/z/pk41.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
+son-audit/z/pk43.pl	D85	length needs an argument
 son-audit/z/pk44.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/z/pk46.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/pk47.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -2400,7 +2813,9 @@ son-audit/z/ps05.pl	D17	$x is its loop's variable, and read-only: in perl, chang
 son-audit/z/ps07.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/ps08.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/ps09.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/z/ps11.pl	D56	the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/ps15.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
+son-audit/z/ps16.pl	D85	uc needs an argument
 son-audit/z/ps17.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/ps18.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/ps19.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -2421,6 +2836,7 @@ son-audit/z/ps82.pl	D13	'redo' is not in the language
 son-audit/z/ps83.pl	D13	'redo' is not in the language
 son-audit/z/ps87.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/z/qa01.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/z/qa03.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/qa04.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/qa05.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/qa06.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2465,7 +2881,14 @@ son-audit/z/qc15.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/z/qc16.pl	D19	'package' is not in the language
 son-audit/z/qc17.pl	D77	this can change $o, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop
 son-audit/z/qc25.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/z/qd02.pl	D56	the left side of '%=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/qd08.pl	D56	the left side of '&&=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/qd10.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/qd11.pl	D56	the left side of '+=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/qd12.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
+son-audit/z/qd13.pl	D56	the left side of '-=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/qd14.pl	D19	'our' is not in the language
+son-audit/z/qd15.pl	D56	the left side of '*=' is a variable, an element, an array, a hash, or a list of them in brackets
 son-audit/z/qd17.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/qd18.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/qd19.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2501,15 +2924,21 @@ son-audit/z/qf09.pl	D17	$x is its loop's variable, and read-only: in perl, chang
 son-audit/z/qf10.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/qf11.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/qf12.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
+son-audit/z/rc01.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/rc02.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/rc03.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/z/rc04.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/rc05.pl	D16	'use feature' is not in the language
 son-audit/z/rc06.pl	D16	'use feature' is not in the language
 son-audit/z/rc07.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/z/rc08.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/rc09.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/rc10.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/z/rc11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-audit/z/rc12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/rc13.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/z/rc14.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/z/rc15.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-audit/z/rf01.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/rf02.pl	D110	\$_: a reference to $_ is cut (D110): to perl it is the list's own element; take the value into a my first
 son-audit/z/rf03.pl	D110	\ before a list: perl makes a list of a reference to each, which is cut (D110)
@@ -2547,6 +2976,8 @@ son-audit/z/un04.pl	D19	'our' is not in the language
 son-audit/z/un05.pl	D19	'our' is not in the language
 son-audit/z/un06.pl	D19	'our' is not in the language
 son-audit/z/un07.pl	D19	'our' is not in the language
+son-audit/z/un08.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/un09.pl	D22	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/z/un11.pl	D19	'our' is not in the language
 son-audit/z/un12.pl	D19	'our' is not in the language
 son-audit/z/un13.pl	D19	'our' is not in the language
@@ -2554,6 +2985,8 @@ son-audit/z/un14.pl	D19	'our' is not in the language
 son-audit/z/un15.pl	D19	'our' is not in the language
 son-audit/z/un16.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/z/un18.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/z/un19.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/un20.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/z/un21.pl	D111	in a string what stands in braces after a sigil is a scalar variable, with subscripts or without (D111): take the reference into a my first
 son-audit/z/un22.pl	D16	'use feature' is not in the language
 son-audit/z/un23.pl	D16	'use feature' is not in the language
@@ -2565,7 +2998,13 @@ son-audit/z/un28.pl	D13	'eval' is not in the language
 son-audit/z/un30.pl	D13	'eval' is not in the language
 son-audit/z/un31.pl	D13	'eval' is not in the language
 son-audit/z/un32.pl	D13	'eval' is not in the language
+son-audit/z/un33.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/un34.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/z/un35.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/z/un36.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/un37.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/un38.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/un39.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/z/un40.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/z/un41.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/un42.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2592,6 +3031,8 @@ son-audit/z/un62.pl	D92	'$' in a double-quoted string begins a variable, and no 
 son-audit/z/un63.pl	D19	'our' is not in the language
 son-audit/z/un64.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
 son-audit/z/un65.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/z/un66.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
+son-audit/z/un67.pl	D20	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-audit/z/un68.pl	D19	'our' is not in the language
 son-audit/z/un69.pl	D19	'our' is not in the language
 son-audit/z/un70.pl	D19	'our' is not in the language
@@ -2616,6 +3057,7 @@ son-corpus/ag-c8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-corpus/ag-c9.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ag-w.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ag-w2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/ag2-a1.pl	D17	@_ is not declared: my @_
 son-corpus/ag2-a10.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/ag2-a11.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ag2-a12.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2631,6 +3073,8 @@ son-corpus/ag2-lf.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ag2-ph.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ag2-wb.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/ag2-wr.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/al-a3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/al-a6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/al-a7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/al-a8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/al-a9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2660,6 +3104,7 @@ son-corpus/bl-c052.pl	D19	expected a value, found 'bless'
 son-corpus/bl-c053.pl	D19	expected a value, found 'bless'
 son-corpus/bl-c054.pl	D19	'package' is not in the language
 son-corpus/bl-c085.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/bl-c089.pl	D87	c first after sort: perl takes a word there for the name of a sub that compares, or for a string; put a + before it, or give sort a block
 son-corpus/bl-c1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/bl-c185.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/bl-c254.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -2684,6 +3129,7 @@ son-corpus/ch-p2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ch-r1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ch-r2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ev-c062.pl	D13	expected a value, found 'eval'
+son-corpus/ev-c342.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-corpus/ev-e1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/ev-e2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/ev-e3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2703,6 +3149,7 @@ son-corpus/ev-x3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-corpus/ev-x4.pl	D13	expected a value, found 'eval'
 son-corpus/ev-x5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/ev-x6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/ew-p1.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-corpus/ew-p2.pl	D19	'our' is not in the language
 son-corpus/ew-p21.pl	D19	'our' is not in the language
 son-corpus/ew-p22.pl	D19	'our' is not in the language
@@ -2710,12 +3157,14 @@ son-corpus/ew-p23.pl	D19	'our' is not in the language
 son-corpus/ew-p24.pl	D19	'our' is not in the language
 son-corpus/ew-p25.pl	D19	'our' is not in the language
 son-corpus/ew-p26.pl	D19	'our' is not in the language
+son-corpus/ew-p27.pl	D19	expected ')', found ':'
 son-corpus/ew-p28.pl	D19	'our' is not in the language
 son-corpus/ew-p29.pl	D19	'our' is not in the language
 son-corpus/ew-p3.pl	D19	'our' is not in the language
 son-corpus/ew-p30.pl	D19	'our' is not in the language
 son-corpus/ew-p4.pl	D19	'our' is not in the language
 son-corpus/ew-p6.pl	D19	'::' hard after $main in a string: perl reads a variable of another package; write ${main}:: or $main\::
+son-corpus/ew-p7.pl	D19	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-corpus/ew-p8.pl	D19	'our' is not in the language
 son-corpus/hs-h11.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-corpus/hs-h7.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2741,12 +3190,26 @@ son-corpus/ln-l4.pl	D108	a subscript after the braces of a dereference is cut (D
 son-corpus/ln-r1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ln-r2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ln-r3.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/lp-l1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l15.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l16.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l17.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lp-l4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/lr-adv.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/lr-an1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lr-an3.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lr-an4.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lr-an5.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lr-c216.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/lr-dl.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lr-dl2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/lr-dl3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/lr-fa1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lr-fa2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lr-fr.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -2766,6 +3229,8 @@ son-corpus/lr-w216.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lt-hd2.pl	D19	'package' is not in the language
 son-corpus/lt-st1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lt-st3.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/lv1.pl	D165	after sub slot comes its signature, sub slot(...) { ... }, or its block, found ':'
+son-corpus/lv2.pl	D21	after '$' comes a name: a letter or '_', then letters, digits and '_'
 son-corpus/mc-m1.pl	D19	'package' is not in the language
 son-corpus/mc-m2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/own-h1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2790,15 +3255,18 @@ son-corpus/pp-fl158.pl	D17	$_[ is an element of perl's own @_ or %_, which are n
 son-corpus/pp-fl181.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-fl218.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-fl237.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/pp-fl283.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/pp-la2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-la3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-li104.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-corpus/pp-li203.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/pp-li400.pl	D18	a list after return is in brackets: return (..., ...);
 son-corpus/pp-m146.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-m208.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-m224.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/pp-pm.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-r2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/pp-r3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/pp-r5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-rv.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-sa066.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2819,11 +3287,160 @@ son-corpus/ref-r2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/ref-r4.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-corpus/ref-r5.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-corpus/ref-r7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-argexpr.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-a9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-b9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bf-c9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-clo1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-clo2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-d9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bg-e9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-bg-glob.pl	D19	'our' is not in the language
+son-corpus/review2-probes-bh-g0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-g8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bh-h8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-t8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u0.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bi-u8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-bl-c1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-bl-c10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-bl-c11.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-corpus/review2-probes-bl-c12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-bl-c2.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/review2-probes-bl-c3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bl-c4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bl-c5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bl-c6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bl-c7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bl-c8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bl-c9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bm-m1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bm-m2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bm-m3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bm-m4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bm-m5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bm-m6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bm-m7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bn-sl.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bn-st.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-bn-st2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-callafter.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-callcond.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-callinarm.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-callinloop.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-callloopval.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-c1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-c2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-c3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-c4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-c5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-c6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-g1.pl	D17	shift names an array, found '//': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-g2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-g3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-l1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-l2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-l3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-l4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-l5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-ci-l6.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-corpus/review2-probes-ci-l7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-l8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-m5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-m6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-m7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-ci-n1.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-corpus/review2-probes-ci-n4.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-corpus/review2-probes-ci-p2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2835,25 +3452,165 @@ son-corpus/review2-probes-ci-q5.pl	D17	$_[ is an element of perl's own @_ or %_,
 son-corpus/review2-probes-ci-q6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-ci-q7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-ci-q8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-ci-r1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-r2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-r3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-r4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-r5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-s1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-s2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-ci-s3.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/review2-probes-ci-s4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-ci-s5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ci-s6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-closure.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-cs-a2.pl	D19	'our' is not in the language
+son-corpus/review2-probes-cs-a3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-a4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-a5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-a6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-a7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-a8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-a9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-e1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-e2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-e3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-e4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-e6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-m6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-m7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-m8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-m9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-p1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-p2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-r1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-r2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-cs-r3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-cs-r4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-cs-s1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-s2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-s3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-cs-s4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-w1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-w2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-w3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-w4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-x1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-x2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-x3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-cs-x4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-cs-y1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-y2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-z1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-z2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-z3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-cs-z5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-e1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e6.pl	D72	a sub stands at the top level of the file: not in a block, a loop or another sub
+son-corpus/review2-probes-e7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-e9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-earlyret2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f15.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f16.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f17.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-f18.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-probes-f19.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/review2-probes-f2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f20.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-f9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-g8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-l1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-l2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-l3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-l4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-lastin.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-loopcall.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-nestret.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-outerloop.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ret1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-ret2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_arr.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_callinif.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_callinloop.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-sc_global.pl	D19	'our' is not in the language
 son-corpus/review2-probes-sc_global2.pl	D19	'::' hard after $main in a string: perl reads a variable of another package; write ${main}:: or $main\::
+son-corpus/review2-probes-sc_ifarm.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_loop.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_loopval.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_nested.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_nestloop.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_retinif.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_samectx.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_seq.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sc_strval.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-sc_twoargs.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/review2-probes-sc_valused.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a10.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a11.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a12.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a13.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a14.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a15.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a16.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-probes-sd_a2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-probes-sd_a3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sd_a9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-se_b1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-se_b2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-se_b3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-se_b4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-se_b5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-se_b6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-se_b7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sf_c1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sf_c2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sf_c3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sf_c4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sf_c5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-sf_c6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-shadow.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-strcall.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-twodiff.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-u1.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-u2.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-u3.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-u4.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-probes-u6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-v-n-e1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-e2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-e3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2863,6 +3620,10 @@ son-corpus/review2-v-n-p2.pl	D17	$_[ is an element of perl's own @_ or %_, which
 son-corpus/review2-v-n-p3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-p4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-p5.pl	D21	print is a statement, and has no value
+son-corpus/review2-v-n-p6.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-v-n-p7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-v-n-p8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-v-n-p9.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-v-n-t1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-t12.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-t2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2870,14 +3631,18 @@ son-corpus/review2-v-n-t3.pl	D17	$_[ is an element of perl's own @_ or %_, which
 son-corpus/review2-v-n-t4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-t5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-t6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-v-n-t7.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-corpus/review2-v-n-t8.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/review2-v-n-u1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-u2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-u3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/review2-v-n-u4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/review2-v-n-u5.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
 son-corpus/rl-q1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/rl-q2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/rl-q3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/rl-q4.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/rl-q5.pl	D16	'no warnings' is written: no warnings 'recursion';
 son-corpus/rl-r1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/rl-r4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/rs-s4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2888,6 +3653,9 @@ son-corpus/rs-s8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-corpus/rs-w2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/rs-w3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/sh1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/sw-g1.pl	D4	expected a value, found '*'
+son-corpus/sw-g2.pl	D4	expected a value, found '*'
+son-corpus/sw-g3.pl	D4	expected a value, found '*'
 son-corpus/sw-s1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/sw-s10.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/sw-s12.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2952,3 +3720,13 @@ son-corpus/wr-w6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-corpus/wr-w7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/wr-w8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/wr-w9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-more/docs/samples/closure-cells-loop.pl	D38	5.42.0 is not a number in the language
+son-more/docs/samples/closure-cells.pl	D38	5.42.0 is not a number in the language
+son-more/t/corpus/arithmetic.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-more/t/corpus/closures.pl	D17	shift names an array, found ';': shift(@a), or shift($r->@*)
+son-more/t/corpus/isa_operator.pl	D19	'package' is not in the language
+son-more/t/corpus/local_element.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-more/t/corpus/logical_ops.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-more/t/corpus/repeat_and_anon.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-more/t/corpus/string_compare.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-more/t/corpus/wantarray_ctx.pl	D13	expected a value, found 'wantarray'

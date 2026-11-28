@@ -186,7 +186,8 @@ REASONS = [
     # (`bless` is cut by D19: `class` and `new` say it.)
     (r"^'bless' is not in the language$", 'design', 'D19'),
     (r"^expected a value, found 'bless'$", 'design', 'D19'),
-    (r"^'use \w+' is not in the language$", 'later', '18'),
+    # (Since step 17a the message has the module's whole name, `use Scalar::Util`.)
+    (r"^'use [\w:]+' is not in the language$", 'later', '18'),
     (r"^'=~' is not in the language yet", 'later', '19'),
     (r"^'(s|m|tr|y|split)' is not in the language$", 'later', '19'),
     (r"^expected a value, found '(split|m|s|tr)'$", 'later', '19'),
@@ -198,14 +199,89 @@ REASONS = [
     (r"^a die (on the left|that is tested)", 'design', 'D146'),
     (r"^'(or|and) die' after a statement", 'design', 'D146'),
     (r"^a (die|warn) in (a statement, a test|the test of a while)", 'design', 'D150'),
+    # ---- the open refusals, read (2026-11-27; docs/briefs/census-open/).
+    # Each was refused with no step and no decision named; each row says
+    # which decision refuses it, or which step will take it. Where the
+    # message is one the compiler gives for more than one thing (`after
+    # '$' comes a name`), a row also asks the text at the place: the line
+    # before it, and from it on (`before`, `after`).
+    (r"^(shift|pop) names an array, found '(;|\}|\)|//|,)'", 'design', 'D17'),
+    (r"^@_ is not declared", 'design', 'D17'),
+    (r"^after '\$' comes a name", 'design', 'D20', None, r"^\$@"),
+    (r"^after '[$@%]' comes a name|^expected '[;)]', found ':'$", 'design', 'D19', None, r"^[$@%]::|^::|^:"),
+    (r'^after \'\$\' comes a name', 'design', 'D22', None, r'^\$[,"/\\]'),
+    (r"^after '\$' comes a name", 'later', '21', None, r"^\$[|0$]|^\$\^[OX]"),
+    (r"^after '\$' comes a name", 'later', '19', None, r"^\$\d"),
+    (r"^after '\$' comes a name", 'design', 'D21', None, r"^\$\)"),
+    (r"^after '@' comes a name", 'design', 'D22', None, r"^@[<>|]"),
+    (r"^after '%' comes a name", 'later', '22'),
+    (r"^the left side of '=' is a variable, an element", 'open', '', r"\$#\w+\s*$"),
+    (r"^the left side of '[^']+' is a variable, an element", 'design', 'D56'),
+    (r"^expected ';', found '(\+\+|--)'$|^'\+\+' is for a variable", 'design', 'D56'),
+    (r"^'(or|and)' after a statement joins it|^'=-' with a blank after it|^my under a modifier", 'design', 'D56'),
+    (r"^scalar names an array, found '(\(|my)'|^expected '\)', found '='$", 'design', 'D78'),
+    (r"^an array among the targets takes every value that is left|^a comma after an assignment's right side|^splice needs brackets", 'design', 'D80'),
+    (r"^a target of a list assignment is a variable", 'design', 'D100'),
+    (r"is a slice of (keys|indexes) and values|with one key: perl warns", 'design', 'D104'),
+    (r"^(map|grep) takes no brackets of its own|first after sort: perl takes a (word|scalar) there", 'design', 'D87'),
+    (r"^'no warnings' is written", 'design', 'D16'),
+    (r"^'(INIT|CHECK|UNITCHECK)' is not in the language$", 'design', 'D20'),
+    (r"^expected a value, found '<'$", 'design', 'D20', None, r"^<DATA>"),
+    (r"^(length|lc|uc|ucfirst|lcfirst|ord|chr|defined) needs an argument$", 'design', 'D85'),
+    (r"^expected a value, found '(;|\}|for|\])'$", 'design', 'D85', r"(\bprint|\buc|\blength)\s*$"),
+    (r"^map's block ends in an expression|^last out of the block of a map|^'\{' first in map's block", 'design', 'D85'),
+    (r"a minus hard against one letter is a file test|after print \(\.\.\.\): perl takes the brackets|^printf is a statement, and has no value", 'design', 'D21'),
+    (r"^expected a value, found 'prototype'$", 'design', 'D21'),
+    (r"^a sub stands at the top level", 'design', 'D72'),
+    (r"^after sub \S+ comes its signature", 'design', 'D165'),
+    (r"^a list after return is in brackets", 'design', 'D18'),
+    (r"^a label is on a loop", 'design', 'D61'),
+    (r"^expected a value, found '\*'$", 'design', 'D4'),
+    (r"^expected a value, found v\d", 'design', 'D38'),
+    (r"^'(lock|select)' is not in the language$", 'design', 'D22'),
+    (r"^undef before '\.\.'", 'design', 'D15'),
+    (r"^(%ENV|@ARGV) is not declared|^'open' is not in the language$|^expected a value, found '(glob|<)'$", 'later', '21'),
+    (r"^'(\^|\^\.|\|)' is not in the language yet", 'later', '19', r"(s/|qr/|split\s*\(?\s*/|=~)"),
+    (r"^'!~' is not in the language yet|^expected a value, found '(/|qr)'$", 'later', '19'),
+    (r"^'(\^|\||&|~|<<|>>)=?' is not in the language yet", 'later', '22'),
+    (r"^expected a value, found '(hex|log|oct|exp)'$", 'later', '22'),
+    (r"^substr takes 2 to 3 arguments, and here are 4|^scalar names an array, found 'reverse'|^expected a value, found '='$|^q\{\.\.\.\} that never ends", 'later', '16d'),
+    (r"^scalar needs brackets", 'later', '16d', None, r"^scalar\s+reverse"),
+    (r"^expected a value, found '(pack|unpack)'$", 'later', 'bytes'),
+    (r"^'`' is not in the language yet|^expected a value, found 'qx'$", 'later', 'library'),
+    (r"^'state' is not in the language$", 'later', 'D160'),
+    # And the new corpus's (t/census/import_more.py): perl's pods and the rest.
+    (r"^a backslash in qw\(", 'design', 'D121'),
+    (r"^a heredoc's terminator is a word|^a blank after '<<': a heredoc's terminator", 'design', 'D123'),
+    (r"^'utf8' is not in the language; a call of a sub", 'design', 'D19'),
+    (r"^reverse of nothing", 'design', 'D85'),
+    (r"^'@' in a double-quoted string begins an array, and no name is hard against it", 'design', 'D92'),
+    (r"in a string: perl warns that it is ambiguous", 'design', 'D15'),
+    (r"runs into '.*': perl reads a version only before a blank", 'design', 'D38'),
+    (r"^after '\$' comes a name", 'later', '21', None, r"^\$(\?|\^V)"),
+    (r"^after '\$' comes a name", 'later', '19', None, r"^\$\^N"),
+    (r"^\\N\{\.\.\.\} is not an escape", 'later', '16d'),
 ]
-REASONS = [(re.compile(pattern), kind, ref) for pattern, kind, ref in REASONS]
+REASONS = [(re.compile(row[0]), row[1], row[2],
+            re.compile(row[3]) if len(row) > 3 and row[3] else None,
+            re.compile(row[4]) if len(row) > 4 and row[4] else None) for row in REASONS]
 
-def reason(message):
-    for pattern, kind, ref in REASONS:
-        if pattern.search(message):
-            return f'{kind} {ref}'
+def reason(message, before='', after=''):
+    """A refusal's reason, by its message and, for a row that asks, the
+    text of its line before the place and from it on."""
+    for pattern, kind, ref, b, a in REASONS:
+        if pattern.search(message) and (b is None or b.search(before)) and (a is None or a.search(after)):
+            return 'open' if kind == 'open' else f'{kind} {ref}'
     return 'open'
+
+def place(path, at):
+    """The line a refusal names, cut at its place: (before, after)."""
+    try:
+        line, col = map(int, at.split(':')[:2])
+        text = open(path, encoding='utf-8', errors='replace').read().split('\n')[line - 1]
+    except (ValueError, IndexError, OSError):
+        return '', ''
+    return text[:col - 1], text[col - 1:]
 
 # ---- the judge
 
@@ -265,7 +341,7 @@ def probe(name, knobs):
     try:
         if built.returncode == 1:
             where, _, message = built.stderr.strip().partition(': ')
-            return refusal(where.split(':', 1)[1], message)
+            return refusal(where.split(':', 1)[1], message, path)
         if built.returncode != 0:
             return {'verdict': 'WRONG', 'why': f'the compiler breaks: {clip(built.stderr)!r}'}
         try:
@@ -281,8 +357,9 @@ def probe(name, knobs):
             if os.path.exists(f):
                 os.unlink(f)
 
-def refusal(at, message):
-    return {'verdict': 'REFUSED', 'reason': reason(message), 'at': at, 'why': message}
+def refusal(at, message, path=None):
+    before, after = place(path, at) if path else ('', '')
+    return {'verdict': 'REFUSED', 'reason': reason(message, before, after), 'at': at, 'why': message}
 
 def names(root):
     return sorted(os.path.relpath(os.path.join(d, f), root) for d, _, files in os.walk(root) for f in files if f.endswith('.pl'))
@@ -297,7 +374,7 @@ def census(only=None):
         j = json.loads(line)
         name = os.path.relpath(j['path'], RUN)
         if 'refused' in j:
-            found[name] = refusal(j['at'], j['refused'])
+            found[name] = refusal(j['at'], j['refused'], j['path'])
         else:
             compile_.append(name)
     assert len(found) + len(compile_) == len(wanted), 'the front lost a probe'
@@ -462,6 +539,18 @@ def self_test():
     ):
         if reason(message) != want:
             failed.append(f'reason of {message!r}: {reason(message)}, not {want}')
+    # A row that asks the text at the place (the open refusals, read).
+    placed = (
+        ("after '$' comes a name: a letter or '_', then letters, digits and '_'", 'my $e = ', '$@;', 'design D20'),
+        ("after '$' comes a name: a letter or '_', then letters, digits and '_'", '', '$, = "-";', 'design D22'),
+        ("after '$' comes a name: a letter or '_', then letters, digits and '_'", 'print ', '$1 ', 'later 19'),
+        ("after '$' comes a name: a letter or '_', then letters, digits and '_'", 'print ', '$% ', 'open'),
+        ("the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets", '$#a ', '= 0;', 'open'),
+        ("the left side of '=' is a variable, an element, an array, a hash, or a list of them in brackets", '($x = 1) ', '= 2;', 'design D56'),
+    )
+    for message, before, after, want in placed:
+        if reason(message, before, after) != want:
+            failed.append(f'reason of {message!r} at {after!r}: {reason(message, before, after)}, not {want}')
     same, refused = {'verdict': 'SAME'}, {'verdict': 'REFUSED', 'reason': 'open', 'at': '1:1', 'why': 'x'}
     def file(probes):
         counts = collections.Counter(p['verdict'] for p in probes.values())
@@ -483,7 +572,7 @@ def self_test():
     for what, bad, want in checks_:
         if len(bad) != want:
             failed.append(f'check, {what}: {len(bad)} problems, not {want}: {bad}')
-    total = len(cases) + 6 + len(checks_)
+    total = len(cases) + 6 + len(placed) + len(checks_)
     return failed, total
 
 def main(argv):
