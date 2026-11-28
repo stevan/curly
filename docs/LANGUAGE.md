@@ -90,11 +90,14 @@ with any blanks or none after the `#`): perl reads that as a line
 directive, which changes the line and the file a `die` names. Indented,
 or with words between, it is a comment, as to perl.
 
-**POD** is a comment too: a line that begins `=` and a word (`=head1`,
-`=pod`, `=begin`, `=cut` itself) where a statement may begin, through
+**POD** is a comment too: a line that begins `=` and a letter (`=head1`,
+`=pod`, `=begin`, `=cut` itself; not `=_x`, which perl does not
+compile) where a statement may begin, through
 to a line that begins `=cut` and no more of a word, or the end of the
 file. Anywhere else, in the middle of a statement, such a line is
-refused, as perl refuses it. A `# line` comment is refused inside POD
+refused, as perl refuses it: and the middle of a statement is also
+after the block of a `do`, a `map`, a `grep` or a `sort`, and between
+the brackets of a `for (...; ...; ...)`. A `# line` comment is refused inside POD
 as outside it: perl reads it there too. And `__END__` or `__DATA__`,
 where a statement may begin, end the program: nothing after them is
 read. (`<DATA>`, which reads what follows `__DATA__`, is not in the
@@ -384,8 +387,8 @@ isn't an escape (`\q`, `\8`); `\x` with fewer than two digits; an
 octal escape of one or two digits with an `8` or a `9` after it (write
 all three digits, `\001`); a number that isn't a character
 (`\x{D800}`, `\x{110000}`); `\c`, a character by its name
-(`\N{LATIN SMALL LETTER E}`), and the case escapes `\U \L \u \l \Q
-\E`.
+(`\N{LATIN SMALL LETTER E}`), and `\F`, the one case escape that is
+not in ("Case in a string" has the others).
 
 A string may run over several lines, and then it holds the newlines. A
 tab may be written as itself; any other control character is written
@@ -525,7 +528,7 @@ other: `"user@example.com"` is refused for want of an `@example`.
 
 Not in the language: an expression in a string (`"@{[ ... ]}"`,
 `"${\ ... }"`), which is code in it: work the value out first, into a
-`my`. Not yet: the case escapes, `\U` and its kin.
+`my`.
 
 ### Case in a string
 
@@ -543,6 +546,11 @@ case**, of all that follows to the end of the string, as perl has it.
 One of `\U`, `\L` and `\Q` may not stand inside another (perl's rules
 for that are its own), `\u` and `\l` stand before a run or first in
 it, `\E` with nothing to end is refused (perl warns), and so is `\F`.
+First in a run, a `\u` or `\l` ends with the run: `"\U\u$x\Eabc"`
+leaves `abc` alone. But `\L\u` and `\U\l` are `\u\L` and `\l\U` to perl,
+as if written before the run, and go on past its `\E`. A `\E` hard
+after a `\u` or `\l` in a run is refused: perl's answer there is its
+own.
 `quotemeta` is the `\Q` of a value.
 
 ### Joining and repeating
@@ -629,9 +637,10 @@ it is exact as ever, and so is every Int a double can't hold exactly.
 every letter, by perl's own tables, which the language carries (made
 from perl 5.42 itself): `uc "straße"` is `STRASSE`, two characters for
 the `ß`, and `lc` of a capital I with a dot is two. `ucfirst` and
-`lcfirst` use the same tables. One thing faults: `uc` of two U+0345
-(the combining Greek small iota) together, of which perl makes one
-capital iota. `ord` is the number of a
+`lcfirst` use the same tables. One thing faults: `uc` of a U+0345
+(the combining Greek small iota) with a combining mark after it,
+another U+0345 or any other: perl moves the capital iota it makes past
+the marks, and makes one of two. `ord` is the number of a
 string's first character (0 for the empty string), and `chr` is the
 character with a number.
 
@@ -1715,7 +1724,8 @@ it. N is cut toward zero as an index is; below -1 is a fault (perl
 empties the array in silence). Through a reference, `$#{ $r } = N;` and
 `$r->$#* = N;`, an undef `$r` is made an array first, as `push` makes
 it. It is a statement of its own, with `=` alone: perl's has a value,
-and takes `+=` and `++`, which are not in the language. It changes the
+and takes `+=` and `++`, which are not in the language; nor may `or
+die` or its kin follow it. It changes the
 array as `splice` does: a loop over the array may not do it.
 
 ### Slices

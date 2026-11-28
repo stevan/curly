@@ -38,7 +38,7 @@ export type Token =
     // a reference is worked out from, `@{ EXPR }` (step 13b).
     // `sub`: the brace opens or closes the block of a sub with no name,
     // whose end ends a value (step 14).
-    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true; sub?: true }
+    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true; sub?: true; inline?: true }
     // The sigil of a whole container through a reference, `@`, `%` or
     // `$#`, its brace next (step 13b; D108); and `$`, the scalar through
     // one, `${ EXPR }` (step 13c).
@@ -122,6 +122,11 @@ export const lex = (src: string): Token[] => {
     // hash, or a block (step 13a).
     // (`sderef`: the braces of `${ EXPR }`, step 13c.)
     const braces: ('subscript' | 'anon' | 'block' | 'deref' | 'sderef' | 'sub')[] = [];
+    // For each block that is open, whether it stands in an expression: the
+    // block of a `do`, a `map`, a `grep` or a `sort`, after whose closing
+    // brace perl looks for an operator or a list and never for a statement
+    // (T674).
+    const inline: boolean[] = [];
     // Whether the signature that is open is a sub's with no name, and the
     // index of the `)` that closed the last such one: the block after it is
     // that sub's (step 14).
@@ -568,8 +573,9 @@ export const lex = (src: string): Token[] => {
     // each begin a run to `\E` or the end of the string, and another of
     // them inside one is refused; `\u` and `\l` cover all that follows
     // them to the end of the string, as perl's do (`"\u${x}d"` with `$x`
-    // empty is `D`), and may stand first in a run, where perl reads `\L\u`
-    // as `\u\L`; anywhere else in a run they are refused. Outside a run
+    // empty is `D`), and may stand first in a run: perl reads `\L\u` as
+    // `\u\L` and `\U\l` as `\l\U`, and any other is in the run and ends
+    // with it (T677); anywhere else in a run they are refused. Outside a run
     // they nest, each over all that follows it (`"\u\lABC"` is `ABC`).
     // `\E` with no run open is refused (perl warns),
     // and `\F` is not in the language.
@@ -606,6 +612,12 @@ export const lex = (src: string): Token[] => {
                 if (c === 'F') refuse('\\F, the fold case, is not in the language: lc says it for most strings, and perl folds some characters to more than one (D256)', where);
                 if (c === 'E') {
                     if (run() === undefined) refuse('\\E with no \\U, \\L or \\Q before it to end: perl warns that it is useless', where);
+                    // A `\u` or `\l` in a run ends with it (T677). With
+                    // nothing after it before the `\E`, perl's answer is
+                    // its own (`"\U\u\Eabc"` is `ABC`).
+                    if (!top().run && empty(top())) {
+                        refuse(`\\E hard after \\${top().op === 'ucfirst' ? 'u' : 'l'} in a run: perl's answer for it is its own (T677); take the \\${top().op === 'ucfirst' ? 'u' : 'l'} out`, where);
+                    }
                     while (!top().run) close();
                     close();
                     return true;
@@ -620,12 +632,19 @@ export const lex = (src: string): Token[] => {
                 const op = c === 'u' ? 'ucfirst' : 'lcfirst';
                 const open = run();
                 if (open !== undefined) {
-                    // `\L\u` is `\u\L` to perl: first in a run, and the run
-                    // the last thing open.
+                    // First in a run, and the run the last thing open.
                     if (top() !== open || !empty(open)) refuse(`\\${c} inside a run of \\U, \\L or \\Q, after its start: perl's rules for these are its own; put it before the run`, where);
-                    stack.pop();
-                    flush(top());
-                    stack.push({ op, run: false, pieces: [], value: '', pos: where }, open);
+                    // `\L\u` is `\u\L` to perl, and `\U\l` is `\l\U`: those
+                    // two and no others (T677), and then the `\u` or `\l`
+                    // goes on past the run's `\E`. Any other is in the run,
+                    // and ends with it.
+                    if ((open.op === 'lc' && c === 'u') || (open.op === 'uc' && c === 'l')) {
+                        stack.pop();
+                        flush(top());
+                        stack.push({ op, run: false, pieces: [], value: '', pos: where }, open);
+                    } else {
+                        stack.push({ op, run: false, pieces: [], value: '', pos: where });
+                    }
                     return true;
                 }
                 flush(top());
@@ -674,12 +693,24 @@ export const lex = (src: string): Token[] => {
     };
 
     // Whether a statement may begin after the last token (step 16d): at the
-    // start, after a `;`, and after a block's braces, either one.
+    // start, after a `;` that is not in a `for`'s brackets, and after a
+    // block's braces, either one, but not the closing one of a block that
+    // stands in an expression (`do { } while`, `map { } LIST`: T674).
     const statementMayBegin = (): boolean => {
         const last = tokens.at(-1);
         if (heredoc !== undefined) return false;
-        return last === undefined || last.kind === ';'
-            || ((last.kind === '}' || last.kind === '{') && last.subscript !== true && last.anon !== true && last.deref !== true && last.sub !== true);
+        // A `;` with a round bracket open nearest is a `for`'s, and no
+        // statement begins after it (T674).
+        if (last?.kind === ';') {
+            const open: string[] = [];
+            for (const t of tokens) {
+                if (t.kind === '(' || t.kind === '{' || t.kind === '[') open.push(t.kind);
+                else if (t.kind === ')' || t.kind === '}' || t.kind === ']') open.pop();
+            }
+            return open.at(-1) !== '(';
+        }
+        return last === undefined
+            || ((last.kind === '}' || last.kind === '{') && last.subscript !== true && last.anon !== true && last.deref !== true && last.sub !== true && last.inline !== true);
     };
 
     // Whether the last token ends a value, so that an operator comes next.
@@ -940,13 +971,14 @@ export const lex = (src: string): Token[] => {
             heredoc = undefined;
             continue;
         }
-        // POD (step 16d, D255): a line that begins `=` and a letter, where a
+        // POD (step 16d, D255): a line that begins `=` and a letter (not `_`:
+        // perl does not compile `=_x`, T673), where a
         // statement may begin, to a line that begins `=cut` and no more of a
         // word, or the end of the file; a comment to the language. perl
         // takes such a line for a syntax error anywhere else, and `=cut`
         // alone begins POD too (T666). A `# line N` comment in it still
         // moves the line a die names, to perl (T667).
-        if (c === '=' && start.col === 1 && isWordStart(src[i + 1] ?? '')) {
+        if (c === '=' && start.col === 1 && /^[A-Za-z]$/.test(src[i + 1] ?? '')) {
             if (!statementMayBegin()) refuse('a line that begins = and a word in the middle of a statement: perl takes it for POD only where a statement may begin, and does not compile it here', start);
             let first = true;
             while (i < src.length) {
@@ -1227,9 +1259,18 @@ export const lex = (src: string): Token[] => {
                 push({ kind: '{', text: take(), pos: start, sub: true });
                 continue;
             }
-            if (c === '{') braces.push('block');
+            if (c === '{') {
+                braces.push('block');
+                const opener = name?.kind === '(' ? tokens.at(-2) : name;
+                const word = opener?.kind === 'word' ? NAMES.get(opener.text)?.kind : undefined;
+                inline.push(word === 'binder' || word === 'sort' || (opener?.kind === 'word' && opener.text === 'do'));
+            }
             if (c === '}') {
                 const opened = braces.pop();
+                if (opened === 'block' && inline.pop() === true) {
+                    push({ kind: '}', text: take(), pos: start, inline: true });
+                    continue;
+                }
                 if (opened === 'sub') {
                     push({ kind: '}', text: take(), pos: start, sub: true });
                     continue;

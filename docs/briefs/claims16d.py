@@ -104,4 +104,17 @@ STEP16D = [
     c('16d-die-concat', 'PLAN 16 census', 'my @l = (1, 2);\ndie "cycle among: " . join(" ", @l) . "\\n"\n    if @l;', exit=255, err='^cycle among: 1 2\\n$'),
     c('16d-die-join-last', 'PLAN 16 census', 'my @l = ("a", "b\\n");\ndie join(" ", @l)\n    if @l;', exit=255, err='^a b\\n$'),
     c('16d-die-sprintf-inner-newline', 'PLAN 16 census', 'my $n = 1;\ndie sprintf("has\\n%d", $n)\n    if $n;', exit=255, err='^has\\n1 at .* line 3\\.\\n$'),
+    # ---- what the independent review found (T673 to T699)
+    c('T673', 'TRAPS; PLAN 16 review', 'say 1;\n=_x\nsay 2;\n=cut\nsay 3;', compiles=False, err='syntax error at .* line 3, near "="'),
+    c('T674-do', 'TRAPS; PLAN 16 review', 'my $i = 0;\ndo { $i++ }\n=pod\n=cut\nuntil ($i);\nsay $i;', compiles=False, err="Can't modify constant item in scalar assignment"),
+    c('T674-map', 'TRAPS; PLAN 16 review', 'my @l = map {\n$_ * 2\n}\n=pod\n=cut\n1, 2;\nsay "@l";', compiles=False, err='syntax error at .* line 5, near "="'),
+    c('T674-sort', 'TRAPS; PLAN 16 review', 'my @l = sort {\n$a <=> $b\n}\n=pod\n=cut\n2, 1;\nsay "@l";', compiles=False, err='syntax error at .* line 5, near "="'),
+    c('T674-for', 'TRAPS; PLAN 16 review', 'my $i = 0;\nfor ($i = 0; $i < 2;\n=pod\n=cut\n$i++) { }\nsay $i;', compiles=False, err='syntax error at .* line 4, near "="'),
+    c('T674-in', 'PLAN 16 review', 'my @l = map {\n=pod\n=cut\n$_ * 2 } 1, 2;\nsay "@l";\nmy $i = 0;\nif ($i) { say 1; }\n=pod\n=cut\nelse { say "e"; }\nfor ($i = 0; $i < 1; $i++) {\n=pod\n=cut\n}\nsay $i;', out='2 4\ne\n1\n'),
+    c('T675', 'TRAPS; PLAN 16 review', r"""sub codes($s) { return join " ", map { sprintf "%X", ord } split //, $s } say codes(uc "\x{345}\x{301}"); say codes(uc "\x{345}\x{301}\x{345}"); say codes(uc "a\x{345}\x{300}"); say codes(uc "\x{345}a\x{301}"); say codes(ucfirst "\x{345}\x{301}"); say codes(lc "\x{345}\x{301}");""", out='301 399\n301 399\n41 300 399\n399 41 301\n399 301\n345 301\n'),
+    c('T675-marks', 'TRAPS; PLAN 16 review', r"""my ($moved, $marks, $differ) = (0, 0, 0); for my $c (0 .. 0x10FFFF) { next if $c >= 0xD800 && $c <= 0xDFFF; my $s = chr $c; my $m = uc("\x{345}" . $s) ne "\x{399}" . uc($s); my $k = $s =~ /\p{M}/; $moved++ if $m; $marks++ if $k; $differ++ if $m != $k; } say "$moved $marks $differ";""", out='2501 2501 0\n'),
+    c('T676', 'TRAPS; PLAN 16 review', 'my @a = (1, 2); $#a = 0 or die "e\\n";', exit=255, err='Found = in conditional, should be == at .*\\ne\\n'),
+    c('T676-true', 'TRAPS; PLAN 16 review', 'no warnings; my @a = (1, 2); $#a = -1 and die "e\\n"; say "past";', exit=255, err='^e\\n$'),
+    c('T677', 'TRAPS; PLAN 16 review', r"""my $e = ""; say "\U\u$e\Eabc"; say "\L\l$e\EABC"; say "\Q\u$e\Ea.c"; say "\L\u$e\Eabc"; say "\U\l$e\EABC"; say "\L\u$e\Eabc \uxyz"; say "\u\U$e\Eabc";""", out='abc\nABC\na.c\nAbc\naBC\nAbc Xyz\nAbc\n'),
+    c('T677-own', 'TRAPS; PLAN 16 review', r"""say "\U\u\Eabc"; say "\L\l\EABC"; say "\Q\u\Ea.c"; say "\Q\l\EA.C";""", out='ABC\nabc\na\\.c\nA\\.C\n'),
 ]

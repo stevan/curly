@@ -1413,6 +1413,11 @@ export const parse = (tokens: readonly Token[], file = '-'): Program => {
             if (expr.kind === 'listassign' || (expr.kind === 'assign' && (expr.target.kind === 'array' || expr.target.kind === 'myarray' || expr.target.kind === 'deref'))) {
                 refuse(`'${word.text} ${then.text}' after an assignment of a list: perl tests the count of its right side; test what was assigned in a statement of its own`, word.pos);
             }
+            // `$#a = N or die` (T676): a statement alone (D251), and perl
+            // warns `Found = in conditional` where N is a constant.
+            if (expr.kind === 'arrayop' && expr.op === '$#=') {
+                refuse(`'${word.text} ${then.text}' after $#a = N: setting an array's last index is a statement alone (D251); test the array in a statement of its own`, word.pos);
+            }
             next();
             const rhs = simple();
             const after = peek();

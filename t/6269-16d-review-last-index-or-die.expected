@@ -1,0 +1,2 @@
+t/6269-16d-review-last-index-or-die.pl:5:9: 'or die' after $#a = N: setting an array's last index is a statement alone (D251); test the array in a statement of its own
+exit: 1

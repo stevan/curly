@@ -370,7 +370,7 @@ quiet has met few of them.
 | After a string read as a number underflows (`"1e-310" + 0`), an uncaught `die` exits 34, perl's `$!`, not 255 | A fault at the `die` | accident | rarely | errors | D151 |
 | `sprintf("%d", 1e30)` is `-1`; `%g` of `-$x` is `-0` or `0` by what `$x` was; `%3c` pads a wide character by its bytes | A fault where perl's conversion is the machine's or has two answers; `%c` takes no width | accident | rarely | printing | D127, D131 |
 | `qq[$x\[0\]]` is an element of `@x`: the backslash before the bracket goes before the variables are read | A backslash before a `qq`'s own bracket is refused | accident | rarely | strings | D131 |
-| `uc` of two U+0345 together is one U+0399 | Fault; every other character by perl's own tables | accident | rarely | strings | D257 |
+| `uc` of a U+0345 before a combining mark moves the U+0399 past the marks, and makes one of two | Fault; every other character by perl's own tables | accident | rarely | strings | D257 |
 | `my ($n) = f() or die "...";`, `$x = f() or die "..." if $y;`: a list assignment before `or die`, a modifier after it | Refused: perl tests the list assignment's count (T670); the modifier is over the whole | accident | rarely | errors | D260 |
 | `"\Uab\Lcd\E"`, `"\Ua\Qb\E"`, `"\Uh\lello"`, `"x\E"`, `"\F..."`: case escapes in each other, or past a run's start | Refused: a run of `\U`, `\L` or `\Q` ends at `\E`, and none is inside another | accident | rarely | strings | D256 |
 | `undef @a[0, 1]` makes only the last element undef; `my $y = undef $x;` | Refused: `undef $x;` is a statement | accident | rarely | variables | D252 |

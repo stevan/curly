@@ -1,0 +1,4 @@
+a
+3
+fault: uc of U+0345 before a combining mark: perl moves it past the mark at t/6266-16d-review-uc-ypogegrammeni-mark.pl line 6.
+exit: 1

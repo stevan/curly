@@ -49,7 +49,7 @@ comparison: *in*, *out*, or *n/a*.
 | `Name::f($x)`, a sub of another package | In | 18 | in | |
 | `package Name { }`, `__PACKAGE__`, imports | Later | 18 | | |
 | `BEGIN`, `END`, `INIT`, `CHECK`, `UNITCHECK` | Cut | | in | D20; `BEGIN` as evaluation is parked |
-| `__DATA__`, `__END__`, POD | In | 16d | | D255: POD where a statement may begin, to a line `=cut` (T666: `=cut` alone begins it), a comment; a `# line N` in it refused (T667); `__END__` and `__DATA__` end the program there; `<DATA>` is out (D20) |
+| `__DATA__`, `__END__`, POD | In | 16d | | D255: POD where a statement may begin (not after the block of a `do`, `map`, `grep` or `sort`, nor in a `for`'s brackets: T674), from `=` and a letter (T673) to a line `=cut` (T666: `=cut` alone begins it), a comment; a `# line N` in it refused (T667); `__END__` and `__DATA__` end the program there; `<DATA>` is out (D20) |
 | `my $x`, `my @a`, `my %h`, `my (...)` | In | 5, 9, 12 | in | D56: `my $x` at the head of a statement, or in the test of an `if`; a name is ASCII (D55) |
 | `my` under a statement modifier, right of `&&`, `\|\|`, `//`, in a branch of `? :`, or anywhere else inside an expression | Cut | | | D21, D56: perl keeps the old value, or may not reach it (T30) |
 | A second `my` of a name in one scope | Cut | | | D15: perl warns |
@@ -286,7 +286,7 @@ Opal's notation, `docs/BUILTINS.md`.
 | A format that is not a literal (T22); `%i %D %U %O %F %a %n %p %v`, `%2$s`, size letters; a width on `%c` (T277); `printf` to a handle | Cut; the handle Later | 21 | D124, D125, D131 |
 | `ucfirst`, `lcfirst`, `rindex`, `chomp` and `chop` of a variable | In | 16c |
 | `substr` with 4 arguments, `scalar reverse LIST` | In | 16d | D254: a statement on a scalar variable, its value refused; D258: the list joined and reversed, an empty list a fault (T672); `reverse` where one value is wanted by context alone stays Cut (T23) |
-| `uc`, `lc`, `ucfirst`, `lcfirst`, `quotemeta` past ASCII | In | 16d | D257: perl's own tables, generated from perl 5.42; `uc` of two U+0345 together a fault (T664) |
+| `uc`, `lc`, `ucfirst`, `lcfirst`, `quotemeta` past ASCII | In | 16d | D257: perl's own tables, generated from perl 5.42; `uc` of a U+0345 before a combining mark, another U+0345 among them, a fault (T664, T675) |
 | `chr` of a surrogate, of a number past U+10FFFF or below zero; printing a noncharacter | Fault | 3 |
 | `substr` and `index` without brackets; a sign after a named unary operator that perl calls ambiguous, `length - 5` | Cut | |
 | `substr` on the left of `=` or under `\`, `vec`, `pos`, `lc` and friends without an argument | Cut | | D254 for `substr` |

@@ -81,9 +81,22 @@ static void case_one(int which, uint32_t c, char *to, uint64_t *bytes, uint64_t 
 
 // `uc`, `lc`, `ucfirst` and `lcfirst` of a whole string, by perl's own
 // tables (a string mapped a character at a time, as perl maps it), counted
-// and then written, one allocation. perl's `uc` of two U+0345 together
-// makes one U+0399 (T664): a fault, the one place a character's
-// neighbours change what it becomes.
+// and then written, one allocation. But perl's `uc` moves a U+0345 past
+// every mark that follows it, and makes one U+0399 of two with only marks
+// between (T664, T675): a U+0345 before a mark is a fault, the one place
+// a character's neighbours change what it becomes. The marks are perl's
+// own, asked of it by the tables' generator.
+static int in_ranges(const uint32_t (*t)[2], size_t n, uint32_t c) {
+    size_t lo = 0, hi = n;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (c < t[mid][0]) hi = mid;
+        else if (c > t[mid][1]) lo = mid + 1;
+        else return 1;
+    }
+    return 0;
+}
+
 static rt_value case_string(rt_ctx *cx, rt_value a, int which) {
     scratch x;
     const rt_str *s = to_str(cx, a, &x);
@@ -94,6 +107,9 @@ static rt_value case_string(rt_ctx *cx, rt_value a, int which) {
         int size;
         uint32_t c = decode(s->bytes + at, &size);
         if (which == CASE_UC && c == 0x345 && before == 0x345) rt_fault(cx, "uc of two U+0345 together: perl makes them one character");
+        if (which == CASE_UC && before == 0x345 && in_ranges(case_mark, sizeof case_mark / sizeof *case_mark, c)) {
+            rt_fault(cx, "uc of U+0345 before a combining mark: perl moves it past the mark");
+        }
         before = c;
         if (first && at > 0) {
             bytes += (uint64_t)size;
@@ -126,14 +142,7 @@ static rt_value case_string(rt_ctx *cx, rt_value a, int which) {
 // perl's `quotemeta` quotes, which its table gives.
 static int quoted(uint32_t c) {
     if (c < 0x80) return !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_');
-    size_t lo = 0, hi = sizeof case_quoted / sizeof *case_quoted;
-    while (lo < hi) {
-        size_t mid = lo + (hi - lo) / 2;
-        if (c < case_quoted[mid][0]) hi = mid;
-        else if (c > case_quoted[mid][1]) lo = mid + 1;
-        else return 1;
-    }
-    return 0;
+    return in_ranges(case_quoted, sizeof case_quoted / sizeof *case_quoted, c);
 }
 
 rt_value rt_quotemeta(rt_ctx *cx, rt_value a) {

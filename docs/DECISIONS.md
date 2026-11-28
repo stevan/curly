@@ -2626,6 +2626,11 @@ rule, a fault below -1 (T660: perl empties the array in silence); to
 every walk a builtin that changes the array, as `splice` is.
 Rejected: its value and `+=`/`++` (perl has both; nothing needs them);
 perl's silence below -1.
+*Amended by the independent review (2026-11-28; the reviewer's default,
+Stevan's to overturn): `or die` and its kin (D260) may not follow it.
+It had been taken there with a value of its own making, and perl warns
+`Found = in conditional` where N is a constant (T676). Rejected: its
+value there (perl's is N, and the rule is "a statement alone").*
 
 **D252. `undef EXPR;` is a statement, read as the assignment it is**:
 `$x = undef;`, or `@a = ();` and `%h = ();` for a whole container,
@@ -2658,6 +2663,12 @@ where a statement may begin (`<DATA>` stays out, D20). `__LINE__` is
 the token's own line (T665), `__FILE__` the path compiled, refused if it
 is not printable ASCII. Rejected: POD anywhere a line begins (perl
 refuses it mid-statement).
+*Amended by the independent review (2026-11-28; the reviewer's default):
+"where a statement may begin" is not after the closing brace of a block
+that stands in an expression (`do { }`, `map { }`, `grep { }`, `sort
+{ }`), nor after a `;` between a `for`'s brackets (T674), and POD begins
+with `=` and a letter of ASCII, not `_` (T673): perl compiles none of
+those, and the compiler took them all for POD.*
 
 **D256. The case escapes `\U \L \Q \E \u \l` are in, a plain subset of
 perl's rules, and `quotemeta` with them.** `\U`, `\L`, `\Q` begin a run
@@ -2667,6 +2678,14 @@ Refused: a run in a run (perl's replace one another or nest), `\u` or
 `\l` after a run's start, `\E` with nothing open (perl warns), `\F`.
 Rejected: perl's whole rules (a stack with replacement and swaps, met
 by nobody); `\F` as `lc` (wrong for `ß`).
+*Amended by the independent review (2026-11-28; the reviewer's default):
+a `\u` or `\l` first in a run is in the run and ends with it, as perl
+has it, but for `\L\u` and `\U\l`, the two perl swaps, which go on past
+the run's `\E` as D256 said of them all (T677: `"\U\u$e\Eabc"` with
+`$e` empty is `abc`, and the compiler printed `Abc`). Refused: `\E`
+hard after a `\u` or `\l` in a run (`"\U\u\Eabc"` is `ABC` to perl, an
+answer of its own), and a second `\u` or `\l` first in a run. Rejected:
+refusing every `\u` or `\l` in a run (`"\L\u$name\E"` is the idiom).*
 
 **D257. `uc`, `lc`, `ucfirst`, `lcfirst` and `quotemeta` past ASCII are
 perl's own tables**, generated from perl 5.42 by
@@ -2676,6 +2695,16 @@ together is a fault (T664: perl makes one U+0399). Rejected: Unicode's
 tables from another source (another version, another answer somewhere);
 keeping the fault (the commonest thing a program in another language
 asks of a string).
+*Amended by the independent review (2026-11-28; the reviewer's default):
+the fault is for a U+0345 before any combining mark, not only before
+another U+0345 (T675: perl's `uc` moves the U+0399 it makes past every
+mark that follows, `uc "\x{345}\x{301}"` being U+0301 U+0399, and the
+compiler printed them the other way round). The marks are perl's own
+(2,501 characters, its `\p{M}`), asked of perl 5.42 by the tables'
+generator and kept in `runtime/cases16d.c`. Rejected: perl's rule
+ported, which the table now allows (the agreement with perl the working
+rules prefer; D257 had chosen the fault for the one case it knew, and
+this keeps its choice: Stevan's to turn round).*
 
 **D258. `scalar reverse LIST` is in; `reverse` where one value is
 wanted by context alone stays refused.** The list joined, its

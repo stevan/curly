@@ -1,0 +1,2 @@
+t/6273-16d-review-case-lower-first-then-end.pl:4:10: \E hard after \l in a run: perl's answer for it is its own (T677); take the \l out
+exit: 1

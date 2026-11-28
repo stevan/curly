@@ -6983,6 +6983,74 @@ tabled as the case functions are; `quotemeta` is in as a word, which no
 one asked for, because `\Q` is it; a path with a character past ASCII
 makes `__FILE__` a refusal; the review was not a second agent's.
 
+#### What the independent review found
+
+**Reviewed 2026-11-28 by a second reader** (Fable 5.2, a session that did
+not write the step), given the proposals above, D250 to D262, the tree
+at c9c2fd8 and perl 5.42, and asked for a program the compiler takes,
+that runs without a fault, and prints what perl does not. Its account,
+with each finding's program and both outputs, is
+`briefs/step16d-review/README.md`, "The independent review"; its driver
+and its cases, 9,872 programs by hand and from generators, are
+`briefs/step16d-review/reader/`.
+
+**Five ways to be WRONG, T673 to T677, each fixed; no decision took a
+new number, and four have an amendment note (D251, D255, D256, D257),
+each the reviewer's default and Stevan's to overturn.**
+
+- **T675: `uc` of a U+0345 before a combining mark** printed the capital
+  iota before the mark, where perl moves it past every mark that follows
+  (`uc "\x{345}\x{300}"` is U+0300 U+0399) and makes one iota of two
+  with only marks between. D257 knew the one case of two together
+  (T664); its generator's check of "a character at a time" had no mark
+  after a U+0345 in its pool. A fault now, D257's choice widened; the
+  marks (2,501, perl's `\p{M}`) are asked of perl by
+  `briefs/step16d-cases.py` and kept in `runtime/cases16d.c`.
+- **T677: a `\u` or `\l` first in a run** was put outside the run, over
+  the rest of the string, for every run. perl swaps `\L\u` and `\U\l`
+  alone; any other is in the run and ends at its `\E`
+  (`"\U\u$e\Eabc"` with `$e` empty is `abc`, and the compiler printed
+  `Abc`). As perl has it now; `\E` hard after such a `\u` or `\l` is
+  refused (perl's `"\U\u\Eabc"` is `ABC`, by no rule).
+- **T676: `$#a = N or die`** was taken, D260 not knowing D251's
+  "a statement alone": perl warns `Found = in conditional` where N is a
+  constant, and for `$#a = -1 and die` perl dies and the compiler went
+  on. Refused.
+- **T674: POD after the block of a `do`, `map`, `grep` or `sort`, and
+  after a `;` in a `for`'s brackets**, was taken for POD; perl does not
+  compile it there. Refused, and `__END__` with it.
+- **T673: `=_x`** began POD; to perl POD begins with `=` and a letter.
+
+**What stood**: D259 over 1,347 programs written to break it (the ends
+worked out once in every shape, the outer loops' freezes given back on
+every way out, closures, `map` and `sort` still freezing); D260 but for
+T676 over 2,249; D261 over 952 (the judge of "ends in a newline" never
+says so wrongly); D250, D258 and D262 over 2,043; `substr` of four,
+`__LINE__`, `__FILE__` and `quotemeta`.
+
+**Tests**: 6260 to 6273, from `briefs/step16d-review/reader/tests.py` (a
+table by hand; the three `same` tests' answers are perl's, from `make
+oracle`); each but the two that show what stays in was red on the tree
+before its fix. Twelve rows of `briefs/claims16d.py`. **The census**
+(`make census`, rerun after the refusals): unchanged, **1,415 SAME, 170 LOUD, 668 REFUSED, 4 UNJUDGED, of 2,257 run, no WRONG**, no probe left SAME and none moved: no probe had met any
+of the five. **Broken on purpose**: nine breakages of the fixes added to
+`briefs/step16d-mutations.py` (72 now, each piece of text still there),
+the nine run and each caught by a test of 6260 to 6273; `quoted` in
+`runtime/more16d.c` goes through the new `in_ranges`, and the breakage
+that names it was reworded.
+
+**Notes, nothing WRONG**: `LANGUAGE.md` said "Not yet" of the case
+escapes in one place and listed them as refused in another (mended); a
+fault in the test of a `do { } while` names the `do`'s line where perl
+names the block's last statement's (both fault); a `\u` after a run's
+start stays refused though perl's rule for it is now known.
+
+**What the reviewer doubts**: the fault for U+0345 before a mark, where
+perl's rule could be ported now that the table of marks is there; that
+the case escapes' rules were read from perl's answers and not its
+source, held over 1,400 random strings of the subset; nothing was run
+on a second machine.
+
 ### 17. Classes
 
 Referee: perl, and for roles a perl with Stevan's roles (D181).

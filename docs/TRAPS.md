@@ -875,6 +875,22 @@ which no claim can run.
 | T671 | `sort(l("cab"))`, `sort(l ("cab"))` | `abc`, then `cab`: with a blank, `l` is a sub to compare by | 16 census | A word first in `sort(...)` refused as after a bare `sort` (D262) |
 | T672 | `for ("abc") { my @e; say scalar reverse(@e) }` | `cba`: `scalar reverse` of an empty list reverses `$_` | 16d | A fault for an empty list (D258) |
 
+### Found by the independent review of step 16d
+
+Found by a second reader with a differential driver of its own
+(2026-11-28, `briefs/step16d-review/README.md`, "The independent
+review"; the driver and its cases are `briefs/step16d-review/reader/`).
+Each was a program the compiler took and perl answered otherwise. Each
+row is in `briefs/claims16d.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T673 | `say 1;`, then a line `=_x`, `say 2;`, `=cut`, `say 3;` | Does not compile: `syntax error ... near "="`. POD begins with `=` and a letter, and `_` is none | 16d | `=` and a letter of ASCII alone begins POD (D255) |
+| T674 | `do { $i++ }`, then `=pod`, `=cut`, then `until ($i);`; the same after the block of a `map`, `grep` or `sort`, and after a `;` in a `for`'s brackets | Does not compile: after such a block perl looks for an operator or a list, and in a `for`'s brackets for an expression, never for a statement | 16d | No statement may begin there: POD and `__END__` refused (D255) |
+| T675 | `uc("\x{345}\x{301}")`; `uc("\x{345}\x{301}\x{345}")`; `uc("a\x{345}\x{300}")` | U+0301 U+0399; U+0301 U+0399, one iota for the two; `A`, U+0300, U+0399: `uc` moves a U+0345 past every mark after it (2,501 characters, perl's `\p{M}`) | 16d | A fault for a U+0345 before a mark (D257, amended) |
+| T676 | `my @a = (1, 2); $#a = 0 or die "e\n";`; `$#a = -1 and die "e\n";` | Warns `Found = in conditional, should be ==` and dies; the second dies, -1 being true, where the compiler had it false | 16 census | `or` and `and` after `$#a = N` refused (D251, D260) |
+| T677 | `my $e = ""; say "\U\u$e\Eabc"; say "\L\l$e\EABC"; say "\U\u\Eabc";` | `abc`, `ABC`, `ABC`: a `\u` or `\l` first in a run ends with the run, but for `\L\u` and `\U\l`, which perl swaps; and one with nothing after it before `\E` is perl's own answer | 16d | In the run and ending with it, but those two; `\E` hard after it refused (D256, amended) |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only
