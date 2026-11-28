@@ -1,0 +1,4 @@
+0
+0
+fault: pattern match too long at t/5509-re-fault-too-long-run.pl line 13.
+exit: 1

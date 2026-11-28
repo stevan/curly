@@ -380,7 +380,7 @@ quiet has met few of them.
 | `ucfirst("éa")` is `Éa`, by perl's tables | A first character past ASCII is a fault, as for `uc` | accident | rarely | strings | D129 |
 | `/i` folds past ASCII: `"\x{212A}" =~ /k/i` matches, and `"\xdf" =~ /ss/i` | A match under `/i` of a string with a character past ASCII is a fault, as `uc` and `lc` past ASCII are | accident | sometimes | strings | D230 |
 | A group that captures inside a repeated group, `/(?:(a)\|b)*/`: perl keeps or forgets its value by rules of its own | Refused, unless it is the repeated group itself: `(a\|b)*` | accident | rarely | strings | D231 † |
-| A pattern that backtracks without end, which perl's shortcuts often finish at once; and a plain one that fails after a repeat, `/x+y/` or `/\s+$/`, on a run of a few thousand characters; and any match over a string of some megabytes | A fault past ten million steps of the matcher: the second kind from a run of about 2,250, the third from about four megabytes (the rating is the reviewer's guess, and was "rarely" for the first kind alone) | accident | sometimes | strings | D232, D239 |
+| A pattern with a backreference that backtracks without end, `/^(c?)(?:a\|aa)*\1c$/`, or fails after a repeat on a run of some thousands of characters, `/(y?)x+\1z/`: perl's shortcuts often finish the first at once | A fault past the limit on the matcher's steps, which grows with the pattern and the string. A pattern with no backreference is matched in time in proportion to the two, as perl is quick at and sometimes where it is not (the rating is a guess) | accident | rarely | strings | D232, D240, D244 |
 | `$s =~ /a/ ** 2`, and `$s !~ /a/ =~ /1/`: perl matches `$_` in the first, and warns of the second | Refused: bracket the match | accident | rarely | strings | D239 |
 | `/b+&(?:a{2}){2}/`, a count of a string inside a group repeated at least twice: perl 5.42 says no to strings it matches, a bug of its own; and a lazy quantifier with a character past U+00FF, where its answer goes by how it keeps the string | Refused, both: `(?:aa){2}` says the first | accident | rarely | strings | D239 |
 | `[aeiou.]`, a class with `:`, `=` or `.` and three letters in a row, or one of the three twice: perl warns of some, by likeness to `[:alpha:]` | Refused: write `\.` | accident | rarely | strings | D239 |
@@ -414,9 +414,14 @@ the same program under perl. None is on stdout but hash order.
 - **`out of memory` is a fault** (D66), and a perl that runs out of
   memory as it compiles a huge constant is outside the agreement
   (D46). No test has a cap of the language's (D65).
-- **Every compiled program reads three environment variables**, the
-  collector's knobs (D63). None changes what a program prints short
-  of `out of memory`.
+- **Every compiled program reads four environment variables**, the
+  collector's knobs (D63) and one of the matcher's for its tests
+  (D240). None changes what a program prints short of `out of
+  memory` and `pattern match too long`.
+- **A match holds memory of its own while it runs**, counted with what
+  the program holds (D243): a bit for each alternation and loop of the
+  pattern at each byte of the string, and some tens of bytes for each
+  time round a loop of a group.
 - **Where Curly faults, perl may never stop**: a loop that only the
   fault would end runs for ever under perl (T131).
 
@@ -506,7 +511,7 @@ decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
 D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164,
-D186, D170, D225, D226, D235, D237, D238.
+D186, D170, D225, D226, D235, D237, D238, D241, D242.
 
 ## What this leaves out
 

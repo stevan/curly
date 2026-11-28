@@ -187,6 +187,9 @@ typedef struct rt_ctx {
     uint64_t stress;        // CURLY_GC_STRESS: a collection at every nth allocation
     uint64_t poison;        // CURLY_GC_POISON: a collected string's memory is kept
     uint64_t cap;           // CURLY_HEAP_CAP: `out of memory` when more would be held
+    // A fourth, for the tests alone (D240): the matcher without what it
+    // remembers, its runs and its skips, to hold the matcher with them to.
+    uint64_t re_plain;      // CURLY_RE_PLAIN
     // What the collector has reached and not yet walked (step 13a): a
     // container holds references to others, a chain of them may be as
     // long as memory allows, and C's stack is not used for it. Kept
@@ -556,6 +559,9 @@ typedef struct rt_regex {
     int32_t groups;
     int32_t icase;
     int32_t global;
+    int32_t size;       // how many words `code` is
+    int32_t marks;      // how many MARKs and RUNs it has, each with a number of its own (D240)
+    int32_t backrefs;   // whether it has a backreference, which nothing is remembered with
 } rt_regex;
 rt_value rt_match(rt_ctx *cx, const rt_regex *re, rt_value subject);
 rt_value rt_match_not(rt_ctx *cx, const rt_regex *re, rt_value subject);

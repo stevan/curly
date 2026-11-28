@@ -1,2 +1,3 @@
-fault: pattern match too long at t/5303-re-fault-too-long-global.pl line 5.
+0
+fault: pattern match too long at t/5303-re-fault-too-long-global.pl line 9.
 exit: 1

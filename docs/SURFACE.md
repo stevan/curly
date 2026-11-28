@@ -333,7 +333,7 @@ that names it.
 | `/i` | In, ASCII's: a pattern under it holds no character past ASCII, and matching a string that holds one is a fault | 19 (D230) |
 | `/g` where a list is wanted | In | 19 (D233) |
 | A match where one value is wanted, a boolean; where a list is, its captures | In | 19 (D235) |
-| More than ten million steps of the matcher in one match | Fault | D232 |
+| More steps of the matcher in one match than ten million and four for each instruction of the pattern at each byte of the string, which only a pattern with a backreference comes to (or one too large to remember its way through) | Fault | D232, D240, D244 |
 | Named captures, `%+` | Later | 20 |
 | `$1`, `$2`, `$&`, `@-`, `@+` | Cut: a match where a list is wanted gives its captures | D228 |
 | `s///`, `s///g`, `s///r`, `tr///`, `split` | In | 20 |

@@ -15,6 +15,10 @@ run two ways, and is caught if either goes red:
            `# env:`, as t/run.sh runs them
   unit     the runtime's own test of the matcher's limit, in the copy
 
+The breakages named `limit:` came with D240 to D244, the matcher that
+remembers where it has been: each is a way of answering sooner that
+answers wrongly, or of counting its memory wrongly.
+
 A record of step 19, and not part of make test: each breakage is a piece
 of the text as it was then, and one that no longer matches stops the
 run."""
@@ -80,9 +84,9 @@ MUTATIONS = [
  ("a match is one value where a list is wanted", GEN, "    } else if (e.kind === 'match' && e.negate !== true) {", "    } else if (false) {"),
  ("!~ is =~ in the C", GEN, "${e.negate ? 'rt_match_not' : 'rt_match'}", "rt_match"),
  # ---- the matcher
- ("a character is one byte", RE_C, "            if (pos < len && (c = decode(s + pos, &size)) == (uint32_t)code[pc + 1]) { pos += size; pc += 2; continue; }", "            if (pos < len && (c = decode(s + pos, &size)) == (uint32_t)code[pc + 1]) { pos += 1; pc += 2; continue; }"),
- ("/i folds nothing", RE_C, "                if (c >= 'A' && c <= 'Z') c |= 0x20;\n                if (c == (uint32_t)code[pc + 1])", "                if (c == (uint32_t)code[pc + 1])"),
- (". takes a newline", RE_C, "            if (pos < len && s[pos] != '\\n') {", "            if (pos < len) {"),
+ ("a character is one byte", RE_C, "        return c == (uint32_t)x[1] ? size : 0;\n    case RE_CHARI:", "        return c == (uint32_t)x[1] ? 1 : 0;\n    case RE_CHARI:"),
+ ("/i folds nothing", RE_C, "        if (c >= 'A' && c <= 'Z') c |= 0x20;\n        return c == (uint32_t)x[1] ? size : 0;", "        return c == (uint32_t)x[1] ? size : 0;"),
+ (". takes a newline", RE_C, "        if (s[pos] == '\\n') return 0;\n", ""),
  ("^ under /m after the last newline", RE_C, "            if (pos == 0 || (s[pos - 1] == '\\n' && pos < len)) { pc += 1; continue; }", "            if (pos == 0 || s[pos - 1] == '\\n') { pc += 1; continue; }"),
  ("$ is not before a last newline", RE_C, "            if (pos == len || (pos == len - 1 && s[pos] == '\\n')) { pc += 1; continue; }", "            if (pos == len) { pc += 1; continue; }"),
  ("$ under /m is $", RE_C, "            if (pos == len || s[pos] == '\\n') { pc += 1; continue; }", "            if (pos == len || (pos == len - 1 && s[pos] == '\\n')) { pc += 1; continue; }"),
@@ -95,8 +99,8 @@ MUTATIONS = [
  ("a /g match of no length may come again", RE_C, "            if (pos == notempty && m->caps[0] == pos) goto fail;", "            if (0) goto fail;"),
  ("a /g match goes on one past the last", RE_C, "        from = m.caps[1];", "        from = m.caps[1] + 1;"),
  ("/i past ASCII is taken", RE_C, "    if (re->icase && s->len != s->chars) rt_fault(", "    if (0) rt_fault("),
- ("the limit is one step short", RE_C, "        if (++m->steps > RE_STEPS)", "        if (++m->steps >= RE_STEPS)"),
- ("no limit at all", RE_C, "        if (++m->steps > RE_STEPS)", "        if (0)"),
+ ("the limit is one step short", RE_C, "        if (++m->steps > m->limit) re_fault(m, \"pattern match too long\");\n        int size = 0;", "        if (++m->steps >= m->limit) re_fault(m, \"pattern match too long\");\n        int size = 0;"),
+ ("no limit at all", RE_C, "        if (++m->steps > m->limit) re_fault(m, \"pattern match too long\");\n        int size = 0;", "        int size = 0;"),
  ("a match with no group gives what it matched", RE_C, "    if (nfound > 0 && groups == 0 && !re->global) {", "    if (0) {"),
  ("a group that took no part is the empty string", RE_C, "    if (from < 0 || to < 0) return rt_undef();", "    if (from < 0 || to < 0) return rt_string(&STR_FALSE);"),
  ("a capture counts bytes for characters", RE_C, "    for (int64_t k = from; k < to; k++) chars += !continues(subject->bytes[k]);", "    chars = (uint64_t)(to - from);"),
@@ -137,6 +141,44 @@ MUTATIONS = [
  ("review: a class of one character is no string", RE_TS, "        case 'class': return !n.neg && n.escapes.length === 0 && n.ranges.length > 0 && n.ranges.every(([lo, hi]) => lo === hi && lo === n.ranges[0]![0]);", "        case 'class': return false;"),
  ("review: any class is one string", RE_TS, "        case 'class': return !n.neg && n.escapes.length === 0 && n.ranges.length > 0 && n.ranges.every(([lo, hi]) => lo === hi && lo === n.ranges[0]![0]);", "        case 'class': return true;"),
  ("review: a group is no string", RE_TS, "        case 'group': return oneString(n.body);", "        case 'group': return false;"),
+ # ---- what keeps the matcher from trying what cannot change the answer
+ # (D240 to D244; T568, T571): each a way of answering sooner that answers wrongly
+ ("limit: a pattern with a backreference is remembered through", RE_C, "    if (!m->plain && !re->backrefs && re->marks > 0) m->tried_bytes", "    if (!m->plain && re->marks > 0) m->tried_bytes"),
+ ("limit: every mark is one mark", RE_C, "    uint64_t bit = (uint64_t)pos * (uint64_t)m->re->marks + (uint64_t)k;", "    uint64_t bit = (uint64_t)pos * (uint64_t)m->re->marks;"),
+ ("limit: what is remembered is by the mark alone", RE_C, "    uint64_t bit = (uint64_t)pos * (uint64_t)m->re->marks + (uint64_t)k;", "    uint64_t bit = (uint64_t)k;"),
+ ("limit: nothing is forgotten between the matches of a /g", RE_C, "        re_forget(&m, from);\n", ""),
+ ("limit: the place before is forgotten", RE_C, "bit = (uint64_t)at * marks;", "bit = (uint64_t)(at > 0 ? at - 1 : 0) * marks;"),
+ ("limit: a run gives back half a character", RE_C, "                while (continues(s[last])) last--;\n", ""),
+ ("limit: a run gives back one character too many", RE_C, "                if (last > first) {\n                    m->stack[m->sp - 1] = last;", "                if (last >= first) {\n                    m->stack[m->sp - 1] = last;"),
+ ("limit: a run does not give back its first character", RE_C, "                } else {\n                    m->sp -= 2;\n                }", "                } else {\n                    m->sp -= 2;\n                    continue;\n                }"),
+ ("limit: a run goes on where one has been", RE_C, "                if (remember && re_tried(m, mark, pos)) {", "                if (0) {"),
+ ("limit: a run that has been here fails though it took something", RE_C, "                    if (pos == first) goto fail;\n                    pos = last;\n                    break;", "                    goto fail;"),
+ ("limit: a mark is never looked at", RE_C, "            if (re_remember(m) && re_tried(m, code[pc + 1], pos)) goto fail;", "            if (0) goto fail;"),
+ ("limit: a start is skipped past", RE_C, "            at = next - m->s;", "            at = next - m->s + 1;"),
+ ("limit: ^ under /m is taken for ^", RE_C, "        if (re->code[2] == RE_BOL) m->skip = RE_BOL;", "        if (re->code[2] == RE_BOL || re->code[2] == RE_MBOL) m->skip = RE_BOL;"),
+ ("limit: no start is tried for ^", RE_C, "        if (m->skip == RE_BOL && at > 0) break;", "        if (m->skip == RE_BOL && at >= 0) break;"),
+ ("limit: the first byte of a character past ASCII is its number", RE_C, "            m->lead = (char)(c < 0x80 ? c : c < 0x800 ? 0xC0 | c >> 6 : c < 0x10000 ? 0xE0 | c >> 12 : 0xF0 | c >> 18);", "            m->lead = (char)c;"),
+ ("limit: a character of three bytes begins as one of two", RE_C, "c < 0x10000 ? 0xE0 | c >> 12 : 0xF0 | c >> 18);", "c < 0x10000 ? 0xC0 | c >> 12 : 0xF0 | c >> 18);"),
+ ("limit: a character without regard to case is skipped to", RE_C, "        if (re->code[2] == RE_CHAR) {", "        if (re->code[2] == RE_CHAR || re->code[2] == RE_CHARI) {"),
+ ("limit: the limit does not grow with the string", RE_C, "    m->limit = RE_STEPS + RE_STEPS_EACH * (uint64_t)re->size * ((uint64_t)s->len + 1);", "    m->limit = RE_STEPS;"),
+ ("limit: the limit grows with the pattern alone", RE_C, "    m->limit = RE_STEPS + RE_STEPS_EACH * (uint64_t)re->size * ((uint64_t)s->len + 1);", "    m->limit = RE_STEPS + RE_STEPS_EACH * (uint64_t)re->size;"),
+ ("limit: the stack is not counted", RE_C, "        re_count(m, (room - m->room) * sizeof(int64_t));\n        int64_t *grown = realloc(m->stack,", "        int64_t *grown = realloc(m->stack,"),
+ ("limit: what is remembered is not counted", RE_C, "    if (re_fits(m, m->tried_bytes)) {", "    if (1) {"),
+ ("limit: the machine's memory stays counted", RE_C, "    m->cx->held -= m->counted;\n    m->counted = 0;", "    m->counted = 0;"),
+ ("limit: no room to remember is out of memory", RE_C, "    }\n    m->tried_bytes = 0;\n    return 0;\n}", "    }\n    re_fault(m, \"out of memory\");\n}"),
+ ("limit: what is large is never remembered", RE_C, "    if (m->tried_bytes > RE_TRIED_SMALL && m->steps < RE_TRIED_AFTER) return 0;", "    if (m->tried_bytes > RE_TRIED_SMALL) return 0;"),
+ ("limit: a lazy star of one character is a run", RE_TS, "                if (!n.lazy && (n.body.k === 'char'", "                if ((n.body.k === 'char'"),
+ ("limit: two marks have one number", RE_TS, "            for (const j of jumps) code[j + 1] = code.length;\n            emit(OP.MARK, marks++);", "            for (const j of jumps) code[j + 1] = code.length;\n            emit(OP.MARK, 0); marks++;"),
+ ("limit: a backreference is not told to the matcher", RE_TS, "case 'backref': backrefs = true; emit(", "case 'backref': emit("),
+ ("limit: no mark after alternatives", RE_TS, "            for (const j of jumps) code[j + 1] = code.length;\n            emit(OP.MARK, marks++);", "            for (const j of jumps) code[j + 1] = code.length;"),
+ ("limit: no mark at the top of a loop", RE_TS, "                emit(OP.MARK, marks++);\n                const top = code.length;", "                const top = code.length;"),
+ ("limit: no mark after a count's optional part", RE_TS, "            if (splits.length > 0) emit(OP.MARK, marks++);\n", ""),
+ ("limit: the program's size is told as nothing", GEN, "${r.code.length}, ${r.marks}, ", "0, ${r.marks}, "),
+ ("limit: the matcher is told of no marks", GEN, "${r.code.length}, ${r.marks}, ", "${r.code.length}, 0, "),
+ ("limit: the matcher is told one mark too few", GEN, "${r.code.length}, ${r.marks}, ", "${r.code.length}, ${Math.max(r.marks - 1, 0)}, "),
+ ("limit: a blank before ? under /x is another quantifier", RE_TS, "        if (!lazy && i > hard && again === 0x3F) refuse(", "        if (false) refuse("),
+ ("limit: a blank before + under /x is another quantifier", RE_TS, "        if (!lazy && i > hard && again === 0x2B) refuse(", "        if (false) refuse("),
+ ("limit: a blank after m is not seen", LEX, "            && ' \\t\\n'.includes(src[i + 1] ?? 'a') && '/{([<'.includes(", "            && false && '/{([<'.includes("),
 ]
 
 only = sys.argv[1:]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""t/5100 to t/5103: pattern matching (step 19; D225 to D237). Named
+"""t/5100 to t/5104: pattern matching (step 19; D225 to D237). Named
 rematch.py, not re.py, so that no model beside it imports it for
 Python's own `re`.
 
@@ -32,7 +32,8 @@ no group, `()` with no match (D235). perl is the second derivation
 (t/checks.py oracle).
 
 5100 is matches where one value is wanted, `=~` and `!~`; 5101 captures
-where a list is wanted; 5102 /g; 5103 the flags i, m, s and x.
+where a list is wanted; 5102 /g; 5103 the flags i, m, s and x; 5104
+subjects with long runs of a piece, half of them under /g.
 
 Every command that writes a file, one a line (t/checks.py runs them all):
 
@@ -44,6 +45,8 @@ Every command that writes a file, one a line (t/checks.py runs them all):
     python3 t/models/rematch.py 5102 > t/5102-re-global.expected
     python3 t/models/rematch.py --program 5103 > t/5103-re-flags.pl
     python3 t/models/rematch.py 5103 > t/5103-re-flags.expected
+    python3 t/models/rematch.py --program 5104 > t/5104-re-runs.pl
+    python3 t/models/rematch.py 5104 > t/5104-re-runs.expected
 """
 
 import random
@@ -186,6 +189,15 @@ def parse(p):
 
 # ---- the matcher
 
+# This matcher tries every way there is, and for some patterns over a long
+# subject that is more ways than there is time for: 5104 gives each match
+# so many steps, and draws another when one runs out.
+class TooLong(Exception):
+    pass
+
+
+BUDGET = [10 ** 12]
+
 def matcher(tree, flags, s):
     icase, multi, single = 'i' in flags, 'm' in flags, 's' in flags
     fold = (lambda c: c.lower() if c.isascii() else c) if icase else (lambda c: c)
@@ -201,6 +213,9 @@ def matcher(tree, flags, s):
         return found != neg
 
     def m(node, k, caps, cont):
+        BUDGET[0] -= 1
+        if BUDGET[0] < 0:
+            raise TooLong()
         kind = node[0]
         if kind == 'char':
             return k < len(s) and fold(s[k]) == fold(node[1]) and cont(k + 1, caps)
@@ -391,6 +406,24 @@ def build(test):
     n = 0
     while n < 220:
         flags = ''
+        if test == 5104:
+            # Long runs of a piece, which the runtime's matcher takes in
+            # one frame, and remembers its way through (D240, D241).
+            pattern = gen_pattern(r)
+            piece = ''.join(r.choice(ALPHA) for _ in range(r.randint(1, 3)))
+            s = ''.join(r.choice(ALPHA) for _ in range(r.randint(0, 2))) + piece * r.randint(3, 14) + ''.join(r.choice(ALPHA) for _ in range(r.randint(0, 4)))
+            glob = r.random() < 0.5
+            BUDGET[0] = 200000
+            try:
+                got = match_list(pattern, '', glob, s)
+            except (TooLong, RecursionError):
+                continue
+            finally:
+                BUDGET[0] = 10 ** 12
+            lines.append(f'say join("|", map {{ $_ // "u" }} ({lit(s)} =~ /{pattern}/{"g" if glob else ""})), ".";')
+            out.append('|'.join(show(v) for v in got) + '.')
+            n += 1
+            continue
         if test == 5103:
             flags = ''.join(f for f in 'imsx' if r.random() < 0.5)
         ascii_only = 'i' in flags
@@ -422,6 +455,7 @@ HEAD = {
     5101: 'captures where a list is wanted',
     5102: '/g where a list is wanted',
     5103: 'the flags i, m, s and x',
+    5104: 'subjects with long runs, with /g and without (D240, D241)',
 }
 
 

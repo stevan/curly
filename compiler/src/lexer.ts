@@ -926,6 +926,11 @@ export const lex = (src: string): Token[] => {
                 refuse(`m${src[i + 1]}...: a pattern's delimiters are '/' and, after m, a bracket hard against it (D227, T541): m{...}`, start);
             }
             pattern(start, true);
+        } else if (c === 'm' && !afterValue() && wordEnd(i) === i + 1 && !(tokens.at(-1)?.kind === 'word' && NAMES.get(tokens.at(-1)!.text)?.kind === 'sub')
+            && ' \t\n'.includes(src[i + 1] ?? 'a') && '/{([<'.includes(src[past(i + 1, true)] ?? 'a')) {
+            // perl skips the blanks and takes what comes for the pattern's
+            // delimiter (T571).
+            refuse("a blank between m and its pattern: perl takes it; write the delimiter hard against the m, m{...}, or /.../ (D227)", start);
         } else if (isDigit(c) || (c === '.' && isDigit(src[i + 1] ?? '') && !afterValue())) {
             push(number(start));
         } else if (isWordStart(c) && !afterValue() && src.startsWith('=>', past(wordEnd(i), true))) {

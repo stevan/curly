@@ -1,0 +1,5 @@
+0
+1
+0
+fault: pattern match too long at t/5511-re-fault-too-long-no-room.pl line 15.
+exit: 1

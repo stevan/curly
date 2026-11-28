@@ -33,6 +33,9 @@ Three steps:
 MODE is `wide` (the default), `unicode` (the `\\d \\w \\s \\b` boundaries
 over Unicode subjects) `fold` (/i over ASCII subjects, patterns of letters in both cases) or
 `counts` (counts inside repeated groups, after something of any length).
+Since D240 three patterns in ten have two subjects of some thousands of
+characters as well (SHORT=1 in the environment leaves them out, as the
+runs of the review had it).
 `outputs-differential.txt` beside this file is what the runs recorded in
 README.md printed.
 """
@@ -78,9 +81,29 @@ NOT_W = [' ', '-', '.', '\n', ' ', '×', '÷', ' ', '\U0001F600', '²', '①'
 
 
 class Gen:
-    def __init__(self, r, mode):
+    def __init__(self, r, mode, long=None):
         self.r = r
         self.mode = mode
+        # A second source of chance, for the long subjects alone (since
+        # D240, when the matcher's limit began to grow with the string),
+        # so that a seed draws the patterns it drew before there were any.
+        self.long = long
+
+    def lengthen(self, subjects, noise):
+        """For three patterns in ten, two more subjects of some thousands
+        of characters: one of the pattern's own repeated, and one with a
+        long run of one character in it."""
+        r = self.long
+        if r is None or r.random() >= 0.3:
+            return subjects
+        base = max(subjects, key=len) or r.choice(noise)
+        size = r.choice([300, 1000, 2000, 3000, 5000])
+        out = list(subjects)
+        out.append((base * (size // len(base) + 1))[:size])
+        at = r.randint(0, len(base))
+        c = r.choice(base) if r.random() < 0.8 else r.choice(noise)
+        out.append(base[:at] + c * size + base[at:])
+        return out
 
     # Each piece is (source, sampler, nullable, hascap); a sampler takes
     # the captures sampled so far and gives a string the piece may match.
@@ -387,7 +410,9 @@ class Gen:
         subjects.append(''.join(r.choice(noise) for _ in range(r.randint(0, 8))))
         if ascii_only:
             subjects = [''.join(c if ord(c) < 128 else 'k' for c in s) for s in subjects]
-        subjects = [s[:60] for s in subjects]
+        subjects = self.lengthen([s[:60] for s in subjects], noise)
+        if ascii_only:
+            subjects = [''.join(c if ord(c) < 128 else 'k' for c in s) for s in subjects]
         return written, subjects
 
 
@@ -431,6 +456,12 @@ def run_batch(tmp, k, tests):
         try:
             p = subprocess.run([PERL, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
         except subprocess.TimeoutExpired:
+            # perl has no memory of what it has tried, and a long subject
+            # may keep it for hours: the batch is run again without them.
+            if any(len(s) > 60 for t in tests for s in t[2]):
+                complaints.append(('perl ran past five minutes: the batch again, without its long subjects', ''))
+                tests = [(n, w, [s for s in subjects if len(s) <= 60], g) for n, w, subjects, g in tests]
+                continue
             return 0, faults, diffs, complaints + [('perl ran past five minutes', [t[1] for t in tests])]
         if p.returncode != 0 or p.stderr:
             # perl's own complaint as it runs: name the test, take it out.
@@ -482,7 +513,7 @@ def main():
     seed = int(sys.argv[2]) if len(sys.argv) > 2 else 1
     mode = sys.argv[3] if len(sys.argv) > 3 else 'wide'
     r = random.Random(seed)
-    g = Gen(r, mode)
+    g = Gen(r, mode, None if os.environ.get('SHORT') else random.Random(seed * 7919 + 1))
     seen, cases = set(), []
     while len(cases) < count:
         written, subjects = g.pattern()
@@ -529,7 +560,7 @@ def main():
                 faults += b
                 diffs += c
                 complaints += d
-    print(f'run under perl and compiled: {len(tests)} patterns, {sum(len(t[2]) for t in tests)} pairs of a pattern and a subject; the same: {pairs} pairs')
+    print(f'run under perl and compiled: {len(tests)} patterns, {sum(len(t[2]) for t in tests)} pairs of a pattern and a subject, {sum(1 for t in tests for s in t[2] if len(s) > 60)} of them with a subject of 300 characters or more; the same: {pairs} pairs')
     print(f'faults of the compiled program: {len(faults)}')
     kinds = {}
     for what, written, _ in faults:

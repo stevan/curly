@@ -121,9 +121,14 @@ programs, as it is built. In outline:
   more: no `bless`, no package variables (D19).
 - **Strings and regexes:** Unicode strings (D24); Perl 5's regexes, a
   subset, compiled ahead of time into a program for a backtracking
-  matcher with perl's order of trying (steps 19 and 20; D226 to D239):
+  matcher with perl's order of trying (steps 19 and 20; D226 to D244):
   `\d \w \s` perl's own, `/i` ASCII's, captures only by the list a
-  match gives, no variable in a pattern, a limit on steps.
+  match gives, no variable in a pattern. The matcher remembers where
+  it has been (D240), so a pattern with no backreference is matched in
+  time in proportion to the pattern and the string; its memory is
+  counted against the cap (D243); a limit on steps that grows with
+  both (D244) is the fault for a pattern with a backreference that
+  tries too many ways.
 - **Data:** arrays, hashes in insertion order (D27), nested through
   references, postfix dereference, slices.
 
@@ -256,7 +261,8 @@ Knobs, set by `t/run.sh` so no test depends on its machine: the
 collector's stress interval, poison and heap cap (step 7; D63 to D65:
 `CURLY_GC_STRESS`, `CURLY_GC_POISON` and `CURLY_HEAP_CAP`, read from
 the environment by every compiled program, and said for the tests in
-`t/knobs.sh`); a virtual clock and a fixed seed (step 22).
+`t/knobs.sh`); `CURLY_RE_PLAIN`, the matcher with nothing remembered,
+which the tests of the matcher hold it to (D240); a virtual clock and a fixed seed (step 22).
 
 ## The compiler
 

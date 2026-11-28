@@ -171,6 +171,11 @@ is where W2 to W4 came from.
 
 ## Notes: not WRONG
 
+(The first two were answered the same day, by a third session: D240 to
+D244, `../step19-limit/`, and `docs/PLAN.md`, "The step limit, a
+proposal". The fourth too: the two messages say what perl does, T571.
+They stand here as the review wrote them.)
+
 - **The step limit is met by plain patterns** (T568, D232). A match
   that fails and begins with a repeat tries every start and every
   length: `/x+y/` faults on 2,260 `x` (2,200 is in), `/\s+$/` on 5,000

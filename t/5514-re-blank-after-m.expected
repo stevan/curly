@@ -1,0 +1,2 @@
+t/5514-re-blank-after-m.pl:5:11: a blank between m and its pattern: perl takes it; write the delimiter hard against the m, m{...}, or /.../ (D227)
+exit: 1

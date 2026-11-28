@@ -1,0 +1,2 @@
+t/5512-re-blank-before-lazy.pl:5:20: a blank before the ? of a lazy quantifier under /x: perl reads them together, a+ ? as a+?; write them together
+exit: 1

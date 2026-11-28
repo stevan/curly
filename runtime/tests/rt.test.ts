@@ -26,7 +26,7 @@ const run = (name: string, arg = '', env: Record<string, string> = {}): { status
         built.add(name);
     }
     // The knobs are the test's own to set: none comes in from outside.
-    const clean = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('CURLY_GC_') && name !== 'CURLY_HEAP_CAP'));
+    const clean = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('CURLY_GC_') && name !== 'CURLY_HEAP_CAP' && name !== 'CURLY_RE_PLAIN'));
     const r = spawnSync('sh', ['-c', 'exec "$0" "$1" 2>&1', bin, arg], { encoding: 'utf8', env: { ...clean, ...env } });
     return { status: r.status, output: r.stdout };
 };
@@ -514,8 +514,20 @@ test('a die puts back the frames, the freezes and the sorts a try had open', () 
 });
 
 
-test('the matcher: ten million steps match, one more is the fault (D232); a long match grows its stack', () => {
-    assert.deepEqual(run('regex', 'under'), { status: 0, output: '1\n' });
-    assert.deepEqual(run('regex', 'over'), { status: 1, output: 'fault: pattern match too long at regex.pl line 3.\n' });
-    assert.deepEqual(run('regex', 'long'), { status: 0, output: '1\n\n' });
+test('the matcher: its limit at its edge, and as it grows with the string (D232, D244); a run is one frame, and the machine\'s memory is counted (D241, D243)', () => {
+    const ways: Record<string, string>[] = [{}, { CURLY_RE_PLAIN: '1' }];
+    for (const env of ways) {
+        assert.deepEqual(run('regex', 'under', env), { status: 0, output: '1\n' });
+        assert.deepEqual(run('regex', 'over', env), { status: 1, output: 'fault: pattern match too long at regex.pl line 3.\n' });
+        assert.deepEqual(run('regex', 'grown-under', env), { status: 0, output: '1\n' });
+        assert.deepEqual(run('regex', 'grown-over', env), { status: 1, output: 'fault: pattern match too long at regex.pl line 3.\n' });
+        assert.deepEqual(run('regex', 'long', env), { status: 0, output: '1\n\nheld the same\n' });
+        assert.deepEqual(run('regex', 'run', env), { status: 0, output: '1\n\nheld the same\n' });
+        // A frame is 16 bytes, and a million of them are past 4 MB.
+        assert.deepEqual(run('regex', 'cap-long', { ...env, CURLY_HEAP_CAP: '4194304' }), { status: 1, output: 'fault: out of memory at regex.pl line 3.\n' });
+    }
+    // A run is one frame, and what is remembered a bit a byte; plain, a
+    // RUN is a frame a character as a SPLIT is.
+    assert.deepEqual(run('regex', 'cap-run', { CURLY_HEAP_CAP: '4194304' }), { status: 0, output: '1\n\nheld the same\n' });
+    assert.deepEqual(run('regex', 'cap-run', { CURLY_HEAP_CAP: '4194304', CURLY_RE_PLAIN: '1' }), { status: 1, output: 'fault: out of memory at regex.pl line 3.\n' });
 });

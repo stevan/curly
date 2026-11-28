@@ -147,7 +147,7 @@ const regexOf = (e: Match, b: Code): string => {
     const n = b.strings.length + 1;
     const r = e.regex;
     const classes = r.classes.length ? r.classes : [0];
-    b.strings.push(`static const int32_t re${n}c[] = { ${r.code.join(', ')} }; static const int32_t re${n}k[] = { ${classes.join(', ')} }; static const rt_regex re${n} = { re${n}c, re${n}k, ${r.groups}, ${r.icase ? 1 : 0}, ${r.global ? 1 : 0} };`);
+    b.strings.push(`static const int32_t re${n}c[] = { ${r.code.join(', ')} }; static const int32_t re${n}k[] = { ${classes.join(', ')} }; static const rt_regex re${n} = { re${n}c, re${n}k, ${r.groups}, ${r.icase ? 1 : 0}, ${r.global ? 1 : 0}, ${r.code.length}, ${r.marks}, ${r.backrefs ? 1 : 0} };`);
     return `re${n}`;
 };
 

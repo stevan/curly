@@ -1,0 +1,2 @@
+t/5513-re-blank-before-possessive.pl:5:24: a blank before a + after a quantifier under /x: perl reads them together, a possessive quantifier, which is not in the language yet (D226)
+exit: 1

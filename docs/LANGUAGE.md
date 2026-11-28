@@ -2861,10 +2861,24 @@ wants one value is a fault, as for every list-shaped `return`.
   fault `a match without regard to case of a string with a character
   past ASCII`: perl folds those by Unicode's tables, one character to
   two.
-- **A match takes at most ten million steps of the matcher**; one that
-  takes more is the fault `pattern match too long`. A pattern that
-  backtracks without end on a string that does not match is the way to
-  meet it: `/^(?:a|aa)*$/` on sixty `a` and a `b`.
+- **A match takes time in proportion to the pattern and the string**,
+  whether it matches or not, when the pattern has no backreference:
+  the matcher remembers where it has been, and does not try twice what
+  failed once. `/x+y/` on a million `x` says no in a twentieth of a
+  second, and `/^(?:a|aa)*$/` on five thousand `a` and a `b` at once.
+  A string of megabytes is matched in megabytes of memory or less,
+  except by a loop of a group, `(?:a|b)*`, which holds some tens of
+  bytes for each time round until the match is over.
+- **A pattern with a backreference is tried every way there is**, as
+  perl tries it, and a match of one that takes more than ten million
+  steps of the matcher, and four more for each instruction of the
+  pattern at each byte of the string, is the fault `pattern match too
+  long`: `/^(c?)(?:a|aa)*\1c$/` on sixty `a` and a `b`, which perl
+  says no to at once because there is no `c`; `/(y?)x+\1z/` on twelve
+  thousand `x`. (So is a pattern with no backreference when what the
+  matcher would have to remember, a bit for each alternation and loop
+  of the pattern at each byte of the string, is more than 64 MB or
+  more than the program may hold.)
 - **No variable in a pattern**: a `$` stands last, or before `)` or
   `|`, and `@` is written `\@`. **No `$1`**, `$&` and their kin: take
   the captures from the list the match gives.
@@ -2919,9 +2933,10 @@ megabytes.
 A program that needs more memory than there is stops with the fault
 `out of memory`, at the statement that asked for it.
 
-Three environment variables change how the runtime goes about this.
+Four environment variables change how the runtime goes about this.
 They are for testing the runtime itself, and none of them changes
-what a program prints, short of `out of memory`:
+what a program prints, short of `out of memory` and `pattern match
+too long`:
 
 - `CURLY_HEAP_CAP=BYTES`: the program may hold no more than this
   much, and faults with `out of memory` if it would.
@@ -2929,6 +2944,8 @@ what a program prints, short of `out of memory`:
   made, and not when the runtime would have chosen to. Slower.
 - `CURLY_GC_POISON=1`: never use a freed string's memory again, so
   that a mistake in the runtime shows itself at once.
+- `CURLY_RE_PLAIN=1`: match a pattern by trying every way there is,
+  remembering nothing. Much slower, and the answer is the same.
 
 Each is a whole number written in digits, and 0 or nothing turns it
 off. Anything else stops the program before it starts, with a message

@@ -12,7 +12,7 @@ import type { Pos } from './ast.ts';
 // The instructions, as runtime/regex.c numbers them.
 export const OP = {
     MATCH: 0, CHAR: 1, CHARI: 2, ANY: 3, ANYNL: 4, CLASS: 5, BOL: 6, MBOL: 7, EOL: 8, MEOL: 9, EOS: 10,
-    WORDB: 11, NWORDB: 12, SPLIT: 13, JMP: 14, SAVE: 15, BACKREF: 16, BACKREFI: 17,
+    WORDB: 11, NWORDB: 12, SPLIT: 13, JMP: 14, SAVE: 15, BACKREF: 16, BACKREFI: 17, MARK: 18, RUN: 19,
 } as const;
 
 // A class's flags in its row of the table: negated, then which of perl's
@@ -22,8 +22,10 @@ const ESC_BIT: Readonly<Record<string, number>> = { d: 2, w: 4, s: 8, D: 16, W: 
 
 // What a pattern is compiled to. `code` is the program; `classes` every
 // class's row, `[flags, count, lo, hi, ...]`, at the offset its CLASS
-// instruction gives; `groups` how many groups capture.
-export type Regex = { code: number[]; classes: number[]; groups: number; icase: boolean; global: boolean };
+// instruction gives; `groups` how many groups capture; `marks` how many
+// MARKs and RUNs the program has, each with a number of its own, and
+// `backrefs` whether it has a backreference (D240).
+export type Regex = { code: number[]; classes: number[]; groups: number; icase: boolean; global: boolean; marks: number; backrefs: boolean };
 
 type Node =
     | { k: 'char'; c: number }
@@ -349,8 +351,13 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
             i += 1;
         }
         else if (peek() === 0x2B) refuse('a possessive quantifier is not in the language yet (D226)', here(i));
+        const hard = i;
         skip();
         const again = peek();
+        // Past blanks under /x perl still reads a `?` or a `+` into the
+        // quantifier: `a+ ?` is `a+?`, and `a+ +` is `a++` (T571).
+        if (!lazy && i > hard && again === 0x3F) refuse('a blank before the ? of a lazy quantifier under /x: perl reads them together, a+ ? as a+?; write them together', here(i));
+        if (!lazy && i > hard && again === 0x2B) refuse('a blank before a + after a quantifier under /x: perl reads them together, a possessive quantifier, which is not in the language yet (D226)', here(i));
         if (again === 0x2A || again === 0x2B || again === 0x3F || (again === 0x7B && isDigit(cs[i + 1] ?? -1))) {
             refuse('a quantifier after a quantifier: perl does not compile it (Nested quantifiers); bracket the first, (?:...)', here(i));
         }
@@ -493,6 +500,14 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
     // ---- the program
     const code: number[] = [];
     const classes: number[] = [];
+    // A MARK goes wherever more than one way leads: after the last of a
+    // row of alternatives, at the top of a loop, after a count's optional
+    // part. The matcher fails when it comes to one a second time at the
+    // same place in the string, and so runs each instruction once at each
+    // place (D240). A greedy `X*` of one character is a RUN, a mark of
+    // its own with it (D241).
+    let marks = 0;
+    let backrefs = false;
     const emit = (...xs: number[]): void => {
         code.push(...xs);
         if (code.length > PROGRAM_MAX) refuse(`a pattern whose program is more than ${PROGRAM_MAX} instructions (D236): fewer or smaller counts`, at);
@@ -537,15 +552,23 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
                 } else gen(a);
             });
             for (const j of jumps) code[j + 1] = code.length;
+            emit(OP.MARK, marks++);
             return;
         }
         case 'rep': {
             for (let k = 0; k < n.min; k++) gen(n.body);
             if (n.max < 0) {
+                if (!n.lazy && (n.body.k === 'char' || n.body.k === 'any' || n.body.k === 'class')) {
+                    emit(OP.RUN, marks++);
+                    gen(n.body);
+                    return;
+                }
+                const again = code.length;
+                emit(OP.MARK, marks++);
                 const top = code.length;
                 emit(OP.SPLIT, 0, 0);
                 gen(n.body);
-                emit(OP.JMP, top);
+                emit(OP.JMP, again);
                 const out = code.length;
                 code[top + 1] = n.lazy ? out : top + 3;
                 code[top + 2] = n.lazy ? top + 3 : out;
@@ -562,13 +585,14 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
                 code[s + 1] = n.lazy ? out : s + 3;
                 code[s + 2] = n.lazy ? s + 3 : out;
             }
+            if (splits.length > 0) emit(OP.MARK, marks++);
             return;
         }
-        case 'backref': emit(icase ? OP.BACKREFI : OP.BACKREF, n.n); return;
+        case 'backref': backrefs = true; emit(icase ? OP.BACKREFI : OP.BACKREF, n.n); return;
         }
     };
     emit(OP.SAVE, 0);
     gen(tree);
     emit(OP.SAVE, 1, OP.MATCH);
-    return { code, classes, groups, icase, global: seen.has('g') };
+    return { code, classes, groups, icase, global: seen.has('g'), marks, backrefs };
 };
