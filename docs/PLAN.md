@@ -7508,7 +7508,7 @@ for a pattern); the lexer was mended and 5202 holds it.
 every pass): 65 of 71 caught the first time; the six holes (`$` and
 `\A` under `/m`, `\n` in a pattern, `$` under `/m` read as `$`, a
 backreference under `/i`, a capture's count of characters) are closed
-by 5202. MUT2
+by 5202. Run again, every breakage: 71 of 71 caught.
 
 **Doubtful or left**: the evidence's grammar is small (an alphabet of
 a dozen characters, depth two), and a quantifier on what can be empty
