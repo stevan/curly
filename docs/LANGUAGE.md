@@ -2779,7 +2779,8 @@ ends). The tests keep the two apart.
 ## The outside
 
 A program reads its arguments, its environment and its stdin, and it
-may say what status it exits with. Files are to come.
+may say what status it exits with; and it reads and writes files
+("Files", below).
 
 ### Reading stdin
 
@@ -2897,6 +2898,119 @@ write `exit($x || 1)`. A sign after it is the sign of its argument,
 `exit -1`; `exit - 1` and `exit-1` are refused, as after `length`:
 perl warns that they are ambiguous. A `try` does not catch an `exit`, and it leaves
 from anywhere, a sub or a `sort`'s block too.
+
+### Files
+
+A file is read and written through a **file handle**, which is a value:
+`open` puts one in a scalar variable.
+
+    open(my $in, '<', 'names.txt') or die "cannot open names.txt: $!\n";
+    while (my $line = <$in>) {
+        chomp($line);
+        say length($line);
+    }
+    close($in);
+
+**`open(my $fh, MODE, PATH)`** has brackets and three arguments, always.
+The first is `my $fh`, or a scalar variable declared before. MODE is one
+of three string literals: `'<'` reads a file that is there, `'>'` writes
+one, emptying it first, `'>>'` adds to its end, and both make a file that
+is not there. PATH is a string, the file's name. `open` is worth 1, or
+undef when the system refuses, and the variable holds a handle either
+way. A variable that already holds a handle has that same handle opened
+again, so every copy of it sees the new file.
+
+The statement **`open(...) or die LIST;`** is the usual way to write it,
+and `open(...) || die LIST;` says the same. It is the one statement that
+is two joined by `or`; anything but `die` after the `or` is refused, and
+an `if` says it: `if (open(my $fh, '<', $path)) { ... } else { ... }`,
+`die "..." unless open($fh, '<', $path);`. A `my` in `open` is the
+statement's own, or stands in the test of an `if`, an `unless` or a
+`while`; it does not stand under a modifier or inside another call.
+
+**`$!`** is why the last `open` failed, in the system's words (`No such
+file or directory`). It is a string, in double quotes too, and it may be
+read only while the last `open` is one that failed: read after an `open`
+that worked, or before any, or after a read met the end of its input, it
+is the fault `$! where no open has just failed`, where perl gives
+whatever was left there. Where a number is wanted it is a string that is
+no number.
+
+**`<$fh>`** reads the handle in the scalar variable, and is `<STDIN>` in
+every way: a line or undef where one value is wanted, every line that is
+left where a list is, `while (my $line = <$fh>)` tested for whether a line
+was read, and the same refusals. Only a scalar variable stands in the
+angle brackets: for a handle in a hash or an array, take it into a `my`
+first. **`eof($fh)`** is true when no line is left.
+
+**`print $fh LIST;`**, `say $fh LIST;` and `printf $fh FORMAT, LIST;`
+write to the handle: the variable, a blank, and the list, with no comma
+after the handle and no brackets round the list. **`print { EXPR } LIST;`**
+takes the handle from any one expression:
+
+    open(my $out, '>', 'report.txt') or die "cannot write report.txt: $!\n";
+    print $out "total ", $n, "\n";
+    printf $out "%5.1f%%\n", $share;
+    say { $log{out} } "done";
+    close($out) or die "cannot close report.txt: $!\n";
+
+The handle is worked out before the list. `print $fh;` and `print $fh,
+"x";` print the handle itself, to perl, and are faults here.
+
+**`close($fh)`** writes what is not yet written and closes the file;
+`close $fh;` is the same, as a statement. What a program writes reaches
+its file when the handle is closed, or when the program ends, however it
+ends; a handle that is dropped without `close` is closed for it, at some
+time before the file is next opened.
+
+**A handle is a reference** (`ref` gives `GLOB`): it is copied, stored
+in arrays and hashes, handed to subs and given back, captured by subs
+with no name, and thrown by `die`. It is true, defined, and `==` to
+another by identity; where a number or a string is wanted it is the
+fault a reference is, since perl would write its address.
+
+**Bytes and characters** are as stdin's and stdout's: without `use open
+':std', ':encoding(UTF-8)';` each byte read is one character, and a
+character past ASCII written is a fault; with it a file is UTF-8 both
+ways, and a malformed or cut sequence read is the fault `malformed UTF-8
+read`.
+
+What is stricter than perl, each a fault as the program runs:
+
+- **A file is not open twice when one of the two writes.** perl holds
+  back what is written until there is enough of it, so a second handle on
+  the file sees it late; here the second `open` is the fault `open of a
+  file the program has open, one of the two for writing`. Close the
+  first.
+- **Only plain files open**: a directory, a device or a pipe is the fault
+  `open of what is not a plain file`. A file's name holds no NUL and no
+  character past ASCII.
+- **A handle is used the way it was opened**: a read or `eof` of one that
+  is closed or was opened to write, a write to one that is closed or was
+  opened to read, and `close` of one that is not open are faults. perl
+  warns of most, and of a second `close` says nothing.
+- **A `die` or a `warn` with no newline at the end of its message, while
+  a file is being read.** perl adds the handle and its line to such a
+  message, `bad line at FILE line 9, <$in> line 3.`, for as long as the
+  handle that was read last lives, and when a handle stops living is
+  something only perl's counting of references knows. So once a line has
+  been read from a file's handle, a message with no newline is a fault
+  until that handle is closed, or another handle (stdin too) is read
+  that has no line to name. End the message in a newline, or close the
+  file first.
+
+**An uncaught `die` exits with perl's status**, which is not always 255:
+perl exits with the system's last error number when there is one, and an
+`open` sets it, to 2 when a file is not there, and to 25 when the `open`
+*worked* (perl asks whether the file is a terminal, and the answer no is
+an error number too). A read that meets the end of its input sets it back
+to 0. So `open(...) or die` of a file that is not there exits with 2, a
+`die` after reading a file to its end with 255, and a `die` after an
+`open` and no read to the end with 25, here as under perl.
+
+Not in the language: `open` with two arguments, a mode with a layer or a
+`+` in it, a bareword handle, pipes, `binmode`, `seek`, `tell`,
+`readline`, `$/`, `$.`. File tests, `unlink` and directories are to come.
 
 ## Memory
 

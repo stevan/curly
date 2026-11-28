@@ -77,7 +77,7 @@ static void files_reap(rt_ctx *cx) {
     rt_file **link = &cx->files;
     while (*link) {
         rt_file *f = *link;
-        if (((rt_block *)f->block - 1)->marked & REACHED) {
+        if (f->block == NULL || ((rt_block *)f->block - 1)->marked & REACHED) {
             link = &f->next;
             continue;
         }
@@ -105,16 +105,18 @@ uint64_t rt_file_count(rt_ctx *cx) {
     return n;
 }
 
-// A new handle, not open. The one allocation, and the file's record made
-// after it, so that a collection never sees a record with no handle.
+// A new handle, not open. The file's record is on the context's list
+// before the handle is allocated, so that a fault there leaves nothing
+// behind; a collection there finds a record with no handle yet, and
+// leaves it be.
 rt_value rt_handle_new(rt_ctx *cx) {
     rt_file *f = calloc(1, sizeof *f);
     if (f == NULL) rt_fault(cx, "out of memory");
+    f->next = cx->files;
+    cx->files = f;
     rt_value v = rt_array_new(cx);
     v.tag = RT_TAG_GLOB;
     f->block = v.as.a;
-    f->next = cx->files;
-    cx->files = f;
     return v;
 }
 

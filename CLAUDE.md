@@ -722,6 +722,9 @@ in `pmmc-labs/esoteric-language-workbench`.
 | `runtime/io.c` | Step 21a: stdin, `@ARGV`, `%ENV`, `exit` and `printf STDERR`, which rt.c includes after `format.c` |
 | `t/models/io.py` | Step 21a's model: lines in every context, bytes and UTF-8, `eof`, `@ARGV`, `%ENV`, `exit`, the handles, and each fault's edge |
 | `docs/briefs/claims21.py`, `step21-refusals.py`, `step21-mutations.py`, `step21-review/` | Step 21a's claims (a row may give perl stdin, `args` and `env`), its refusals' table, its breakages, and the two reviews: the builder's, `contexts.py`, with its first run, and a second reader's, `README.md` and `reader/` (a driver and ten files of cases) |
+| `runtime/file.c` | Step 21b: files and handles (`open`, `close`, a line and `eof` of a handle, `print` to one, `$!`, perl's errno, the files a collection closes), which rt.c includes after `io.c`; `runtime/tests/file.c` is its own test |
+| `t/models/file.py` | Step 21b's model: a file is bytes and a handle a record; reading in every context, writing, handles as values, `open or die`, what a `die` exits with, the handle a message names, and each fault's edge |
+| `docs/briefs/step21b-refusals.py`, `step21b-mutations.py`, `step21b-review/` | Step 21b's refusals' table, its breakages, and its review: `errno.py` (perl's errno over every golden test perl runs, D272) and `hunt.py` (programs by rule and by chance, held to perl in directories of their own) |
 | `build/` | Output (ignored) |
 
 `docs/PLAN.md` has what is still to come: `lib/`, `examples/`.

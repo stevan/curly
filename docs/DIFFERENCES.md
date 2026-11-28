@@ -127,6 +127,12 @@ every one under both.
 | `my %h = (a => 1, b => 2); for my $v (values %h) { $h{new} = 1; } say scalar(%h);` | `3` | Fault: `a hash was changed while a foreach is over it` |
 | `my %h = (a => 1, b => 2); for my $k (sort keys %h) { delete $h{$k}; } say scalar(%h);` | `0` | Same |
 | `my %h = ("a b" => 1); say "$h{'a b'}";` | `1` | Refused |
+| `if (open(my $fh, '<', 'no-such-file.txt')) { say "yes" } else { say "no: $!" }` | `no: No such file or directory` | Same |
+| `open(my $fh, 'no-such-file.txt'); say "two";` | `two` | Refused |
+| `open(my $fh, '<', 'no-such-file.txt') or say "no";` | `no` | Refused |
+| `open(my $fh, '<', 'no-such-file.txt'); close($fh); say "closed";` | `closed` | Fault: `close of a file handle that is not open` |
+| `open(my $d, '<', '.'); say "opened";` | `opened` | Fault: `open of what is not a plain file` |
+| `say "[$!]";` | `[]` | Fault: `$! where no open has just failed` |
 | `my %h = (a => 1); my $k = "a"; say "$h{a} $h{$k}";` | `1 1` | Same |
 | `while (<STDIN>) { print; }` | nothing, stdin being empty | Refused |
 | `my $l = <STDIN>; say defined $l ? "line" : "undef";` | `undef` | Same |
@@ -213,10 +219,13 @@ is where the feel changes.
 | A set or an index built by `map`: `my %seen = map { $_ => 1 } @list;` | Refused, for the comma in the block (perl has to guess whether the braces are a block or a hash): `map { ($_ => 1) } @list` | idiom | sometimes | data | D102 † |
 | `BEGIN`, `eval STRING`, a `require` at run time, `do FILE`, `__DATA__` | Cut: the compiler sees the whole program before any of it runs | idiom | sometimes | layout | D20 |
 | A dereference without braces: `@$r`, `%$r`, `$$r`, `$$r[0]`, `$#$r`, the commonest spelling in old Perl | The arrow: `$r->[0]`, `$r->{k}`; for the whole container `$r->@*` or `@{ $r }`, and for a scalar `$r->$*` or `${ $r }`. (237 of the 795 census programs that wait for references use a spelling without braces) | idiom | often | data, old code | D108 |
-| `open(...) or die "...";`, `$ok or die "...";`: a statement joined to `die` by a word operator | Refused, as every statement joined by one is: `die "..." unless $ok;` (a guess: files, at step 21, will make it common) | idiom | sometimes | errors | D146 |
+| `$ok or die "...";`, `open(...) or return;`, `open(...) or next;`: a statement joined to another by a word operator | Refused, as every statement joined by one is: `die "..." unless $ok;`. One is in, because it is how Perl opens a file: `open(...) or die LIST;`, and so after `close(...)` | idiom | sometimes | errors | D146, D274 |
 | `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;`, or of its assignment, `chomp(my $line = <STDIN>);` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131, D219 |
-| `while (<STDIN>) { chomp; ... }`, `print while <STDIN>;`: each line in `$_` | Refused: `while (my $line = <STDIN>) { chomp($line); ... }`, which perl tests with `defined` as it does the other | idiom | often | loops | D212 |
-| `while (<>) { ... }`: the files named in `@ARGV`, or stdin | Refused, and `<<>>` too; `<STDIN>` reads stdin, and files are step 21b's | idiom | sometimes | loops | D211 |
+| `while (<STDIN>) { chomp; ... }`, `while (<$fh>) { ... }`, `print while <STDIN>;`: each line in `$_` | Refused: `while (my $line = <$fh>) { chomp($line); ... }`, which perl tests with `defined` as it does the other; a file's handle is read by the rules stdin is | idiom | often | loops | D212, D281 |
+| `while (<>) { ... }`: the files named in `@ARGV`, or stdin | Refused, and `<<>>` too; `<STDIN>` reads stdin, and `<$fh>` a file that `open` opened | idiom | sometimes | loops | D211 |
+| `open(FH, $file)`, `open(my $fh, "<$file")`, `open(my $fh, '<:encoding(UTF-8)', $file)`: a bareword handle, two arguments, a layer in the mode | `open(my $fh, '<', $file)`: three arguments, in brackets, and one of `'<'`, `'>'`, `'>>'`; `use open ':std', ':encoding(UTF-8)';` says UTF-8, for every file | idiom | sometimes | old code | D270, D280 |
+| `die "bad line"` or `warn "odd"`, no newline at its end, while a file is read: perl adds `, <$fh> line 3.` | Fault, once a line has been read from a file's handle and until it is closed: perl names the handle only while it lives, which a collector cannot know. End the message in a newline, or close the file first (a guess at how often: every program that checks its input as it reads it) | idiom | sometimes | errors | D279 † |
+| `binmode`, `seek`, `tell`, `$.`, `local $/;` to read a whole file, `read`, `getc` | Not in: a file is read by lines, `my @lines = <$fh>;` for all of them, and written from its start or its end | idiom | sometimes | data | D270 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
 | Code in a string: `"@{[ scalar(@a) ]}"`, `"${\ join(",", @a) }"`, and anything in `"@{ ... }"` but a scalar variable and its subscripts | Refused: work the value out first, into a `my`, and put that in the string | idiom | sometimes | strings | D111 |
 
@@ -230,6 +239,7 @@ feels like.
 
 | Perl | Curly | Feel | Met | Where | Decision |
 |---|---|---|---|---|---|
+| `$!` read whenever: after an `open` that worked, as a number (`$! + 0`, `$! == 2`), `$!{ENOENT}` | `$!` is a string, the system's words, and is read only while the last `open` is one that failed; anywhere else a fault (perl gives what was left there: `Inappropriate ioctl for device` after an `open` that worked) | habit | sometimes | errors | D273 |
 | `use strict; use warnings;`, and any pragma | Refused: `use v5.42;` is both. Then `use utf8;`, `use open ':std', ':encoding(UTF-8)';`, `no warnings 'recursion';`, and nothing else (57 of the census's programs) | habit | often | layout, old code | D16 |
 | A file with no `use v5.42;` | It is the first line, always | habit | often | layout, old code | D16 |
 | `#!/usr/bin/perl` on the first line | Refused, on any line: perl reads switches from it | habit | often | layout | D33 † |
@@ -275,6 +285,10 @@ someone.
 
 | Perl | Curly | Feel | Met | Where | Decision |
 |---|---|---|---|---|---|
+| A file open twice at once, one handle to write it: a log read back while it is written | Fault at the second `open`: perl holds back what is written, and what the other handle then sees depends on how much. Close the first | habit | rarely | data | D276 |
+| `open(my $d, '<', $dir)` of a directory, `open(my $n, '>', '/dev/null')`, a pipe's name | Fault: only plain files open | habit | rarely | data | D275 |
+| `close($fh)` twice, `close` after an `open` that failed, `eof` of a closed handle: false or true, in silence | Fault; and what perl warns of, a read or a write of a closed handle or the wrong way, is one too | habit | rarely | errors | D277 † |
+| `open($h{log}, '>', $f)`, `<$h{log}>`, `close $h{log};`: a handle made or read in an element | `open(my $fh, ...)` and then store it; `my $fh = $h{log};` and then `<$fh>`; `close($h{log})` with its brackets | habit | rarely | data | D271, D281, D283 |
 | String increment: `"aa"++` is `"ab"`, `"Az"++` is `"Ba"` | Fault. A numeric string that is stepped becomes a number | idiom | rarely | strings | D52 |
 | A list assignment has a value, its right side's count: `my $n = () = f();`, `if ((my @r = f()))` | A statement, and refused as a value | idiom | rarely | data | D78 |
 | `$ENV{TZ} = "UTC";`, `delete $ENV{X}`: a change to the environment, for a child process | `%ENV` is read-only: a change is a fault (a guess: there are no child processes yet) | habit | rarely | data | D216 |
@@ -327,6 +341,7 @@ quiet has met few of them.
 
 | Perl | Curly | Feel | Met | Where | Decision |
 |---|---|---|---|---|---|
+| `print $fh (1 + 2) * 3;` prints 9 to the file; `print $fh \@a;` warns; `print($fh "a")` | After a handle the list has no brackets of its own, and `\` is refused; `print { $fh } ...` takes anything | accident | rarely | printing | D278 |
 | `say (1 + 2) * 3;` prints 3 | A builtin's brackets and then an operator: refused. `say +(1 + 2) * 3;` is perl's own way round | accident | sometimes | printing | D21 |
 | `my $x = 10 if $c;` leaves in `$x` what it last held | `my` under a modifier, or in an operand that may not be worked out: refused | accident | sometimes | variables | D56 |
 | `if ($x = 5)`: perl warns that `==` was meant | Refused, wherever a `=` with a constant on its right is tested for truth | accident | sometimes | control | D53 |
@@ -398,9 +413,11 @@ the same program under perl. None is on stdout but hash order.
   perl's. Only stdout and the exit status are promised, and the text
   of a `die` and a `warn`, which is perl's byte for byte (D148). A fault
   names the line its statement starts on (D34).
-- **A fault exits 1**, where perl, when it dies itself, exits 255;
-  an uncaught `die` exits 255 always, where perl takes the status
-  from `$!` when it is set (D12, D13).
+- **A fault exits 1**, where perl, when it dies itself, exits 255
+  (D12, D13). An uncaught `die` exits as perl's does: 255, or the
+  system's last error number when an `open` left one (D272); after a
+  number underflowed, where perl's status is that error's, it is a
+  fault (D151).
 - **A hash keeps its keys in the order they were first stored**
   (D27). perl's order changes with every run, so any order agrees
   with it; a program that is to print the same under both sorts.
@@ -441,6 +458,14 @@ took work, and was done.
   a block's last statement may leave its semicolon out (D75).
 - **A string is characters** (D24), and what perl does to a string
   in silence stays (D15).
+- **A file handle is a reference**, as perl's is (D271): copied,
+  stored, handed to subs, thrown; `open` of a variable that holds one
+  opens the same handle again, and every copy sees it. A file's bytes
+  and characters are stdin's and stdout's (D280).
+- **An uncaught `die` exits with perl's status** (D272): 2 after
+  `open(...) or die` of a file that is not there, 25 after an `open`
+  that worked, 255 once a read has met the end of its input. The
+  language keeps perl's errno to say so.
 - **A `die`'s message is perl's, byte for byte** (D142, D148): the
   list joined, `Died` when it is empty, ` at FILE line N.` when it
   does not end in a newline, on the line perl names; `return`, `last`
@@ -491,10 +516,8 @@ full when its step is, and its rows join the sections above then.
   and always written is the largest open question for the feel**,
   and is not decided.
 - **The core is small** (D22): processes are libraries, each by
-  proposal. Files are steps 21b and 21c (D210): `open` with three
-  arguments and a lexical handle, `close`, `<$fh>`, `print {$fh}`, an
-  error from the system that no `same` test prints; file tests and
-  directories.
+  proposal. Of files, step 21c is left (D210): file tests, `unlink`,
+  `rename` and directories.
 - **What perl doesn't have** (D5): gradual types, erased before perl
   sees the file; a metaobject protocol; concurrency.
 
@@ -506,7 +529,7 @@ decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
 D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164,
-D186, D170, D210, D220, D223.
+D186, D170, D210, D220, D223, D282.
 
 ## What this leaves out
 

@@ -134,8 +134,8 @@ def bytes_():
     datas = {'latin': b'caf\xe9\n', 'utf8': 'caf\u00e9 \u263a\n'.encode(), 'cut': b'ok\na\xc3', 'crlf': b'a\r\nb\r', 'nul': b'a\x00b\n', 'bom': b'\xef\xbb\xbfx\n',
              'high': b'\xff\xfe\n', 'surrogate': b'\xed\xa0\x80\n', 'empty': b'', 'long': b'x' * 9000 + b'\ny' * 3}
     bodies = ['my $l = <$fh>; say defined $l ? length($l) : "u";', 'my @l = <$fh>; say scalar(@l); for my $x (@l) { say length($x), ":", ord($x) }',
-              "while (my $l = <$fh>) { chomp($l); say length($l) }", "my $l = <$fh>; open(my $o, '>', 'o.txt') or die \"no\\n\"; print $o $l; close($o); open(my $b, '<', 'o.txt') or die \"no\\n\"; my $m = <$b>; say defined $m && defined $l && $m eq $l ? 'same' : 'differ';",
-              "open(my $o, '>', 'o.txt') or die \"no\\n\"; print $o chr(233), chr(65), \"\\n\"; close($o); open(my $b, '<', 'o.txt') or die \"no\\n\"; my $m = <$b>; say length($m);",
+              "while (my $l = <$fh>) { chomp($l); say length($l) }", "my $l = <$fh>; open(my $o, '>', 'o.txt') or die \"no\\n\"; print $o $l; close($o); open(my $back, '<', 'o.txt') or die \"no\\n\"; my $m = <$back>; say defined $m && defined $l && $m eq $l ? 'same' : 'differ';",
+              "open(my $o, '>', 'o.txt') or die \"no\\n\"; print $o chr(233), chr(65), \"\\n\"; close($o); open(my $back, '<', 'o.txt') or die \"no\\n\"; my $m = <$back>; say length($m);",
               "open(my $o, '>', 'o.txt') or die \"no\\n\"; print $o chr(9786); close($o); say 'written';", "open(my $o, '>', 'o.txt') or die \"no\\n\"; say $o chr(0xFFFF); say 'written';",
               'my $l = <$fh>; print $l if defined $l;']
     for name, data in datas.items():
@@ -188,7 +188,7 @@ def randoms(count=260):
             else:
                 name = rnd.choice(['in.txt', 'o1.txt'])
                 lines.append(rnd.choice([f"{{ open(my $t, '<', '{name}'); my $l = <$t>; print defined $l ? 'T' : 'U'; }}", f"{{ open(my $t, '>>', 'o1.txt'); print $t 'scoped'; }}",
-                                         f"sub s{n}() {{ open(my $t, '<', '{name}') or return 0; my @l = <$t>; return scalar(@l) }} print s{n}();"]))
+                                         f"sub s{n}() {{ my $t; return 0 unless open($t, '<', '{name}'); my @l = <$t>; return scalar(@l) }} print s{n}();"]))
         for v, m in live.items():
             if m == 'w' and rnd.random() < 0.5:
                 lines.append(f'close(${v});')

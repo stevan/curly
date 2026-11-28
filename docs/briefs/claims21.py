@@ -214,6 +214,14 @@ STEP21B = [
     c('T681-stdin', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my $l = <STDIN>; my @e = (0+$!); $l = <STDIN>; push @e, 0+$!; open($fh, "<", "in.txt"); $l = <STDIN>; push @e, 0+$!; say "@e";', files=ABC, stdin=b'q\n', out='25 0 25\n'),
     c('T681-stdin-eof', 'TRAPS; PLAN 21b', 'open(my $fh, "<", "in.txt"); my $x = eof(STDIN); my $l = <STDIN>; say 0+$!;', files=ABC, out='25\n'),
     c('T681-others', 'PLAN 21b', 'open(my $o, ">", "o.txt"); my @e; $! = 7; print $o "x" x 20000; say $o "y"; printf $o "%d", 5; push @e, 0+$!; close($o); push @e, 0+$!; open(my $fh, "<", "in.txt"); $! = 7; my $l = <$fh>; my $x = eof($fh); close($fh); push @e, 0+$!; try { die "d" } catch ($e) { } warn "w\\n"; push @e, 0+$!; say "@e";', files=ABC, out='7 7 7 7\n', err=r'^w\n$'),
+    c('T681-use-open', 'PLAN 21b', OPEN + 'my @e; open(my $fh, "<", "in.txt"); push @e, 0+$!; my $l = <$fh>; $l = <$fh>; $l = <$fh>; push @e, 0+$!; $l = <$fh>; push @e, 0+$!; open(my $u, "<", "e.txt"); my $x = eof($u); $l = <$u>; push @e, 0+$!; open(my $o, ">", "o.txt"); print $o chr(233), chr(9786); close($o); push @e, 0+$!; say "@e"; die "x\\n";', files={**ABC, 'e.txt': b''}, out='25 25 0 25 25\n', err=r'^x\n$', exit=25),
+    # And a number that underflowed, whose errno an uncaught die exits with
+    # (T319, D151): an open, and a read that meets the end, set it after.
+    c('T680-underflow', 'TRAPS; PLAN 21b', 'my $s = "1e-400"; my $t = $s + 0; say 0+$!; open(my $fh, "<", "in.txt"); die "x\\n";', files=ABC, out='34\n', err=r'^x\n$', exit=25),
+    # (Written as a constant, perl works the sum out as it compiles, and
+    # errno is 0 again when the program starts.)
+    c('T680-folded', 'PLAN 21b', 'my $t = "1e-400" + 0; say 0+$!; die "x\\n";', out='0\n', err=r'^x\n$', exit=255),
+    c('T681-underflow', 'TRAPS; PLAN 21b', 'my $s = "1e-400"; my $t = $s + 0; print 0+$!; my $l = <STDIN>; die "x\\n";', out='34', err=r'^x\n$', exit=255),
     # T682: once a line has been read from a handle, a message of die or
     # warn that does not end in a newline names it and its line, while the
     # handle lives and is not closed; eof($fh) makes it the handle last

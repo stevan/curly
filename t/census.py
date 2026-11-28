@@ -180,14 +180,25 @@ REASONS = [
     (r"^'(s|m|tr|y|split)' is not in the language$", 'later', '19'),
     (r"^expected a value, found '(split|m|s|tr)'$", 'later', '19'),
     (r"^expected a value, found '(time|localtime|gmtime|rand)'$", 'later', '22'),
-    (r"^expected a value, found 'open'$", 'later', '21'),
     (r"^'(finally|defer)' is not in the language|^finally: perl 5.42 warns", 'design', 'D221'),
-    # Step 21a's (D211 to D218); its own rows, `21`, are 21b's.
-    (r"^a <STDIN> alone in a loop's test|^a line read in the test of", 'design', 'D212'),
+    # Step 21a's (D211 to D218).
+    (r"^a <(STDIN|\$\w+)> alone in a loop's test|^a line read in the test of", 'design', 'D212'),
     (r"^a line read into an element whose", 'design', 'D213'),
     (r"^<<?>>? reads the files named in @ARGV|a bareword file handle, which is not in the language|^'<' where a value begins is a readline or a glob|^STDIN is read by <STDIN>|^expected a value, found 'readline'$", 'design', 'D211'),
-    (r"reads a file handle, which is step 21b's|^eof takes STDIN here", 'later', '21'),
-    (r"^eof\(\) is the files named in @ARGV|^eof is written eof\(STDIN\) here", 'design', 'D214'),
+    (r"^eof\(\) is the files named in @ARGV|^eof is written with brackets|^eof\(\w+\): eof takes STDIN", 'design', 'D214'),
+    # Step 21b's (D270 to D283); its own rows, `21`, are 21c's: file tests,
+    # `unlink` and its kin, directories.
+    (r"^open (without brackets|with two arguments|with more than three arguments)|^open\(\w+, \.\.\.\): a bareword file handle|^open's second argument is one of the literals", 'design', 'D270'),
+    (r"^open's first argument is my \$fh|after open's first argument|^after 'my' in open", 'design', 'D271'),
+    (r"^\$\{!\}|^\$!. is an element of perl's own|hard after \$! in a string", 'design', 'D273'),
+    (r"after (open|close)\(\.\.\.\): what may follow it as a statement", 'design', 'D274'),
+    (r"^(print|say|printf) to a file handle|^(print|say|printf) \{|^a brace first after (print|say|printf)|^',' after the file handle", 'design', 'D278'),
+    (r"anything more in the angle brackets is a glob to perl|^eof takes one file handle", 'design', 'D281'),
+    (r"after close \$\w+: without brackets|^close\(\) with no file handle", 'design', 'D283'),
+    (r"^'(binmode|seek|tell|fileno|truncate|flock|select|read|sysopen|sysread|syswrite|sysseek|getc|pipe|fcntl|ioctl|utime|chmod|chown|umask|link|symlink|readlink)' is not in the language$", 'design', 'D270'),
+    (r"^expected a value, found '(binmode|seek|tell|fileno|select|read|getc|sysopen)'$", 'design', 'D270'),
+    (r"^'(unlink|rename|mkdir|rmdir|opendir|readdir|closedir|rewinddir|chdir|stat|lstat|glob)' is not in the language$", 'later', '21'),
+    (r"^expected a value, found '(unlink|rename|mkdir|rmdir|opendir|readdir|closedir|stat|lstat|glob)'$", 'later', '21'),
     (r"^my @ARGV: perl takes it", 'design', 'D215'),
     (r"^my %ENV: perl takes it", 'design', 'D216'),
     (r"^exit is a statement, not a value|after exit's argument", 'design', 'D217'),
@@ -230,7 +241,9 @@ def judge(perl, ours):
     # An uncaught `die`, or a `warn` (step 15; D148): perl's status and
     # stdout, and perl's stderr too, which may hold more, a warning of
     # perl's own: WARNS.
-    if (code == 255 or (code == 0 and said)) and not said.startswith((b'internal: ', b'fault: ')):
+    # (An uncaught `die` exits with perl's errno when that is not 0: step
+    # 21b, D272. A fault's status is 1, and its message says so.)
+    if (code == 255 or (said and (code == 0 or code == status))) and not said.startswith((b'internal: ', b'fault: ')):
         if status != code:
             return 'WRONG', f'it exits {code}, and perl {status}: {clip(said)!r}'
         if mine != out:

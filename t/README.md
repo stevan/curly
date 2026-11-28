@@ -14,15 +14,21 @@ Header lines a test may carry, as comments before the first statement
 - `# stdin: bytes` (printf `%b` escapes), the test's standard input;
   `# args: words`, its arguments; `# env: NAME=value ...`, its
   environment. perl is given the same three.
+- `# file: NAME=bytes` (printf `%b` escapes), a file in the directory
+  the test runs in; as many as the test wants, each with a name of its
+  own (letters, digits, `_`, `.`, `-`).
 - `# model: t/models/name.py`, when a model wrote the test.
 - `# limit: seconds`, 1 to 60, how long perl may take over the test,
   where the usual ten isn't right.
 
-A header appears once. `# env:` may not set a variable of perl's own
+A header appears once, `# file:` aside. `# env:` may not set a variable of perl's own
 (`PERL_HASH_SEED`, `PERL5OPT`), `PATH`, or the loader's: the test's
 environment is perl's too when the check runs it.
 
-A test that writes files writes under `build/t/`.
+Every run of a test, perl's and the program's, is in a directory of its
+own (D282): empty but for the files its `# file:` headers name, made
+before the run and removed after it. A test that reads or writes a file
+names it with no directory, and what it writes is gone when it ends.
 
 ## The six kinds, and where each one's expected output comes from
 

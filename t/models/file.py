@@ -965,7 +965,8 @@ def exit_caught(w):
 def exit_underflow(w):
     # A number that underflowed sets errno too (D151), and an open after
     # it sets it again.
-    w.perl('my $tiny = "1e-400" + 0;')
+    w.perl('my $small = "1e-400";')
+    w.perl('my $tiny = $small + 0;')
     w.perl('say $tiny;', '0\n')
     w.open('fh', '<', 'in.txt', how='or die')
     w.die('the open set errno after the underflow did\n')
@@ -1051,7 +1052,7 @@ FAULTS = {
     6493: ('printf-count', {}, [], [OUT, 'say "before";', 'printf $out "%s %s\\n", "one";'], 'before\n', 'missing argument in printf', 3),
     6494: ('write-undef', {}, [], [OUT, 'my $u;', 'say "before";', 'print $out "a", $u;'], 'before\n', 'undef where a string is wanted', 4),
     6495: ('handle-as-array', ABC, [], [IN, 'say "before";', 'my @l = $fh->@*;'], 'before\n', 'not a reference to an array', 3),
-    6496: ('errno-after-underflow', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $tiny = "1e-400" + 0;', 'say $tiny;', 'say $!;'], '0\n', PAST, 4),
+    6496: ('errno-after-underflow', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $small = "1e-400";', 'my $tiny = $small + 0;', 'say $tiny;', 'say $!;'], '0\n', PAST, 5),
     6497: ('eof-not-a-handle', {}, [], ['my $x = 0;', 'say "before";', 'say eof($x) ? "eof" : "more";'], 'before\n', 'not a file handle', 3),
     6498: ('message-warn-in-a-sub', ABC, [], ['sub note($text) { warn $text; return; }', IN, 'my $l = <$fh>;', 'say "before";', 'note("careful");'], 'before\n', MESSAGE, 1),
     6499: ('close-after-reopen-failed', ABC, [], [IN, "open($fh, '<', 'nope.txt');", 'say "before";', 'close($fh);'], 'before\n', f'close of {CLOSED}', 4),

@@ -356,8 +356,18 @@ step, roughly in the order it will matter:
    line, as an array is its count or its elements; `@ARGV` an array
    and `%ENV` a read-only hash, filled as the program starts; `exit`
    a statement; one environment for perl and the program in every
-   check. **Handles as values, `print {$fh}` against `print $fh`, and
-   what an error from the system is** are 21b's (D210).
+   check.
+9b. **Files and handles** (step 21b): settled, D270 to D283. A handle
+   is a reference (`GLOB`); `open` has three arguments and one of
+   three modes; `<$fh>` is `<STDIN>`'s rules; `print $fh LIST` and
+   `print { EXPR } LIST`; `$!` is a string, read only while the last
+   `open` failed; **the language keeps perl's errno**, which an
+   uncaught `die` exits with; no file is open twice when one of the
+   two writes, so the runtime buffers as it likes and a collection
+   closes a dropped handle; a message with no newline while a file is
+   being read is a fault, perl naming the handle only while it lives;
+   each run of a test in a directory of its own. File tests,
+   `unlink` and directories are 21c's.
 10. **Modules** (step 18): `package Name;` is decided (D19); imports,
    and how files are found, are not.
 11. **Regex captures** (step 19): `$1`, or only named and returned.
