@@ -93,10 +93,72 @@ in, the fuzzer run from seed 900000, the file put back:
 
 ## Totals
 
-(Filled in at the end of the run.)
+Two runs, two workers each, on a machine other agents were loading
+(load 12 to 21 on four cores): overnight, seeds 1000000 to 1006899, and
+again the next morning on the tree with D245 to D247 in it, seeds
+2000000 to 2002299.
+
+| | Programs | Runs judged | SAME | LOUD | UNJUDGED | WRONG | WARNS |
+|---|---|---|---|---|---|---|---|
+| Overnight, counted (`totals-*.json`) | 5,900 | 40,923 | 4,209 | 36,374 | 334 | 5 | 0 |
+| Overnight, seeds 1001000 to about 1001840, from its log (it was stopped before totals were written as it goes) | about 840 | about 6,440 | 584 | 5,826 | 26 | 0 | 4 |
+| The morning after | 2,300 | 16,612 | 1,774 | 14,746 | 91 | 0 | 0 |
+| **All** | **about 9,040** | **about 63,975** | **6,567** | **56,946** | **451** | **5** | **4** |
+
+A program is one seed; a run is that program compiled, run and held to
+perl once, after each repair (about seven a program). Of the 8,200
+programs counted, 6,380 were refused as first written (22,743 refusals
+in all, under 78 messages, the commonest D77's and D76's) and 1,822
+compiled at once; one was given up on. The faults came under 678
+messages, the commonest `not a numeric string` (8,915), `undef where a
+string is wanted` (8,254) and `undef where a number is wanted` (5,933).
+UNJUDGED: perl ran out of its 1 GB (259), wrote past 1 MB (105), did
+not end in 15 seconds (60), or printed an address used as a number (1).
+
+**The rate**: the morning's run did 2,300 programs in 62 minutes, 37 a
+minute, 4.4 runs a second; overnight 21 a minute. Thirty thousand
+programs would have been thirteen hours of it. Nearly all the time is
+`cc` over the program's C and the three runs.
+
+**The finds, by class**:
+
+- WRONG, 5: two real, seeds 1002315 (T602) and 1004968 (T603); three
+  the judge's own (1003254, 1003333, 1003873), each a program that
+  faults where perl carries on for ever or until its memory is gone
+  (T131: a `push` onto an array an outer loop is over; `__SUB__` called
+  on without end), which the judge took for output perl does not have
+  because perl was stopped before it wrote it. The judge now asks first
+  whether perl ended (UNJUDGED), and the three are that or LOUD.
+- WARNS, 4: three real and one trap, seeds 1001211, 1001791 and 1001838
+  (T600); one perl's `Deep recursion` warning (1001301), which D67 sets
+  aside and the judge now does.
+- UNJUDGED kept to look at, 1 (1000203): an address used as a number,
+  where the program had faulted first.
+- CRASH (the compiler's own fault, the C not compiling, exit 2), none.
+- T601 was found by hand, looking round T600.
+
+The morning's run, an hour on fresh seeds with every fix in, found
+nothing, and every file of the overnight run's `finds/` was run again
+under the compiler as it is: the two WRONGs are refused (D246, D247),
+the three WARNS fault (D245), the rest are as said above.
 
 ## What it does not cover
 
+- **Most of what a program does after its first fault or refusal.**
+  Only one program in five compiles as written, and about nine runs in
+  ten end in a fault; what is held to perl is then only what was
+  printed before it. A tenth of the runs, 6,567, ran to their end and
+  were compared whole. So the fuzzer finds a program that prints what
+  perl does not, and cannot see a fault or a refusal that is stricter
+  than it need be at all.
+- **Steps 17a on** (classes, fields, methods): this branch was cut
+  before them, and `gen.py` writes none.
+- **Where perl does not end or runs out of memory**, 451 runs: nothing
+  is learned from them. The generator still writes a few (a `push` in
+  a loop inside a loop over the same array).
+- **Nine thousand programs is few.** Each real find took a thousand
+  programs or more to meet; an hour with nothing says the easy ones
+  are gone, not that none is left.
 - Programs over about 200 lines, and subs that call later subs or
   themselves by name (no call cycle, by construction), so deep
   recursion only through `__SUB__`.
