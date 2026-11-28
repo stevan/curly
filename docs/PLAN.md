@@ -7441,6 +7441,31 @@ counts the lines read, and `unwind.c`'s message says so (4717, 4718,
 and four claims, T516 to T516-newline). Rerun after the build: see
 "21a, as built".
 
+**And then a second reader** (2026-11-28, Fable 5.2 in a session of its
+own, which did not write 21a; `briefs/step21-review/README.md` has the
+account, `reader/` its driver and ten files of cases): 3,829 runs of
+about 2,400 programs beside perl, stdout, stderr and the exit status
+each compared. **Six ways to be WRONG, T517 to T522**, all mended:
+perl warns of `exit - 1` as of `length - 5` (refused, T94's rule);
+perl warns `Value of <HANDLE> construct can be "0"` of a line assigned
+on the left of `&&` or `||`, which an `if` with no `else` is, the
+`if (my $l = <STDIN>) { ... }` this section had given as its example
+(refused there, in where perl is silent); perl folds a constant test
+away and then reads the element first, or tests a loop's line with
+`defined` (a line read beside a constant test is refused); **a sub
+called for nothing that gives `<STDIN>` back reads one line, not all**
+(agreed: `codegen.ts` builds a given list so); and `chomp(my $x =
+EXPR)` at the end of a sub or a block was worth the string, where
+perl's is a count (no value now, as `chomp($x)` is none). **D222** is
+the two refusals, and **D223** a `PATH` that is the same on every
+machine for perl and the program; both the reviewer's defaults, his to
+overturn. Tests 4851 to 4874 (refusals, `step21-refusals.py --review`),
+4880 and 4881 (faults), 4890 to 4892 (`same`), a fixture
+`same-env-path`, and 42 claims. After the mending: 2,572 the same, 621
+faults, 634 refusals, no WRONG. What it did not do is at the end of
+its README: the builder's `contexts.py` was not rerun, and the
+breakages' script not extended.
+
 #### 21a, as built
 
 **Built 2026-11-27, by Fable 5.2, under Stevan's standing

@@ -1,0 +1,2 @@
+t/4873-io-chomp-assign-map-value.pl:4:15: map's block ends in an expression, which is its value
+exit: 1

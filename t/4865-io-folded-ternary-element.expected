@@ -1,0 +1,2 @@
+t/4865-io-folded-ternary-element.pl:5:17: a line read beside a constant test: perl folds the constant away as it compiles and reads the line as if it stood alone, in another order or tested with defined (D222, T519); take the constant out
+exit: 1

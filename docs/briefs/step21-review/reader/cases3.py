@@ -1,0 +1,19 @@
+P1 = 'while (my $l = <STDIN>) { print length($l), ":", $l, "|" } print "\n";'
+P2 = 'my @l = <STDIN>; say scalar(@l); for my $l (@l) { say join ",", map { ord(substr($l, $_, 1)) } 0 .. length($l) - 1 }'
+P3 = 'my $l = <STDIN>; say defined $l ? length($l) : "u"; warn "w";'
+P4 = 'my $l = <STDIN>; my $m = <STDIN>; say defined $l ? ord($l) : "u"; say defined $m ? length($m) : "u";'
+P5 = 'my @l = <STDIN>; say scalar(@l); warn "w";'
+INS = [b'', b'\n', b'\n\n', b'a', b'a\r\nb\r\n', b'\r', b'\0', b'a\0b\n\0', b'x' * 70000 + b'\n' + b'y' * 5000,
+  b'\xc3\xa9\n', b'\xe9\n', b'\xff\xfe\n', b'\x80', b'\xef\xbb\xbfa\n', b'\xc0\x80\n', b'\xc1\xbf\n', b'\xe0\x80\x80\n', b'\xe0\x9f\xbf\n',
+  b'\xf0\x80\x80\x80\n', b'\xf0\x8f\xbf\xbf\n', b'\xed\xa0\x80\n', b'\xed\xbf\xbf\n', b'\xed\x9f\xbf\n', b'\xee\x80\x80\n', b'\xef\xbf\xbe\n', b'\xef\xbf\xbf\n', b'\xef\xb7\x90\n', b'\xef\xb7\xaf\n', b'\xef\xb7\x8f\n', b'\xef\xb7\xb0\n',
+  b'\xf4\x8f\xbf\xbf\n', b'\xf4\x8f\xbf\xbd\n', b'\xf4\x90\x80\x80\n', b'\xf0\x9f\xbf\xbe\n', b'\xf0\x9f\xbf\xbf\n', b'\xf0\x9f\x98\x80\n', b'\xf5\x80\x80\x80\n', b'\xf8\x88\x80\x80\x80\n', b'\xfc\x84\x80\x80\x80\x80\n', b'\xfe\n', b'\xff\n',
+  b'a\xc3', b'a\xc3\n', b'\xc3\nb\n', b'\xe2\x98', b'\xe2\x98\n', b'\xe2\x98\nx\n', b'\xf0\x9f\x98', b'\xf0\x9f\x98\n', b'\xf0\x9f', b'\xf0', b'ok\n\xe2', b'ok\n\xe2\x98', b'\xc3\xa9', b'\xe2\x98\xba', b'\xc3\xa9\xc3',
+  b'\x80\n', b'\xbf\n', b'a\x80b\n', b'\xc3\xc3\xa9\n', b'\xc3\x28\n', b'\xe2\x28\xa1\n', b'\xe2\x82\x28\n', b'\xf0\x28\x8c\xbc\n', b'\xf0\x90\x28\xbc\n', b'\xf0\x28\x8c\x28\n', b'\xc2\x80\n', b'\xc2\x7f\n', b'\xdf\xbf\n', b'\xe0\xa0\x80\n', b'\xf0\x90\x80\x80\n',
+  b'\x7f\n', b'\x01\x02\n', b'\xc2\xa0\n', b'\xe2\x80\xa8x\n', b'\xc2\x85x\n', b'a\n\xef\xbb\xbfb\n', b'\xf4\x8f\xbf\xbe\n', b'\xf3\xbf\xbf\xbf\n',b'\xf3\xbf\xbf\xbe\n', b'\xf1\x8f\xbf\xbe\n',
+  b'\xe2\x98\xba\xe2\x98\xba\n\xe2\x98\xba', b'\xed\xa0\xbd\xed\xb8\x80\n',
+]
+CASES = []
+for p in (P1, P2, P3, P4, P5):
+    for i in INS:
+        for o in (False, True):
+            CASES.append({'p': p, 'stdin': i, 'open': o})

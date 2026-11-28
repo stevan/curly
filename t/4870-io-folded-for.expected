@@ -1,0 +1,2 @@
+t/4870-io-folded-for.pl:5:19: a line read beside a constant on the left of '&&': perl folds the constant away as it compiles and reads the line as if it stood alone, in another order or tested with defined (D222, T519); take the constant out
+exit: 1

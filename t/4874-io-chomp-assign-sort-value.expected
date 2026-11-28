@@ -1,0 +1,2 @@
+t/4874-io-chomp-assign-sort-value.pl:4:16: sort's block ends in an expression, which is its value
+exit: 1

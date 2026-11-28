@@ -135,4 +135,59 @@ STEP21 = [
     c('T516-none', 'TRAPS; PLAN 21, the review', 'say eof(STDIN) ? 1 : 0; my $l = <STDIN>; die "d";', stdin=b'', out='1\n', exit=255, err=r'^d at claim\.pl line 2\.\n$'),
     c('T516-list', 'TRAPS; PLAN 21, the review', 'my @l = <STDIN>; my $e; try { die "t" } catch ($x) { $e = $x } print $e;', stdin=b'a\nb\nc', out='t at claim.pl line 2, <STDIN> line 3.\n'),
     c('T516-newline', 'TRAPS; PLAN 21, the review', 'my $l = <STDIN>; die "x\\n";', stdin=b'a\n', exit=255, err=r'^x\n$'),
+    # ---- found by the adversarial review of 21a (TRAPS T517 to T522; D222)
+    # T517: exit's argument is a named unary operator's, and perl warns of
+    # a sign after it as it does after `length` (T94).
+    c('T517', 'TRAPS; D222', 'exit - 1;', exit=255, err=r'^Warning: Use of "exit" without parentheses is ambiguous at claim\.pl line 2\.\n$'),
+    c('T517-hard', 'TRAPS', 'exit-1;', exit=255, err=r'^Warning: Use of "exit-1" without parentheses is ambiguous at claim\.pl line 2\.\n$'),
+    c('T517-plus', 'TRAPS', 'exit + 1;', exit=1, err=r'^Warning: Use of "exit" without parentheses is ambiguous at claim\.pl line 2\.\n$'),
+    c('T517-silent', 'TRAPS', 'exit -1;', exit=255),
+    c('T517-silent-plus', 'TRAPS', 'exit +1;', exit=1),
+    # T518: a line assigned as the left operand of && or ||, which an if
+    # with nothing after its block is: perl warns. Not with an else, nor
+    # in an elsif's test, nor as the test of ? :, nor under !, nor on the
+    # right of &&, nor before //.
+    c('T518', 'TRAPS; D222', 'if (my $l = <STDIN>) { print $l }', stdin=b'a\n', out='a\n', err=r'^Value of <HANDLE> construct can be "0"; test with defined\(\) at claim\.pl line 2\.\n$'),
+    c('T518-unless', 'TRAPS; D222', 'my $l; unless ($l = <STDIN>) { say "end" }', stdin=b'', out='end\n', err=r'^Value of <HANDLE> construct can be "0"; test with defined\(\) at claim\.pl line 2\.\n$'),
+    c('T518-modifier', 'TRAPS; D222', 'my $l; print "t" if $l = <STDIN>;', stdin=b'a\n', out='t', err=r'^Value of <HANDLE> construct can be "0"; test with defined\(\) at claim\.pl line 2\.\n$'),
+    c('T518-and', 'TRAPS; D222', 'my $l; my $x = ($l = <STDIN>) && 1; say $x;', stdin=b'a\n', out='1\n', err=r'^Value of <HANDLE> construct can be "0"; test with defined\(\) at claim\.pl line 2\.\n$'),
+    c('T518-or', 'TRAPS; D222', 'my $l; my $x = ($l = <STDIN>) || "f"; print $x;', stdin=b'a\n', out='a\n', err=r'^Value of <HANDLE> construct can be "0"; test with defined\(\) at claim\.pl line 2\.\n$'),
+    c('T518-element', 'TRAPS', 'my @a; if ($a[0] = <STDIN>) { print $a[0] }', stdin=b'a\n', out='a\n', err=r'^Value of <HANDLE> construct can be "0"; test with defined\(\) at claim\.pl line 2\.\n$'),
+    c('T518-while', 'TRAPS', 'my $l; while (($l = <STDIN>) && 1) { print "[$l]" }', stdin=b'a\n0', out='[a\n]', err=r'^Value of <HANDLE> construct can be "0"; test with defined\(\) at claim\.pl line 2\.\n$'),
+    c('T518-else', 'TRAPS; D222', 'if (my $l = <STDIN>) { print $l } else { say "f" }', stdin=b'0', out='f\n'),
+    c('T518-elsif-after', 'TRAPS; D222', 'my $l; if ($l = <STDIN>) { print $l } elsif (@ARGV) { say "e" }', stdin=b'a\n', out='a\n'),
+    c('T518-elsif', 'TRAPS; D222', 'my $l; if (@ARGV) { say "a" } elsif ($l = <STDIN>) { print $l }', stdin=b'a\n', out='a\n'),
+    c('T518-ternary', 'TRAPS; D222', 'my $l; print(($l = <STDIN>) ? "t" : "f");', stdin=b'0', out='f'),
+    c('T518-not', 'TRAPS; D222', 'my $l; say "end" if !($l = <STDIN>);', stdin=b'0', out='end\n'),
+    c('T518-right', 'TRAPS; D222', 'my $l; my $x = !@ARGV && ($l = <STDIN>); print $x;', stdin=b'a\n', out='a\n'),
+    c('T518-dor', 'TRAPS; D222', 'my $l; my $x = ($l = <STDIN>) // "f"; print $x;', stdin=b'', out='f'),
+    # T519: perl folds a constant test away, and what is left is the
+    # assignment of a line to an element, which works the element out first.
+    c('T519', 'TRAPS; D222', 'my %h; $h{<STDIN>} = 1 ? <STDIN> : 2; print %h;', stdin=b'a\nb\n', out='a\nb\n'),
+    c('T519-and', 'TRAPS; D222', 'my %h; $h{<STDIN>} = 1 && <STDIN>; print %h;', stdin=b'a\nb\n', out='a\nb\n'),
+    c('T519-or', 'TRAPS', 'my %h; $h{<STDIN>} = "" || <STDIN>; print %h;', stdin=b'a\nb\n', out='a\nb\n'),
+    c('T519-compared', 'TRAPS', 'my %h; $h{<STDIN>} = 2 > 1 ? <STDIN> : 2; print %h;', stdin=b'a\nb\n', out='a\nb\n'),
+    c('T519-builtin', 'TRAPS', 'my %h; $h{<STDIN>} = length("a") ? <STDIN> : 2; print %h;', stdin=b'a\nb\n', out='a\nb\n'),
+    c('T519-not-folded', 'TRAPS', 'my %h; $h{<STDIN>} = @ARGV ? 2 : <STDIN>; print %h;', stdin=b'a\nb\n', out='b\na\n'),
+    # T520: and a loop's test that folds to T501's is tested with defined.
+    c('T520', 'TRAPS; D222', 'my $l; while (1 && ($l = <STDIN>)) { print "[$l]" }', stdin=b'a\n0', out='[a\n][0]'),
+    c('T520-ternary', 'TRAPS; D222', 'my $l; while (1 ? ($l = <STDIN>) : 0) { print "[$l]" }', stdin=b'a\n0', out='[a\n][0]'),
+    c('T520-bare', 'TRAPS', 'while (1 && <STDIN>) { print "[$_]" }', stdin=b'a\n0', out='[a\n][0]'),
+    c('T520-for', 'TRAPS', 'my $l; for (; 1 && ($l = <STDIN>);) { print "[$l]" }', stdin=b'a\n0', out='[a\n][0]'),
+    c('T520-modifier', 'TRAPS', 'my $l; print "[$l]" while !0 && ($l = <STDIN>);', stdin=b'a\n0', out='[a\n][0]'),
+    c('T520-not-folded', 'TRAPS', 'my $l; my $go = 1; while ($go && ($l = <STDIN>)) { print "[$l]" }', stdin=b'a\n0', out='[a\n]'),
+    # T521: a sub called for nothing hands that on to what it gives back,
+    # and a readline there reads one line.
+    c('T521', 'TRAPS; PLAN 21, the review', 'sub f() { return <STDIN> } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out='b\nc\n'),
+    c('T521-last', 'TRAPS', 'sub f() { <STDIN> } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out='b\nc\n'),
+    c('T521-list', 'TRAPS', 'sub f() { return (<STDIN>, 1) } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out='b\nc\n'),
+    c('T521-two', 'TRAPS', 'sub f() { return (<STDIN>, <STDIN>) } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out='c\n'),
+    c('T521-repeat', 'TRAPS', 'sub f() { return (<STDIN>) x 2 } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out='b\nc\n'),
+    c('T521-handed', 'TRAPS', 'sub g() { <STDIN> } sub f() { return (g(), 1) } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out='b\nc\n'),
+    c('T521-slice', 'TRAPS', 'sub f() { return (<STDIN>)[0] } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out=''),
+    c('T521-sort', 'TRAPS', 'sub f() { return sort <STDIN> } f(); print <STDIN>;', stdin=b'a\nb\nc\n', out=''),
+    c('T521-wanted', 'TRAPS', 'sub f() { return <STDIN> } my @l = f(); print <STDIN>; say scalar(@l);', stdin=b'a\nb\nc\n', out='3\n'),
+    # T522: chomp of an assignment is worth what chomp took.
+    c('T522', 'TRAPS; PLAN 21, the review', 'sub f() { chomp(my $x = <STDIN>) } say f();', stdin=b'a\n', out='1\n'),
+    c('T522-map', 'TRAPS', 'my @l = map { chomp(my $x = $_) } "a\\n", "b"; say "@l";', out='1 0\n'),
 ]

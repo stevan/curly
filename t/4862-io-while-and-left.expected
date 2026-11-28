@@ -1,0 +1,2 @@
+t/4862-io-while-and-left.pl:5:12: a line assigned on the left of '&&': perl warns that the line can be "0", and wants it tested with defined (D222, T518); assign the line in a statement of its own, and test it with defined(...)
+exit: 1

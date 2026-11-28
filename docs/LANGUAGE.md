@@ -2769,6 +2769,13 @@ the handle is not in brackets either: `printf STDOUT "%d\n", $n;`,
 never `printf(STDOUT ...)`. What goes to stderr follows `say`'s rules
 for characters past ASCII: it needs `use open`.
 
+Each stream is what perl writes to it. When both go to one pipe or one
+file, their order there is not perl's: a compiled program writes what
+it had for stdout before each thing it writes to stderr, so the two are
+in the order the program wrote them, and perl holds stdout back until
+its buffer fills or the program ends (to a terminal, until a line
+ends). The tests keep the two apart.
+
 ## The outside
 
 A program reads its arguments, its environment and its stdin, and it
@@ -2805,11 +2812,37 @@ whether it is true, as perl has it: a last line `0` with no newline is
 read. A `<STDIN>` alone in a loop's test is refused (perl would store
 the line in its own `$_`), and so is a line read in the test of
 `until`, of a `for (;;)`, or of a loop modifier: write the `while`.
-Anywhere else a line is tested as any string is, so `if (my $l =
-<STDIN>)` is false for a line `0`.
+Anywhere else a line is tested as any string is, so the test of `if
+(my $l = <STDIN>) { ... } else { ... }` is false for a line `0`.
+
+perl warns that a line assigned can be `"0"` where it is the left
+operand of `&&` or `||`, and an `if` or an `unless` with no `else` is
+that to perl; so those are refused, and `//` with them:
+
+    if (my $l = <STDIN>) { print $l }          # refused: no else
+    print "more" if $l = <STDIN>;              # refused
+    my $x = ($l = <STDIN>) || "nothing";       # refused
+
+Read the line in a statement of its own and test it with `defined`.
+With an `else` or an `elsif` after the block, in an `elsif`'s own test,
+as the test of `? :`, under `!`, and on the right of `&&` and `||`,
+perl says nothing and the line is tested as a string.
+
+A line read may not stand beside a test that is a constant, `1 &&
+<STDIN>`, `1 ? <STDIN> : 0`: perl folds the constant away as it
+compiles and reads the line as if it stood alone, which in a loop's
+test is the test above and on the right of an element is the other
+order.
 
 `chomp(my $line = <STDIN>);` reads and chomps in one statement, and
-`chomp($line = <STDIN>);` does it to a variable declared before.
+`chomp($line = <STDIN>);` does it to a variable declared before. Like
+`chomp($line);` it has no value: a sub that ends in one gives nothing
+back, and it is not the value of a `map`'s block.
+
+A sub that gives `<STDIN>` back, `return <STDIN>;`, gives every line
+that is left to a call that wants a list, and is a fault for one that
+wants one value. Called for nothing, `lines();` as a statement, it
+reads one line, as perl does.
 
 **`eof(STDIN)`** is true when no line is left. It is written with its
 brackets and `STDIN` in them.
@@ -2860,7 +2893,9 @@ or the low eight bits of the whole number given (`exit 256` is 0,
 
 Its argument is a named unary operator's: `exit 1 + 1` exits 2, and an
 operator that binds more loosely after it is refused, `exit $x || 1`;
-write `exit($x || 1)`. A `try` does not catch an `exit`, and it leaves
+write `exit($x || 1)`. A sign after it is the sign of its argument,
+`exit -1`; `exit - 1` and `exit-1` are refused, as after `length`:
+perl warns that they are ambiguous. A `try` does not catch an `exit`, and it leaves
 from anywhere, a sub or a `sort`'s block too.
 
 ## Memory

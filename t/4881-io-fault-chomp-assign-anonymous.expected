@@ -1,0 +1,3 @@
+[a]
+fault: an anonymous sub has no value: it does not end in a return or an expression at t/4881-io-fault-chomp-assign-anonymous.pl line 7.
+exit: 1

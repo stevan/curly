@@ -684,7 +684,7 @@ export const parse = (tokens: readonly Token[]): Program => {
         // The block's value is its last statement's (T176).
         const last = body.at(-1);
         // And `true` after a `say` or a `print`, as a sub's is (D70).
-        if (last?.kind !== 'do' && !(says && last?.kind === 'call')) refuse(`${head.text}'s block ends in an expression, which is its value`, (last ?? close).pos);
+        if ((last?.kind !== 'do' || last.novalue) && !(says && last?.kind === 'call')) refuse(`${head.text}'s block ends in an expression, which is its value`, (last ?? close).pos);
         const after = peek();
         if (after.kind === ',') refuse(`a comma after ${head.text}'s block: perl does not compile it`, after.pos);
         if (ends(after) || after.kind === ')' || after.kind === ']' || after.kind === 'eof' || isModifier(after)) refuse(`${head.text} needs a list after its block`, after.pos);
@@ -1304,7 +1304,8 @@ export const parse = (tokens: readonly Token[]): Program => {
                 if (next().kind !== ')') return refuse(`${head.text}(...) takes one scalar variable, or the assignment of one, ${head.text}(my $x = ...) (D219)`, first.pos);
                 // The variable assigned what the chomp makes of the value:
                 // one statement, so that a `my` is the enclosing block's.
-                return { kind: 'do', expr: { ...assigned, value: { kind: 'apply', name: head.text, args: [assigned.value], pos: head.pos } }, pos: head.pos };
+                // And no value, as `chomp($x);` is none (D130, T522).
+                return { kind: 'do', expr: { ...assigned, value: { kind: 'apply', name: head.text, args: [assigned.value], pos: head.pos } }, novalue: true, pos: head.pos };
             }
             const v = next();
             const one = `${head.text} takes one scalar variable here, ${head.text}($x): its value, an array, a hash, an element and $_ are not in the language (D130)`;

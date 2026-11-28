@@ -600,6 +600,7 @@ const notTested = (e: Expr): void => {
 // perl reads a line into an element after working out which element
 // (T508-order), against D80's order: so working that out may not read a
 // line or call a sub (D213).
+const lineTested = (where: string): string => `a line assigned ${where}: perl warns that the line can be "0", and wants it tested with defined (D222, T518); assign the line in a statement of its own, and test it with defined(...)`;
 const readsOutside = (e: Expr): boolean => e.kind === 'readline' || e.kind === 'stdineof' || e.kind === 'invoke' || e.kind === 'callref' || parts(e).some(readsOutside);
 
 const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = false): void => {
@@ -608,6 +609,20 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         && parts(e.target).some(readsOutside)) {
         refuse('a line read into an element whose index, key or reference reads a line or calls a sub: perl works the element out first and then reads, against the order of every other assignment (D213, T508); take the index into a my first', e.pos);
     }
+    // perl folds a constant test away as it compiles, and what is left is
+    // read as if it had stood alone: a line assigned to an element is read
+    // after the element is worked out, and a loop's test is tested with
+    // `defined` (T519, T520). `folds` says yes to a little more than perl
+    // folds, and nothing is lost by refusing all of it (D222).
+    if ((e.kind === 'binary' && infixOp(e.op)?.when !== undefined && folds(e.left) && readsLine(e.right) !== undefined)
+        || (e.kind === 'ternary' && folds(e.test) && (readsLine(e.then) !== undefined || readsLine(e.else) !== undefined))) {
+        refuse(`a line read beside a constant ${e.kind === 'ternary' ? 'test' : `on the left of '${e.op}'`}: perl folds the constant away as it compiles and reads the line as if it stood alone, in another order or tested with defined (D222, T519); take the constant out`, e.pos);
+    }
+    // perl warns `Value of <HANDLE> construct can be "0"; test with
+    // defined()` where a line assigned is the left operand of `&&` or
+    // `||` (T518, D222); `//` is refused with them, which perl is silent
+    // about, for want of a reason to tell them apart.
+    if (e.kind === 'binary' && infixOp(e.op)?.when !== undefined && readsLine(e.left) === 'assigned') refuse(lineTested(`on the left of '${e.op}'`), behind(e.left).pos);
     if (e.kind === 'binary' && isDie(e.left)) refuse(`a die on the left of '${e.op}': perl warns of a precedence problem, and a die is never worth anything`, plain(e.left).pos);
     if (e.kind === 'ternary') notTested(e.test);
     checkConcat(w, e);
@@ -933,6 +948,13 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         return checkExpr(w, s.expr, false, 'list', true);
     case 'block': return s.body.forEach(b => checkStmt(w, b));
     case 'if':
+        // (An `if` or an `unless` with nothing after its one block is
+        // `TEST && BLOCK` to perl, which warns of a line assigned there;
+        // with an `else` or an `elsif`, and in an `elsif`'s test, it does
+        // not: T518.)
+        if (s.arms.length === 1 && s.otherwise === undefined && readsLine(s.arms[0]!.test) === 'assigned') {
+            refuse(lineTested(`in the test of an ${s.arms[0]!.negate ? 'unless' : 'if'} with no else`), s.arms[0]!.test.pos);
+        }
         for (const arm of s.arms) {
             notTested(arm.test);
             tested(arm.test);

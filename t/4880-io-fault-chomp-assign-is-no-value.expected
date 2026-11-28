@@ -1,0 +1,3 @@
+void
+fault: line has no value: it does not end in a return or an expression at t/4880-io-fault-chomp-assign-is-no-value.pl line 7.
+exit: 1

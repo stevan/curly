@@ -1,0 +1,8 @@
+if [a
+]if false [0]
+elsif false
+false
+end
+undef
+0
+undef

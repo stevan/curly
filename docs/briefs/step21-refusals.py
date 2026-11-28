@@ -81,6 +81,49 @@ r('chomp-assign-op', "perl chomps $x.", 'my $x = "a";\nchomp($x .= "\\n");', '$x
 r('chop-assign', "perl chops it.", 'chop(my $x = "ab");', 'my', "chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)".replace('chomp', 'chop'))
 r('chomp-assign-array', "perl chomps every element.", 'chomp(my @l = ("a\\n"));', 'my', "chomp(...) takes one scalar variable, or the assignment of one, chomp(my $x = ...) (D219)")
 
+# ---- found by the adversarial review of 21a (D222; T517 to T520, T522):
+# a table of its own, written from 4851 on
+#
+#     python3 docs/briefs/step21-refusals.py --review 4851
+REVIEW = []
+def v(name, why, body, at, message, nth=1):
+    REVIEW.append((name, why, body, at, message, nth))
+
+def TESTED(where):
+    return f'a line assigned {where}: perl warns that the line can be "0", and wants it tested with defined (D222, T518); assign the line in a statement of its own, and test it with defined(...)'
+def FOLDED(what):
+    return f'a line read beside a constant {what}: perl folds the constant away as it compiles and reads the line as if it stood alone, in another order or tested with defined (D222, T519); take the constant out'
+
+# T517: exit's argument is a named unary operator's, and so is perl's warning (T94).
+v('exit-minus-blank', 'perl exits 255, and warns: Use of "exit" without parentheses is ambiguous (T517).', 'exit - 1;', '-', 'exit -: perl warns that this is ambiguous: write exit(-...)')
+v('exit-minus-hard', 'perl exits 255, and warns: Use of "exit-1" without parentheses is ambiguous.', 'exit-1;', '-', 'exit -: perl warns that this is ambiguous: write exit(-...)')
+v('exit-plus-blank', 'perl exits 1, and warns that it is ambiguous.', 'exit + 1;', '+', 'exit +: perl warns that this is ambiguous: write exit(+...)')
+# T518: a line assigned where perl warns that it can be "0".
+v('if-no-else', "perl prints the line, and warns: Value of <HANDLE> construct can be \"0\"; test with defined() (T518).", 'if (my $l = <STDIN>) {\n    print $l;\n}', '= <', TESTED('in the test of an if with no else'))
+v('unless-block', "perl warns: Value of <HANDLE> construct can be \"0\".", 'my $l;\nunless ($l = <STDIN>) {\n    say "end";\n}', '= <', TESTED('in the test of an unless with no else'))
+v('if-modifier', "perl warns: Value of <HANDLE> construct can be \"0\".", 'my $l;\nprint "t" if $l = <STDIN>;', '= <', TESTED('in the test of an if with no else'))
+v('unless-modifier', "perl warns: Value of <HANDLE> construct can be \"0\".", 'my $l;\nsay "end" unless $l = <STDIN>;', '= <', TESTED('in the test of an unless with no else'))
+v('if-element', "perl warns of an element assigned a line too.", 'my @a;\nif ($a[0] = <STDIN>) {\n    print $a[0];\n}', '= <', TESTED('in the test of an if with no else'))
+v('and-left', "perl warns: Value of <HANDLE> construct can be \"0\".", 'my $l;\nmy $x = ($l = <STDIN>) && 1;', '= <', TESTED("on the left of '&&'"))
+v('or-left', "perl warns: Value of <HANDLE> construct can be \"0\".", 'my $l;\nmy $x = ($l = <STDIN>) || "f";', '= <', TESTED("on the left of '||'"))
+v('dor-left', "perl runs it in silence: refused with && and ||, the reviewer's default (D222).", 'my $l;\nmy $x = ($l = <STDIN>) // "f";', '= <', TESTED("on the left of '//'"))
+v('while-and-left', "perl warns, and tests the line for truth, with no defined.", 'my $l;\nwhile (($l = <STDIN>) && 1) {\n    print $l;\n}', '= <', TESTED("on the left of '&&'"))
+v('elsif-and-left', "perl warns here, though of an elsif's whole test it does not.", 'my $l;\nif (@ARGV) {\n    say "args";\n} elsif (($l = <STDIN>) && 1) {\n    print $l;\n}', '= <', TESTED("on the left of '&&'"))
+v('sort-block-and-left', "perl warns: Value of <HANDLE> construct can be \"0\".", 'my $l;\nmy @a = sort { ($l = <STDIN>) && 0 } 1, 2;', '= <', TESTED("on the left of '&&'"))
+# T519: perl folds a constant test away, and then reads the element first.
+v('folded-ternary-element', "perl reads the key's line first, then the value's: the constant is folded away (T519).", 'my %h;\n$h{<STDIN>} = 1 ? <STDIN> : 2;', '?', FOLDED('test'))
+v('folded-and-element', "perl reads the key's line first.", 'my %h;\n$h{<STDIN>} = 1 && <STDIN>;', '&&', FOLDED("on the left of '&&'"))
+v('folded-or-list', "perl reads every line: refused with the rest (D222).", 'my @l = (0 || <STDIN>);', '||', FOLDED("on the left of '||'"))
+# T520: and then tests a loop's line with defined.
+v('folded-while', "perl folds the 1 away and tests the line with defined: a last line 0 is read (T520).", 'my $l;\nwhile (1 && ($l = <STDIN>)) {\n    print $l;\n}', '&&', FOLDED("on the left of '&&'"))
+v('folded-while-bare', "perl folds the test to <STDIN>, and stores each line in its global $_.", 'while (1 ? <STDIN> : 0) {\n    say "line";\n}', '?', FOLDED('test'))
+v('folded-for', "perl tests the line with defined.", 'my $l;\nfor (my $i = 0; 1 && ($l = <STDIN>); $i++) {\n    print $l;\n}', '&&', FOLDED("on the left of '&&'"))
+v('folded-while-modifier', "perl tests the line with defined.", 'my $l;\nprint $l while 1 && ($l = <STDIN>);', '&&', FOLDED("on the left of '&&'"))
+v('folded-then-left', "perl folds the empty string away, and then warns: Value of <HANDLE> construct can be \"0\".", 'my $l;\nmy $x = "" || ($l = <STDIN>) || 2;', '||', FOLDED("on the left of '||'"))
+# T522: chomp of an assignment is worth a count to perl, and nothing here.
+v('chomp-assign-map-value', "perl gives 1, the characters chomp took (T522).", 'my @l = map { chomp(my $x = $_) } "a\\n";', 'chomp', "map's block ends in an expression, which is its value")
+v('chomp-assign-sort-value', "perl sorts by what chomp took, 0 each time.", 'my @l = sort { chomp(my $x = $a) } 2, 1;', 'chomp', "sort's block ends in an expression, which is its value")
+
 
 def write(first, table=None):
     n = first
@@ -100,12 +143,14 @@ def write(first, table=None):
 if __name__ == '__main__':
     if sys.argv[1] == '--perl':
         import os
-        for name, why, body, at, message, nth in T:
+        for name, why, body, at, message, nth in T + REVIEW:
             try:
                 r_ = subprocess.run([os.environ.get('CURLY_PERL', 'perl'), '-e', 'use v5.42;\n' + body], capture_output=True, text=True, timeout=10, input='')
             except subprocess.TimeoutExpired:
                 print(f'{name}: no end in 10 seconds')
                 continue
             print(f'{name}: exit {r_.returncode}; {r_.stdout!r}; {r_.stderr.strip()[:200]!r}')
+    elif sys.argv[1] == '--review':
+        write(int(sys.argv[2]), REVIEW)
     else:
         write(int(sys.argv[1]))

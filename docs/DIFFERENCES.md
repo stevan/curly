@@ -339,6 +339,8 @@ quiet has met few of them.
 | `-e(2)` is a file test | A minus hard against one letter: refused | accident | rarely | subs | D73 |
 | `exit $x \|\| 1` is `(exit $x) \|\| 1`, and perl warns | An operator after `exit`'s argument that binds more loosely than a named unary operator: refused | accident | rarely | control | D217 |
 | `my @ARGV`, `my %ENV` hide the arguments and the environment, in silence | Refused | accident | rarely | variables | D215 |
+| `if (my $line = <STDIN>) { ... }` with no `else`, `print ... if $l = <STDIN>;`, `($l = <STDIN>) \|\| ...`: perl runs each and warns that the line can be `"0"` | Refused, and before `//` too; with an `else`, in an `elsif`, and in `while (my $line = <STDIN>)` it is in (a guess: sometimes) | accident | sometimes | loops | D222 |
+| `while (1 && ($l = <STDIN>))`, `$h{<STDIN>} = 1 ? <STDIN> : 2`: perl folds the constant away, and tests the line with `defined`, or works the element out first | A line read beside a constant test is refused | accident | rarely | loops | D222 † |
 | `$h{<STDIN>} = <STDIN>` reads the key's line first, against the order of every other assignment | Refused when working out the element reads a line or calls a sub | accident | rarely | data | D213 † |
 | A line with a malformed or cut UTF-8 character under `use open`: perl warns, or drops a cut one in silence | Fault: `malformed UTF-8 read` | accident | rarely | strings | D211 |
 | `!$x == $y` is `(!$x) == $y`, and 5.42 warns | Refused | accident | rarely | control | D50 |
@@ -504,7 +506,7 @@ decisions since retired.
 
 D1, D3, D4, D6, D7, D8, D9, D10, D11, D25, D28, D29, D30, D31, D32,
 D64, D71, D86, D90, D94, D96, D97, D98, D106, D140, D141, D149, D161, D164,
-D186, D170, D210, D220.
+D186, D170, D210, D220, D223.
 
 ## What this leaves out
 

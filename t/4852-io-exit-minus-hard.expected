@@ -1,0 +1,2 @@
+t/4852-io-exit-minus-hard.pl:4:5: exit -: perl warns that this is ambiguous: write exit(-...)
+exit: 1

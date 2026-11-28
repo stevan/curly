@@ -42,8 +42,10 @@ import type { Gives } from './shapes.ts';
 // The context an expression is worked out in (D18): one of perl's three,
 // or the one its own sub was called in, which a `return` and a last
 // statement hand on.
-type Want = 'void' | 'scalar' | 'list' | 'pass';
-const WANT: Readonly<Record<Want, string>> = { void: 'RT_VOID', scalar: 'RT_SCALAR', list: 'RT_LIST', pass: 'want' };
+// (`given`: an item of the list a sub gives back, which is a list unless
+// the sub was called for nothing: perl hands that on too, T521.)
+type Want = 'void' | 'scalar' | 'list' | 'pass' | 'given';
+const WANT: Readonly<Record<Want, string>> = { void: 'RT_VOID', scalar: 'RT_SCALAR', list: 'RT_LIST', pass: 'want', given: '(want == RT_VOID ? RT_VOID : RT_LIST)' };
 
 // A C string literal of `text`'s UTF-8 bytes. Octal, three digits, for
 // whatever isn't plain: a shorter escape would swallow a digit after it.
@@ -192,13 +194,19 @@ const genArguments = (args: readonly Expr[], room: number, b: Code): number => {
 
 // A list, built in a temporary: made empty, and each item added to it in
 // turn, a value or the values of what is itself a list.
-const genList = (items: readonly Expr[], b: Code, strict: Strict = 0): C => {
+// `given`: the list is what a sub gives back (a `return`'s, or its last
+// statement's). To a call for nothing perl hands "nothing wanted" on to
+// each item that takes its context from where it stands, and a readline
+// there reads one line, not all that are left (T521); so do the calls
+// among the items. An item that makes a list whatever is wanted of it (a
+// slice, a `sort`, a call's arguments) is not `given`.
+const genList = (items: readonly Expr[], b: Code, strict: Strict = 0, given = false): C => {
     const list = temp(b, 'rt_array_new(cx)');
-    items.forEach(item => addItem(item, list.c, b, strict));
+    items.forEach(item => addItem(item, list.c, b, strict, given));
     return list;
 };
 
-const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
+const addItem = (in_: Expr, list: string, b: Code, strict: Strict, given = false): void => {
     const e = through(in_);
     if (e.kind === 'array') {
         // A hash where a list is wanted: its keys and values by turns.
@@ -216,10 +224,10 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
         const c = e.op === 'keys' ? unfrozen(b, () => box(b, e, false)) : box(b, e, false);
         b.lines.push(`rt_list_add_${e.op}(cx, ${list}, ${c});`);
     } else if (e.kind === 'list') {
-        e.items.forEach(item => addItem(item, list, b, strict));
+        e.items.forEach(item => addItem(item, list, b, strict, given));
     } else if (e.kind === 'readline') {
         // Where a list is wanted, every line that is left (T508).
-        b.lines.push(`rt_list_add_lines(cx, ${list});`);
+        b.lines.push(given ? `if (want == RT_VOID) { rt_readline(cx); } else { rt_list_add_lines(cx, ${list}); }` : `rt_list_add_lines(cx, ${list});`);
     } else if (e.kind === 'binary' && isRange(e)) {
         const from = genExpr(e.left, b);
         const to = genExpr(e.right, b);
@@ -238,7 +246,7 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
             b.lines.push(`rt_list_add_slice(cx, ${list}, ${from.c}, ${indexes.c}, 1);`);
         }
     } else if (e.kind === 'binary' && isRepeat(e)) {
-        const values = genList([e.left], b, strict === 2 ? 2 : 0);
+        const values = genList([e.left], b, strict === 2 ? 2 : 0, given);
         const count = genExpr(e.right, b);
         b.lines.push(`rt_list_add_repeat(cx, ${list}, ${values.c}, ${count.c});`);
     } else if (e.kind === 'arrayop' && e.op === 'splice') {
@@ -254,9 +262,9 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
     } else if (e.kind === 'ternary' && (listy(e) || strict === 2)) {
         const test = genExpr(e.test, b);
         b.lines.push(`if (rt_is_true(cx, ${test.c})) {`);
-        addItem(e.then, list, b, strict);
+        addItem(e.then, list, b, strict, given);
         b.lines.push('} else {');
-        addItem(e.else, list, b, strict);
+        addItem(e.else, list, b, strict, given);
         b.lines.push('}');
     } else if (e.kind === 'binary' && infixOp(e.op)?.when !== undefined && (listy(e) || strict === 2)) {
         // The left side is one value, an array's count too (T150); the
@@ -264,7 +272,7 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
         const left = genExpr(e.left, b);
         const kept = left.place ? left : temp(b, left.c);
         b.lines.push(`if (${infixOp(e.op)!.when}(cx, ${kept.c})) {`);
-        addItem(e.right, list, b, strict);
+        addItem(e.right, list, b, strict, given);
         b.lines.push('} else {', `rt_list_add(cx, ${list}, ${kept.c});`, '}');
     } else if (e.kind === 'elem' && strict === 2) {
         const at = genExpr(e.index, b);
@@ -277,7 +285,7 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict): void => {
         b.lines.push(`rt_list_add(cx, ${list}, ${value.c});`);
     } else {
         // One value, or none: a sub that returned nothing (D79).
-        b.lines.push(`rt_list_add(cx, ${list}, ${genExpr(in_, b, 'list').c});`);
+        b.lines.push(`rt_list_add(cx, ${list}, ${genExpr(in_, b, given ? 'given' : 'list').c});`);
     }
 };
 
@@ -963,9 +971,9 @@ const genWhole = (e: Expr, line: number, out: Out, use: (c: string) => string[],
 };
 
 // The same for a list: `say`'s.
-const genListWhole = (items: readonly Expr[], line: number, out: Out, use: (c: string) => string[]): { code: string[] } => {
+const genListWhole = (items: readonly Expr[], line: number, out: Out, use: (c: string) => string[], given = false): { code: string[] } => {
     const b: Code = { vars: [], decls: [], lines: [], temps: 0, values: out.base, out, strings: out.strings, names: out.names, frame: out.frame, fn: out.fn, line };
-    const c = genList(items, b).c;
+    const c = genList(items, b, 0, given).c;
     return { code: [`cx->line = ${line};`, ...b.decls, ...b.lines, ...use(c)] };
 };
 
@@ -1005,7 +1013,7 @@ const genArms = (s: If, n: number, out: Out): string[] => {
 // a list to a call that wants one and a value to any other. Anything else
 // is one value, or what a call it hands on gave.
 const genGiven = (e: Expr, line: number, out: Out, after: readonly string[]): string[] => {
-    const asList = (): string[] => genListWhole([e], line, out, c => [`r = ${c};`, ...after]).code;
+    const asList = (): string[] => genListWhole([e], line, out, c => [`r = ${c};`, ...after], true).code;
     const asValue = (): string[] => genWhole(e, line, out, c => [`r = ${c};`, ...after], 'pass').code;
     if (shaped(e, gives(out.names))) {
         return ['if (want == RT_SCALAR) {', `    cx->line = ${line};`, `    rt_fault_sub(cx, ${cString(label(out.sub!))}, RT_LISTED);`, '}', ...asList()];
@@ -1246,7 +1254,9 @@ const genSub = (s: Sub, fn: number, strings: string[], names: Resolution): strin
     // and has no value (D78): perl gives the count of its right side to a
     // call that wants one value, and the language has no count to give
     // (T257). So it ends a sub as an `if` does.
-    const listAssigned = last?.kind === 'do' && (last.expr.kind === 'listassign'
+    // (And so does `chomp(my $x = EXPR)`, whose value to perl is a count
+    // of characters: D130, T522.)
+    const listAssigned = last?.kind === 'do' && (last.novalue === true || last.expr.kind === 'listassign'
         || (last.expr.kind === 'assign' && (last.expr.target.kind === 'array' || last.expr.target.kind === 'myarray')));
     const before = last?.kind === 'do' && !listAssigned ? s.body.slice(0, -1) : s.body;
     lines.push(...before.flatMap(t => genStmt(t, out)));

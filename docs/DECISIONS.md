@@ -2666,3 +2666,35 @@ program.
 21a needs cleanup, and 21b's handles are closed when collected or at
 the end. Rejected: taking them now (perl warns of `finally`; `defer`
 needs `use feature`, which D16 cuts).
+
+**D222, D223. The adversarial review of step 21a: the reviewer's
+defaults.** *(Fable 5.2, 2026-11-28, a reader who did not build 21a,
+under the user's standing instruction of 2026-11-27; each is his to
+overturn. `briefs/step21-review/README.md` has the findings, `TRAPS.md`
+T517 to T522 the programs.)*
+**D222. A line assigned is tested for truth only where perl says
+nothing, and a line read stands beside no constant test.** Two
+refusals. (1) `TARGET = <STDIN>` as the left operand of `&&`, `||`,
+`and` or `or`, or as the whole test of an `if` or `unless` that has no
+`else` and no `elsif`, block or modifier: perl warns `Value of <HANDLE>
+construct can be "0"; test with defined()` (T518). It stays in as the
+test of an `if` with an `else`, of an `elsif`, of `? :`, under `!`, and
+on the right of `&&` and `||`, where perl is silent; D212's `while` is
+untouched. `//` is refused with `&&` and `||`, where perl is silent:
+no pass tells the three apart, and nobody is known to write it.
+(2) `<STDIN>`, or `=` of one, as the operand that is left when perl
+folds a constant test away, `1 && ...`, `0 || ...`, `1 ? ... : ...`:
+perl then reads it as if it stood alone, the element before the line
+(T519, against D213's check) and a loop's test with `defined` (T520,
+against D212's). "Constant" is D53's `folds`, which says yes to a
+little more than perl folds. Rejected: following perl's folding and
+giving its answers (a folder of the compiler's own, to be held to
+perl's, for programs nobody writes); a fault as the program runs for
+(1) (the shapes are known as it compiles). T521 and T522 change no
+rule: the first agrees with perl, the second is D130 kept.
+**D223. `PATH` is `/usr/bin:/bin` for perl and the program in every
+check**, not the machine's (D220 gave both the machine's): a test that
+prints `$ENV{PATH}` passed on the machine that wrote its `.expected`
+and would fail on the next. Neither perl nor the program is found by
+it. Rejected: no `PATH` at all (a program that asks whether it is set
+is a fair test).

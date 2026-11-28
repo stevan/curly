@@ -1243,7 +1243,9 @@ export const lex = (src: string): Token[] => {
             // blank before the sign and none after (T94). On a line
             // below the name perl looks at how that line begins; here
             // the sign is on the name's own line.
-            if (prefixOp(op)?.sign && last?.kind === 'word' && NAMES.get(last.text)?.kind === 'unary'
+            // (`exit` takes its argument as one does, and perl warns of
+            // `exit - 1` and `exit-1` in the same words: step 21a, T517.)
+            if (prefixOp(op)?.sign && last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'unary' || NAMES.get(last.text)?.kind === 'exit')
                 && (between === '' || [...between].some(ch => ch !== ' ' && ch !== '\t') || isBlank(at()))) {
                 refuse(`${last.text} ${op}: perl warns that this is ambiguous: write ${last.text}(${op}...)`, start);
             }

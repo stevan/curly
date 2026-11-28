@@ -1,0 +1,2 @@
+t/4857-io-unless-modifier.pl:5:21: a line assigned in the test of an unless with no else: perl warns that the line can be "0", and wants it tested with defined (D222, T518); assign the line in a statement of its own, and test it with defined(...)
+exit: 1

@@ -267,12 +267,17 @@ def run_perl(flags, path, hdr, seed, limit):
     env = {**program_environment(hdr), 'PERL_HASH_SEED': str(seed)}
     return run_capped([PERL, *flags, path, *words(hdr.get('args', ''))], env, printf_b(hdr.get('stdin', '')), limit)
 
+# The PATH a test's program and perl are given: one value on every machine,
+# as t/run.sh has it (D223), so that a test that prints it prints the same
+# everywhere. Neither is found by it.
+TEST_PATH = '/usr/bin:/bin'
+
 def program_environment(hdr):
     """The one environment perl and the compiled program are both given
-    (D220): PATH, the collector's knobs, and the test's `# env:`, nothing
+    (D220): PATH (one value everywhere, D223), the collector's knobs, and the test's `# env:`, nothing
     else of this machine's. perl has its seed beside them (T514), and the
     program what the sanitizers are told, which is no part of it."""
-    env = {'PATH': os.environ.get('PATH', ''), **knobs()}
+    env = {'PATH': TEST_PATH, **knobs()}
     env.update(pair.split('=', 1) for pair in words(hdr.get('env', '')))
     return env
 

@@ -888,6 +888,22 @@ held to perl. Its first run, `first-run.txt`: 860 the same, 90 faults,
 |---|---|---|---|---|
 | T516 | `my $l = <STDIN>; try { die $l } catch ($e) { print "caught $e" }` with stdin `0` | `caught 0 at FILE line 2, <STDIN> line 1.`: once a line has been read, a message of `die` or `warn` names the handle and how many lines it has given (not after `eof` alone, nor a read that found nothing) | 21a | Agree: the runtime counts the lines read and the message says so (D211); 4717, 4718 |
 
+And then by a reader who did not write it (2026-11-28;
+`briefs/step21-review/README.md`, with its programs): 3,829 runs of
+about 2,400 programs beside perl, each given the same stdin, arguments and
+environment, stdout, stderr and the exit status compared apart. Six ways
+to be WRONG, T517 to T522; D222 and D223 are the reviewer's defaults on
+them.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T517 | `exit - 1;`, `exit-1;`, `exit + 1;` | exits 255, 255, 1, and warns `Use of "exit" without parentheses is ambiguous` (`exit -1;` and `exit +1;` are silent): T94 again, `exit`'s argument being a named unary operator's. The compiler said nothing | 21a | Refused, by T94's rule (D217); 4851 to 4853 |
+| T518 | `if (my $l = <STDIN>) { ... }` with no `else`; `unless ($l = <STDIN>) { ... }`; `... if $l = <STDIN>;`; `($l = <STDIN>) && 1`, `\|\| "f"`, in a `while`'s test and a `sort`'s block too | runs, and warns `Value of <HANDLE> construct can be "0"; test with defined()`: a line assigned as the left operand of `&&` or `\|\|`, which an `if` or `unless` with nothing after its block is. Silent for an `if` with an `else` or an `elsif`, in an `elsif`'s own test, as the test of `? :`, under `!`, on the right of `&&`, and before `//`. The compiler said nothing | 21a | Refused where perl warns, and before `//` (D222); 4854 to 4864; where perl is silent, 4892 |
+| T519 | `my %h; $h{<STDIN>} = 1 ? <STDIN> : 2;` with stdin `a`, `b` | the key `a` and the value `b`: perl folds the constant test away as it compiles, and what is left is T508-order's assignment, the element first. `1 && <STDIN>`, `0 \|\| <STDIN>`, `2 > 1 ? ...`, `length("a") ? ...` the same. The compiler read the value first: key `b`, value `a` | 21a | A line read beside a constant test is refused (D222); 4865 to 4867, 4872 |
+| T520 | `my $l; while (1 && ($l = <STDIN>)) { print "[$l]" }` with stdin `a`, `0`; `while (1 ? <STDIN> : 0)`; the same in `for (;;)` and under the `while` modifier | `[a\n][0]`: the constant folded away, the test is T501's and is tested with `defined`, so the last line `0` is read (and a bare `<STDIN>` left is stored in `$_`). The compiler tested for truth and stopped before the `0` | 21a | Refused, T519's rule (D222); 4868 to 4871 |
+| T521 | `sub f() { return <STDIN> } f(); print <STDIN>;` with three lines | the last two: a call for nothing hands "nothing wanted" on to the `return`, and a readline there reads one line. Through a last statement, `(<STDIN>, 1)` (one), `(<STDIN>, <STDIN>)` (two), `(<STDIN>) x 2` (one), `? :`, `\|\|`, and a call handed on; `(<STDIN>)[0]`, `sort <STDIN>` and `[<STDIN>]` read all. The compiler read every line | 21a | Agree: an item of a given list reads one line when the sub was called for nothing, and a call among them is called for nothing (D211); 4890 |
+| T522 | `sub f() { chomp(my $x = <STDIN>) } say f();`; `map { chomp(my $x = $_) } LIST` | `1`, what `chomp` took. The compiler gave the line: D219's assignment was the statement, and so the sub's value | 21a | No value, as `chomp($x);` is none (D130, D219): a fault when it is used, and refused as the value of a block; 4873, 4874, 4880, 4881, 4891 |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

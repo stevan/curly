@@ -62,6 +62,7 @@ test is tested apart, on `t/000-say.pl`.)
 | `same-env-seed` | `# env: PERL_HASH_SEED=0`, which would turn the seeds off |
 | `same-env-machine` | A variable of the machine's the test did not set, `HOME`: perl is not given it (step 21, D220) |
 | `same-env-knob` | The collector's knobs are given to perl as to the program (D220) |
+| `same-env-path` | `PATH` is `/usr/bin:/bin` for perl and the program on every machine, not the machine's own (the review of step 21a, D223) |
 | `same-limit` | A limit that isn't a whole number of seconds |
 | `same-cr-header` | A `# kind:` after a carriage return, which only Python takes for a new line |
 | `dies-ok` | A good `dies` test |

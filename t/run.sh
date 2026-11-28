@@ -45,12 +45,13 @@ header() {
 }
 
 # What a test's program is given of this process's environment, and
-# nothing else (D220): PATH, and the knobs of t/knobs.sh, as perl is given
+# nothing else (D220): a PATH that is the same on every machine (D223: the
+# program is run by its path and needs none), and the knobs of t/knobs.sh, as perl is given
 # them by t/checks.py, so that no test reads the machine; and what the
 # sanitizers are told, which is no part of the program. The test's own
 # `# env:` comes after.
 environment() {
-    printf 'PATH=%s' "$PATH"
+    printf 'PATH=/usr/bin:/bin'
     for knob in $(sed -n 's/^: "\${\([A-Z_]*\)=.*/\1/p' t/knobs.sh); do
         eval "printf ' %s=%s' $knob \"\$$knob\""
     done

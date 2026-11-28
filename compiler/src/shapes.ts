@@ -71,7 +71,7 @@ const returned = (s: Sub): Expr[] => {
     };
     s.body.forEach(walk);
     const last = s.body.at(-1);
-    if (last?.kind === 'do') found.push(last.expr);
+    if (last?.kind === 'do' && !last.novalue) found.push(last.expr);
     return found;
 };
 

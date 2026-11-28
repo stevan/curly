@@ -202,7 +202,10 @@ export type Call = { kind: 'call'; name: string; args: readonly Expr[]; handle?:
 export type Exit = { kind: 'exit'; value?: Expr; pos: Pos };
 
 // An expression as a statement: an assignment, a `++` or `--`, a `my`.
-export type Do = { kind: 'do'; expr: Expr; pos: Pos };
+// (`novalue`: `chomp(my $x = EXPR);`, which is one statement for its `my`'s
+// sake and is worth nothing to a sub or a block that ends in it: perl's
+// value would be how many characters `chomp` took, D130, T522.)
+export type Do = { kind: 'do'; expr: Expr; novalue?: true; pos: Pos };
 
 // `{ ... }`: a scope.
 export type Block = { kind: 'block'; body: readonly Stmt[]; pos: Pos };
