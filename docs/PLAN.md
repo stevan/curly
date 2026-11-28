@@ -7898,6 +7898,18 @@ tests, 1,567 statements about perl.**
 
 **The census** (`make census`, sorted): the census's probes have no files to read, and 20 of those that stopped at `open` or `<$fh>` open one in memory, `open($fh, '<', \$text)`, which is not in the language: 5 are LOUD (D112's fault, the name being a reference), 15 are refused by design (D110) and moved, with 3 more (2 D270, 1 D55); 2 wait for step 19 and 1 for 21c; none is SAME that was not. **1,349 SAME, 187 LOUD, 1,172 REFUSED (426 for a later step, 746 open), 4 UNJUDGED, of 2,712 run, 2,868 by design, no WRONG**, no probe left SAME.
 
+**What was run on the final tree, and what was not.** Green: `make
+check`; `make test` (161 unit tests, 2,490 golden tests, the oracle over
+all of them, the census's check, `DIFFERENCES.md`); `make census`,
+sorted; `claims.py` (1,567, the 20 that differ each a `roles` row with no
+roles perl); `make commits`; `make decisions`; both runs of the
+breakages; the hunt. **Not finished when the session ended**: `make
+golden-clang` had passed 2,333 of 2,490 with none failed and was still
+running; `make sanitize` had not begun on the final tree (the sanitizers
+had passed the model's tests of 21b, with poison on and off, before the
+review's three amendments, which changed the lexer, the checker and one
+line of `runtime/file.c`). Both are the next reader's to run.
+
 **Doubtful or left.**
 
 - No second reader (above).
