@@ -992,6 +992,9 @@ CLAIMS += STEP14
 # And the census reading's, docs/briefs/claimscensus.py.
 from claimscensus import CENSUS  # noqa: E402
 CLAIMS += CENSUS
+# And step 24's, docs/briefs/claims24.py: the examples' bends.
+from claims24 import STEP24  # noqa: E402
+CLAIMS += STEP24
 
 def run(perl, prelude, code, flags):
     with tempfile.TemporaryDirectory() as d:
