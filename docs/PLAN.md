@@ -6991,7 +6991,7 @@ at c9c2fd8 and perl 5.42, and asked for a program the compiler takes,
 that runs without a fault, and prints what perl does not. Its account,
 with each finding's program and both outputs, is
 `briefs/step16d-review/README.md`, "The independent review"; its driver
-and its cases, 9,872 programs by hand and from generators, are
+and its cases, 9,872 programs by hand and from generators, on the tree with the fixes 4,933 SAME, 930 LOUD, 3,710 refused, 293 perl does not compile, no WRONG, are
 `briefs/step16d-review/reader/`.
 
 **Five ways to be WRONG, T673 to T677, each fixed; no decision took a

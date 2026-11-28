@@ -53,6 +53,18 @@ The case files, by what they push on:
 | `gen_esc.py` | 1,775 | Random strings of case escapes, text, variables and other escapes in double quotes, `qq` and heredocs; `substr` of four over every offset and length from -7 to 7 on five strings |
 | `hand_more.py` | 164 | After the first findings: scopes of a `my` before `or die`, lines, POD in every kind of block, `__LINE__` and `__FILE__` as operands |
 
+**The last run, on the tree with every fix** (2026-11-28, all fourteen
+files): **9,872 programs: 4,933 SAME, 930 LOUD, 3,710 REFUSED, 293
+NOTPERL, 6 HANG, no WRONG.** The six that hang are the reviewer's own,
+each one perl running for ever where the language faults or runs for
+ever too (`do { } while (warn "w\n")`, a test that is always true, a
+`push` in a loop over the array: T131 again). Before the fixes the same
+files gave 78 WRONG: 46 of `gen_case.py` and 10 of `hand_str.py` (T675,
+and one T673), 15 of `gen_or.py` and one of `hand_or.py` (T676), 5 of
+`gen_pod.py` (T673, T674), one of `hand_more.py` (T677). The rest of
+T674 (after a `map`'s or a `sort`'s block) and of T677 (which pairs perl
+swaps) came from those, by hand at the terminal.
+
 ### What it found
 
 Five ways to be WRONG, T673 to T677 in `docs/TRAPS.md`, each a row of
