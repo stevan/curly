@@ -2758,3 +2758,95 @@ since the limit does not grow with the string it bounds the string:
 characters. The ways out, none taken: try each start only where the pattern's first
 character can stand; a limit that grows with the string; perl's own
 shortcuts.
+
+**D240. The matcher remembers where it has been.** *(Builder's
+recommendation under Stevan's standing instruction of 2026-11-27, his
+to overturn; 2026-11-28, the answer to D239's note and T568.)* The
+compiler puts a `MARK` wherever more than one way leads in a pattern's
+program: after the last of a row of alternatives, at the top of a
+loop, after the optional part of a count. The machine keeps a bit for
+each mark at each byte of the subject, sets it on coming there, and
+fails at once on coming there again: the first time ended in failure,
+or the machine would not be back, and with no backreference in the
+pattern the rest of the program cannot tell how it was come to. It is
+the same machine trying in the same order, so the match it finds and
+its captures are the ones it found before; what it gains is that every
+instruction runs at most once at each byte, and a match takes time in
+proportion to the pattern times the string. **Nothing is remembered
+for a pattern with a backreference** (T572: a capture differs by the
+way taken). **Between the matches of a `/g`** what was tried at the
+byte the last match ended at is forgotten, and the rest kept (T573).
+The memory is `marks x (bytes + 1)` bits, made when a mark is first
+come to: at once when it is at most 4 KB, otherwise after 1,024 steps
+of the match, never past 64 MB, and not when the cap has no room
+(D243); without it the machine tries every way as before, the answer
+the same. **`CURLY_RE_PLAIN=1`**, a fourth environment variable a
+compiled program reads, is for the tests alone: the matcher with none
+of D240 to D242, to hold the matcher with them to
+(`briefs/step19-limit/onoff.py`). Rejected: a matcher that does not
+backtrack, Pike's or a DFA (a second engine beside the first, which
+backreferences still need, and perl's priorities and captures to be
+argued for it and tested against the first for ever); perl's own
+facts about a pattern, a string every match must hold and a least
+length (the analysis has to be exactly right for every construct, it
+mends `/x+y/` and not `/\s+$/` or `/(?:a|aa)*$/`, and it is where perl
+5.42 itself is wrong, T570); remembering at every instruction (eight
+times the memory for the same bound); a memory made before the match
+begins (a megabyte asked for by a match of five steps over a long
+string); a fault when there is no room to remember (a match that is
+short would fault for a memory it never needed).
+
+**D241. A greedy repeat of one character is a run.** *(Builder's
+recommendation, 2026-11-28, as D240.)* `X*`, and the `X*` of `X+` and
+`X{n,}`, greedy, X a character, `.` or a class, is one instruction,
+`RUN`: it takes as many as there are and pushes one frame, the first
+and the last place it may give back, and a failure after it gives back
+one character and tries the rest again. It was a `SPLIT`, X and a
+`JMP`, a frame of sixteen bytes a character: `/^a*$/` on ten megabytes
+held 160 MB of stack. The order of trying is the same, the most
+first. A run has a mark (D240), set at every place it passes; coming
+to one that is set, it ends a character short, since what follows
+failed from there on. Rejected: the same for a lazy repeat (its stack
+does not grow) and for a repeat of a group (a frame or two a time
+round stays: `/(?:a|b)*c/` is 24 bytes a character, and is the row of
+the measurements to dislike); making a class of `a|b` as perl does (an
+analysis, and T570 is what an analysis can do).
+
+**D242. Two skips of starts.** *(Builder's recommendation, 2026-11-28,
+as D240.)* A program that begins with `^` not under `/m`, or `\A`, is
+tried at the string's start and at no other; one that begins with a
+character, not under `/i`, only where that character's first byte
+stands. Each is one comparison of the program's first instruction, no
+analysis, and each skips only a start whose first step would fail.
+With D240 they change no bound: `/needle/` on ten megabytes takes
+0.03 s with the skip and 0.2 s without. Rejected: a set of first
+characters for a class, an alternation or an optional first piece; a
+string the match must hold; a least length; an anchored end (D240 has
+why).
+
+**D243. The matcher's memory is counted against the cap.** *(Builder's
+recommendation, 2026-11-28; the review's second note.)* The stack,
+the captures, the matches of a `/g` and what is remembered are
+malloc'd as before and counted against `CURLY_HEAP_CAP` while they are
+held (D65), after a collection if the cap is met; a stack that cannot
+grow is the fault `out of memory`, and a memory there is no room for
+is gone without (D240). Before, a match could hold 160 MB that the
+cap never saw. Rejected: a limit of its own on the stack (the cap is
+the one limit on what a program holds).
+
+**D244. The step limit grows with the string and the pattern.**
+*(Builder's recommendation, 2026-11-28; amends D232.)* A match
+operation may run 10,000,000 steps and 4 more for each word of the
+pattern's program at each byte of the subject; past that it is the
+fault `pattern match too long`, `/g`'s whole list counted as one. A
+constant was a limit on the string: `/needle/` faulted on twelve
+million characters. With D240 a pattern with no backreference cannot
+reach the limit, taking at most one step for each word at each byte in
+each search; so **what faults is what is still more than linear**: a
+pattern with a backreference that tries many ways (`/(y?)x+\1z/` on
+12,000 `x`), and a pattern with more marks, on a longer string, than
+64 MB or the cap can remember, when it fails after a repeat. A fault
+there may come after minutes, the limit being in proportion to the
+work a match that ends well may need. Rejected: no limit (a match
+with a backreference can take for ever); a limit by the clock (D12: a
+program's faults are the same on every machine).

@@ -90,4 +90,13 @@ STEP19 = [
     c('19-minus-binds', 'PLAN 19 review', r"""my $s = "-5"; say -$s =~ /^5$/ ? "y" : "n"; my $n = 4; say $n ** 2 =~ /16/ ? "y" : "n"; say $n + 1 =~ /1/;""", out='y\ny\n5\n'),
     c('19-x-lazy-blank', 'PLAN 19 review', r"""say "aa" =~ /^a+ ?$/x ? 1 : 0;""", out='1\n'),
     c('19-list-assign-count', 'PLAN 19 review', r"""my $s = "ab"; if (my ($p, $q) = $s =~ /(a)(b)/) { say "$p$q"; } my $n = () = $s =~ /./g; say $n;""", out='ab\n2\n'),
+    # ---- the step limit (D240 to D244): T568 as perl answers it, and what a matcher that remembers must not get wrong
+    c('T568', 'TRAPS; PLAN 19 limit', r"""my $x = "x" x 2260; say $x =~ /x+y/ ? 1 : 0; my $s = (" " x 5000) . "x"; say $s =~ /\s+$/ ? 1 : 0; $s = "a" x 28; say $s =~ /(a+)+b/ ? 1 : 0; $s = "a" x 3000; say $s =~ /.*b/ ? 1 : 0;""", out='0\n0\n0\n0\n'),
+    c('T571-lazy', 'TRAPS; PLAN 19 limit', r"""my @l = "aaa" =~ /(a+ ?)/x; say "@l"; @l = "aaa" =~ /(a{1,2} +)/x; say "@l"; @l = "aaa" =~ /(a{1,2} ?)/x; say "@l";""", out='a\naa\na\n'),
+    c('T571-nested', 'TRAPS; PLAN 19 limit', r"""my @l = "aaa" =~ /(a+ *)/x;""", exit=255, err='Nested quantifiers'),
+    c('T571-lazy-twice', 'TRAPS; PLAN 19 limit', r"""my @l = "aaa" =~ /(a+? ?)/x;""", exit=255, err='Nested quantifiers'),
+    c('T571-m', 'TRAPS; PLAN 19 limit', "say \"a\" =~ m /a/ ? 1 : 0; say \"a\" =~ m\n  {a} ? 1 : 0;", out='1\n1\n'),
+    c('T572', 'TRAPS; PLAN 19 limit', r"""say "abcab" =~ /^(a|ab)(?:b|x)?c\1$/ ? 1 : 0, "abcab" =~ /^(a|ab)b*c\1$/ ? 1 : 0, "ax" =~ /(?:(?:a|b)|c)x/ ? 1 : 0, "xaab" =~ /xa(a*)aab/ ? 1 : 0;""", out='1110\n'),
+    c('T573', 'TRAPS; PLAN 19 limit', r"""say join("|", ("baa" =~ /a*/g)), "."; say join("|", ("aab" =~ /a*/g)), "."; say join("|", ("abab" =~ /(?:a|b)*?/g)), ".";""", out='|aa|.\naa||.\n|a||b||a||b|.\n'),
+    c('T574-quick', 'TRAPS; PLAN 19 limit', r"""my $s = ("a" x 60) . "b"; say $s =~ /^(c?)(?:a|aa)*\1c$/ ? 1 : 0; my @l = ($s =~ /(c?)(?:a|aa)*\1c/g); say scalar(@l);""", out='0\n0\n'),
 ]

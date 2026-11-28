@@ -7591,6 +7591,203 @@ ASCII is blunt, and a narrower fault (only where a fold could differ)
 is possible; `$1` waits for a proposal; step 20 has `s///`, `split`,
 `tr`, `qr` and named captures.
 
+#### The step limit, a proposal
+
+**2026-11-28, by Fable 5.2, a third session on the step, under Stevan's
+standing instruction** (each recommendation recorded as a decision,
+D240 to D244, his to overturn). It takes nothing into the language and
+moves no construct in `SURFACE.md`; it changes when a match faults.
+
+**The problem** (T568, the independent review's): the matcher of "19,
+as built" tries every start and, from each, every length, and stops at
+ten million steps. So a match that fails after a repeat is quadratic,
+and faults on a run of some thousands of characters; and since the
+limit is a constant it is a limit on the string too. With the tree
+before this proposal (`briefs/step19-limit/measure.py --tree`; the
+subject is built with `x`, time and most resident memory are of the
+whole program, a string of ten megabytes itself 11.5 MB):
+
+    pattern, subject                  10 KB    100 KB   1 MB     10 MB
+    /x+y/ on x...                     fault    fault    fault    fault
+    /\s+$/ on blanks and an x         fault    fault    fault    fault
+    /.*b/ on a...                     fault    fault    fault    fault
+    /^a*$/ on a...                    1        1        1        fault (62 MB held first)
+    /needle/ on hay ... needle        1        1        1        fault
+    /(\w+)/g on words of four         2000     20000    200000   fault
+    /(?:a|b)*c/ on abab...            fault    fault    fault    fault
+    /(a+)+b/ on a...                  fault    fault    fault    fault
+
+perl answers every one of them, in at most 0.7 seconds. And the
+review's second note: the machine's stack is malloc'd outside the cap,
+sixteen bytes a frame, a frame a character for `a*`: 62 MB held when
+`/^a*$/` faults on ten megabytes, with no `CURLY_HEAP_CAP` to stop it.
+
+**What was weighed.**
+
+1. *A limit that grows with the string* and nothing else. It lets
+   `/needle/` and `/^a*$/` through and leaves the first three rows
+   quadratic: `/x+y/` on a megabyte is 10^12 steps, which a limit
+   either stops (the fault again) or lets run for an hour. Not enough
+   alone; taken as a part (D244).
+2. *perl's facts about a pattern*: a string every match must hold
+   (fail at once without it, start only where it can be reached), a
+   least length, an anchored end. These are what make perl answer
+   `/x+y/` at once, and they are where perl 5.42 is wrong (T570: it
+   works the string out wrongly for a count inside a repeated group).
+   Each is an analysis of the pattern that must be exactly right for
+   every construct, now and as step 20 adds constructs, and each mends
+   some shapes and not others: `/x+y/` by its `y`, but not `/\s+$/`,
+   nor `/(?:a|aa)*$/`, nor `/(x+)+y/` on a string that has a `y`.
+   Turned down, but for the two that are one comparison each and no
+   analysis (D242).
+3. *A matcher that does not backtrack* (Pike's, or a DFA). Linear by
+   construction for patterns with no backreference. But it is a second
+   engine: backreferences still need the first, so both must be kept,
+   and both must give perl's leftmost match by perl's priorities with
+   perl's captures, the one by construction and the other by an
+   argument; a test would have to hold the two to each other for ever.
+   Turned down.
+4. **Recommended, and taken: the backtracking machine remembers where
+   it has been** (D240). It is the same machine, trying in the same
+   order, so the first way that matches is the same way and its
+   captures the same; it only declines to try again what it has seen
+   fail. With no backreference in the pattern, whether the rest of the
+   program matches from a place of the program and a place of the
+   string does not depend on how the machine came there. So: the
+   compiler puts a `MARK` at every place of the program that more than
+   one way leads to (after the last of a row of alternatives, at the
+   top of a loop, after a count's optional part); the machine keeps a
+   bit for each mark at each byte of the subject, sets it on coming
+   there, and fails at once on coming there with it set. Every other
+   instruction is then run at most once at each byte, and **a match
+   takes time in proportion to the pattern's size times the string's
+   length**: the bound is perl's own in the cases perl is quick at, and
+   better than perl's in some it is not (T574).
+
+**What breaks "the same place, the same answer", and what was done.**
+
+- *A backreference* reads a capture, and captures differ by the way
+  taken: `"abcab" =~ /^(a|ab)(?:b|x)?c\1$/` is 1, and a machine that
+  remembered would say 0 (T572). A pattern with a backreference is
+  matched with nothing remembered, as before.
+- *The rule for a `/g` match of no length* (T544: not again where the
+  last one ended) makes a place fail that would match under another
+  start. It only ever does so at the byte the search began at, at the
+  first start; every later start is past that byte and never comes
+  back to it. So what is remembered within one search is sound.
+- *From one match of a `/g` to the next* the memory is kept, but for
+  one byte: what was tried past the end of the match failed (it is not
+  on the way that matched, and the machine tries depth first), what
+  lies before the end is not come to again, and what was tried at the
+  end itself may have been on the way to the match, so it is forgotten
+  (T573: `"baa" =~ /a*/g` is three matches, and without the forgetting
+  two).
+- *Captures, lazy quantifiers, counts*: nothing. A capture is put back
+  as the machine backtracks, as before; a lazy loop is the same loop
+  with its two ways in the other order; a count is written out, each
+  copy with marks of its own.
+- *A loop that does not move* would come to its own mark with its
+  first visit still under way. There is none: a quantifier on what can
+  be empty is refused (D231).
+
+**And with it:**
+
+- **A run** (D241). `X*` and `X+`, greedy, X one character (a
+  character, `.`, a class), was a `SPLIT`, X and a `JMP`: a frame of
+  the stack a character. It is one instruction, `RUN`, that takes as
+  many as there are and pushes one frame, the first and the last place
+  it may give back; a failure after it gives back one character and
+  tries again. The order is the same (the most first), the stack is
+  one frame however long the run, and a run has a mark, set at every
+  place it passes, so that a run begun inside a run that failed stops
+  where that one had been.
+- **Two skips of starts** (D242), each one comparison: a program that
+  begins with `^` (not under `/m`) is tried at the string's start and
+  nowhere else; one that begins with a character is tried only where
+  that character's first byte stands, found by `memchr`. With the
+  memory these change no bound, only the constant: `/needle/` on ten
+  megabytes is 0.03 s with the skip and 0.2 s without.
+- **The machine's memory is counted against the cap** (D243): the
+  stack, the captures, the matches of a `/g`, and what is remembered,
+  while they are held; `out of memory` when the stack cannot grow.
+  What is remembered is `marks x (bytes + 1)` bits. It is made when a
+  mark is first come to, at once if it is at most 4 KB, and otherwise
+  only after 1,024 steps, so a short match over a long string asks for
+  nothing; it is not made past 64 MB, nor when the cap has no room for
+  it: the machine then goes without, the answer the same, and the
+  limit is what stops a match that is long.
+- **The limit** (D244, amending D232): 10,000,000 steps and 4 more for
+  each word of the program at each byte of the subject. With the
+  memory a match cannot reach it: it runs at most one step for each
+  word at each byte in each search (measured, with the limit set to
+  1,100 and 2 for each: of 2,752 random patterns over subjects up to
+  5,000 characters, the only three that faulted have a backreference).
+  **What is still more than linear, and faults `pattern match too
+  long`**: a pattern with a backreference (`/(y?)x+\1z/` on 12,000
+  `x`; `/^(c?)(?:a|aa)*\1c$/` on sixty `a`), and a pattern whose marks
+  times the string's bytes are more than 64 MB of bits, or more than
+  the cap has room for, when it is one of T568's kind.
+- **A knob for the tests**, `CURLY_RE_PLAIN=1`: the machine with none
+  of D240 to D242 (nothing remembered, a `RUN` done as a `SPLIT`, an X
+  and a `JMP`, every start tried). No program should set it; it is
+  there so that the matcher with these can be held to the matcher
+  without, which answers by the definition alone.
+
+**After** (`measure.py`, this tree, the default knobs; seconds and
+megabytes of the whole program; `--knobs`, the tests' own, is beside
+it in `briefs/step19-limit/outputs.txt`):
+
+    pattern, subject                  10 KB        100 KB       1 MB          10 MB
+    (the subject alone)               0.00  2.1    0.00  2.0    0.00   2.8    0.05  11.5
+    /x+y/ on x...                     0.00  1.9    0.00  2.0    0.05   3.0    0.30  12.3
+    /\s+$/ on blanks and an x         0.01  2.0    0.01  2.1    0.04   3.9    0.51  21.8
+    /.*b/ on a...                     0.00  1.9    0.01  2.0    0.03   3.0    0.27  12.3
+    /^a*$/ on a...                    0.00  2.0    0.00  2.1    0.01   2.9    0.09  11.5
+    /needle/ on hay ... needle        0.00  2.0    0.01  2.1    0.01   3.9    0.03  21.0
+    /(\w+)/g on words of four         0.00  2.1    0.01  4.2    0.11  24.2    1.04 225.1
+    /(\w+)/g on words of 999          0.01  2.0    0.00  2.2    0.01   4.0    0.18  21.9
+    /(?:a|b)*c/ on abab...            0.00  2.1    0.01  4.1    0.14  25.8    1.11 242.5
+    /(a+)+b/ on a...                  0.01  1.9    0.01  2.0    0.07   3.0    0.83  14.5
+
+Every answer is perl's. Time and memory grow with the string and no
+faster. perl is quicker where it looks for a string first (0.01 s for
+`/x+y/` on ten megabytes, by the `y`), about the same on the others,
+and its two million captured words are 214 MB to these 225. **The one
+row to dislike is `/(?:a|b)*c/`**: a loop of a group is still a frame
+or two a time round, 24 bytes a character, where perl holds 24 MB for
+the lot (it makes a class of `a|b`); it is counted now, and `out of
+memory` under the tests' cap of 256 MB at ten megabytes. Under the
+tests' knobs (a collection at every allocation, poison, the cap) the
+table is the same but for that row and for `/(\w+)/g` on words of four,
+which makes two million strings, each with a collection of all the
+others: a `/g` with many matches is slow under the stress knob as any
+loop that makes many strings is, and the tests keep theirs few.
+
+**How it is held to be answer-preserving** (T570 is the warning: perl's
+own shortcut is wrong):
+
+- against perl: `briefs/step19-review/differential.py`, whose subjects
+  were at most sixty characters, gives three patterns in ten two more
+  subjects of 300 to 5,000 characters (the pattern's own sample
+  repeated, and a long run of one character in it); `t/models/rematch.py`
+  writes 5104, subjects with long runs, half under `/g`;
+- against itself: `briefs/step19-limit/onoff.py` runs every program
+  twice, with and without `CURLY_RE_PLAIN`, and compares every line
+  both print;
+- by breakage: `briefs/step19-mutations.py`, the breakages named
+  `limit:`, each a way of answering sooner that answers wrongly.
+
+**The census and `DIFFERENCES.md`**: the census has no probe that met
+the limit, and should not move. `DIFFERENCES.md`'s row for the step
+limit shrinks to what is left (a backreference), and the count of
+environment variables a program reads becomes four.
+
+**Also here, from the review's notes**: two refusals whose messages
+misstated perl are reworded (T571): under `/x`, `a+ ?` is `a+?` to
+perl and `a+ +` is `a++`, and the message said perl does not compile
+them; `m /a/`, a blank after `m`, perl takes, and the message was the
+one for a string on the right of `=~`.
+
 ### 21. Files and the outside
 
 Referee: perl. Size: large.
