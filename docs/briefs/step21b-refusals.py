@@ -72,7 +72,7 @@ r('say-handle-brackets-times', 'perl prints 9 to the file (T684).', OUT + 'say $
 r('print-block-brackets', 'perl prints a to the file.', OUT + 'print {$fh} ("a");', '("', 'print to a file handle, and then (...): write the list without brackets of its own; to perl they would not hold all of it (T684)')
 r('print-handle-backslash', 'perl warns: Backslash found where operator expected (T684).', 'my @a;\n' + OUT + 'print $fh \\@a;', '$fh \\', 'print $fh \\...: perl takes $fh for a file handle here, and warns (T684); write print {$fh} \\...')
 r('print-handle-sign', 'perl prints -1 to the file (T684).', OUT + 'print $fh -1;', '$fh -', "print $fh -1: perl takes $fh for a file handle here; put a blank after the '-', or none before it")
-r('print-handle-isa', 'perl prints nothing: $x is a file handle to it.', 'my $x = 5;\nprint $x isa Foo;', '$x isa', 'print $x isa: perl takes $x for a file handle here; bracket the test')
+r('print-handle-isa', 'perl prints whether $x is a Foo, the empty string: isa is an operator there, and $x no handle. (isa is step 17a\'s.)', 'my $x = 5;\nprint $x isa Foo;', 'isa', "'isa' is not in the language yet")
 r('print-handle-in-brackets', 'perl prints a to the file.', OUT + 'print($fh "a");', '$fh "', 'print($fh ...): perl takes $fh for a file handle here; a handle stands before the list with no bracket, print $fh ...; (D278)')
 r('print-block-nothing', 'perl does not compile it.', OUT + 'print {$fh};', ';', 'print to a file handle with nothing to print: perl prints $_', 3)
 r('print-handle-modifier-alone', 'perl does not compile it.', OUT + 'say {$fh} if 1;', 'if', 'say to a file handle with nothing to print: perl prints $_')
@@ -120,6 +120,14 @@ r('errno-bare-tested', 'perl tests the number of the error.', "open(my $fh, '<',
 r('errno-bare-element', 'perl reads $! after the key is worked out (T695).', "my %h;\nopen(my $fh, '<', 'nope.txt');\n$h{why} = $!;", '$!', LATE)
 r('errno-bare-returned', 'perl gives back what $! holds as the sub returns.', "sub why() {\n    return $!;\n}", '$!', LATE)
 r('errno-bare-compared', 'perl compares the words, or with == the number.', "open(my $fh, '<', 'nope.txt');\nsay $! eq 'x' ? 1 : 0;", '$!', LATE)
+# (A hole the breakages found: $! ends a value, and what follows it is an operator.)
+r('errno-bare-minus', "perl gives the error's number less one.", "open(my $fh, '<', 'nope.txt');\nmy $n = $! - 1;", '$!', LATE)
+# ---- T696: perl's guess after every list operator, found by the review
+GUESS = "{0} $x -1: perl takes $x for a file handle here; put a blank after the '-', or none before it"
+r('warn-handle-guess', 'perl does not compile it: Missing comma after first argument to warn function (T696).', 'my $x = 5;\nwarn $x -1;', '$x -', GUESS.format('warn'))
+r('die-handle-guess', 'perl does not compile it: Missing comma after first argument to die function.', 'my $x = 5;\ndie $x -1;', '$x -', GUESS.format('die'))
+r('join-handle-guess', 'perl does not compile it: Missing comma after first argument to join or string function.', "my $x = 5;\nmy $s = join $x -1, 'a', 'b';", '$x -', GUESS.format('join'))
+r('reverse-handle-guess', 'perl does not compile it: Missing comma after first argument to reverse function.', 'my $x = 5;\nmy @r = reverse($x -1, 2);', '$x -', GUESS.format('reverse'))
 
 
 def write(first):

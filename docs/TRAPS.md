@@ -932,12 +932,14 @@ The builder's own pass, after the build (no second agent could be
 started in the session): `briefs/step21b-review/hunt.py`, programs by
 rule and by chance, each run by perl and by the compiler in a directory
 of its own, stdout, stderr and the exit status compared; and two found
-by reading perl's own account of `open` and of `$!` against the build.
-D284 and D285 are what was done.
+by reading perl's own account of `open` and of `$!` against the build,
+and one, in steps before this one, by reading perl's own lexer for what
+it takes for a handle. D284 to D286 are what was done.
 
 | | Program | perl prints | Step | Way out |
 |---|---|---|---|---|
 | T694 | `my @n = ("in.txt"); open(my $fh, "<", @n);`; `open(my $fh, "<", <STDIN>)`; with two names in `@n` | opens `in.txt`: what follows `open`'s mode is a list, to perl, an array there its elements and a line read every line; of two names it dies, `More than one argument to open`. The compiler took the array for its count, and tried to open a file called `1`: a WRONG | 21b | A name that is a list by how it is written is refused (D285); 6592 to 6596 |
+| T696 | `warn $x -1;`, `die $x -1;`, `join $x -1, "a", "b"`, `reverse($x -1, 2)`, `sprintf($x -1)` | none compiles: `Missing comma after first argument to warn function`. perl's guess that a variable first after a list operator is a file handle (T111, T125) is made after every list operator. The compiler took each, since steps 10a and 15, and warned `4`, joined with `4`: programs that are no Perl | 21b (10a, 15, 16b) | Refused, by T111's rule (D286); 6605 to 6608 |
 | T695 | `say $!, g();`, `$! . g()`, `my @l = ($!, g());`, `$h{g()} = $!;`, where `g` opens something that fails another way; `say $!, $s + 0;` where the sum underflows | what `g` left in `$!`, `Is a directory`, and `Numerical result out of range`: `$!` is a variable of perl's own, read when the operator it is an operand of runs (D14). In a string it is made where it stands, and `my $e = $!;` reads it there. The compiler made the string where `$!` stood: a WRONG | 21b | `$!` stands in a string, or alone on the right of `=` to a scalar variable, and nowhere else (D284); 6597 to 6603 |
 
 - A `fault` test that perl can't compile passes a check that only

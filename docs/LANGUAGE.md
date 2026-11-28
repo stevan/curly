@@ -1046,7 +1046,13 @@ slash hard against what follows, or a `*`, `%`, `<` or `&` hard
 against a name. `say $x - 1;` and `say $x-1;` are what they look
 like, to perl and here. perl makes the same guess about the first
 argument of `substr` and `index`, so `substr($x -1, 0)` is refused
-too; `substr($x - 1, 0)` is fine.
+too; `substr($x - 1, 0)` is fine. And about the first thing after
+`die`, `warn`, `join`, `reverse` and `sprintf`: `warn $x -1;` is no
+Perl, and is refused.
+
+Where the variable does hold a file handle, that is how one is written
+to: `print $out "text";` ("Files", below). The shapes above stay
+refused for a handle too; `print { $out } -1;` says them.
 
 ## Blocks, if and unless
 

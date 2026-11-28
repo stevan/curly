@@ -1,0 +1,3 @@
+before
+fault: a character past ASCII printed without 'use open' at t/6500-fault-file-printf-past-ascii.pl line 7.
+exit: 1

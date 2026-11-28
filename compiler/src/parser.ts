@@ -257,7 +257,8 @@ export const parse = (tokens: readonly Token[]): Program => {
         if (peek().kind === ')' ) {
             return refuse(`open with two arguments: perl reads the mode out of the name, by its first characters; ${shape}`, mode.pos);
         }
-        if (mode.kind !== 'str' || mode.pieces !== undefined || mode.bare || !(mode.value === '<' || mode.value === '>' || mode.value === '>>')) {
+        // (A string with a variable in it has no value of its own.)
+        if (mode.kind !== 'str' || mode.bare || !(mode.value === '<' || mode.value === '>' || mode.value === '>>')) {
             return refuse(`open's second argument is one of the literals '<', '>' and '>>', and here is ${show(mode)}: a mode with a layer, a '+', a pipe or a blank, and one worked out, are not in the language (D270)`, mode.pos);
         }
         if (peek().kind !== ',') return refuse(`${show(peek())} after open's mode: ${shape}`, peek().pos);

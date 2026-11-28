@@ -309,7 +309,16 @@ STEP21B = [
     c('T695', 'TRAPS; PLAN 21b', 'sub g() { open(my $d, ">", "."); return "|" } sub n() { open(my $d, "<", "nope"); return "" } n(); say $!, g(); n(); say $! . g(); n(); my @l = ($!, g()); say "@l"; n(); my %h; $h{g()} = $!; say %h; n(); say join(",", $!, g());', out='Is a directory|\nIs a directory|\nIs a directory |\n|Is a directory\nIs a directory,|\n'),
     c('T695-string', 'TRAPS; PLAN 21b', 'sub g() { open(my $d, ">", "."); return "|" } sub n() { open(my $d, "<", "nope"); return "" } n(); say "$!" . g(); n(); say "e: $!", g(); n(); my $e = $!; g(); say $e;', out='No such file or directory|\ne: No such file or directory|\nNo such file or directory\n'),
     c('T695-underflow', 'PLAN 21b', 'open(my $d, "<", "nope"); my $s = "1e-400"; say $!, $s + 0; open($d, "<", "nope"); say "[$!]", $s + 0;', out='Numerical result out of range0\n[No such file or directory]0\n'),
+    # (`isa` after a variable after print is the operator: what is printed
+    # is whether $x is one.)
     c('21b-isa', 'PLAN 21b', 'my $x = 5; print $x isa Foo; say "after";', out='after\n'),
+    # T696: perl's guess of a file handle is made after every list
+    # operator, and what it then finds is no program.
+    c('T696', 'TRAPS; PLAN 21b', 'my $x = 5; warn $x -1; say "after";', compiles=False, err='Missing comma after first argument to warn function'),
+    c('T696-die', 'TRAPS; PLAN 21b', 'my $x = 5; die $x -1;', compiles=False, err='Missing comma after first argument to die function'),
+    c('T696-join', 'TRAPS; PLAN 21b', 'my $x = 5; my $s = join $x -1, "a", "b"; say $s;', compiles=False, err='Missing comma after first argument to join or string function'),
+    c('T696-reverse', 'TRAPS; PLAN 21b', 'my $x = 5; my @r = reverse($x -1, 2); say "@r";', compiles=False, err='Missing comma after first argument to reverse function'),
+    c('T696-not', 'PLAN 21b', 'my $x = 5; my $s = join $x - 1, "a", "b"; say $s; my @a = (1); push @a, $x -1; say "@a"; sub f { return $x -1 } say f();', out='a4b\n1 4\n4\n'),
 ]
 STEP21 += STEP21B
 

@@ -8,6 +8,7 @@ handle a message names, and the refusals (D270 to D283).
     python3 docs/briefs/step21b-mutations.py "errno"    # those named so
     python3 docs/briefs/step21b-mutations.py --match    # only see that each piece of text is there
     python3 docs/briefs/step21b-mutations.py --from 20 --to 40
+    python3 docs/briefs/step21b-mutations.py --work mut21b-b --from 60
 
 Nothing in the tree is written: a broken runtime or compiler is a copy of
 bin/, compiler/src/ and runtime/ under build/mut21b/tree/. Each breakage is
@@ -50,12 +51,11 @@ MUTATIONS = [
     ("the handle read last, collected, is forgotten", FILE, "            cx->last_read = f->lines != 0 ? 3 : 0;", "            cx->last_read = 0;"),
     ("open's variable may hold anything", FILE, "    if (v.tag == RT_TAG_UNDEF) return rt_handle_new(cx);\n    if (v.tag == RT_TAG_GLOB) return v;", "    if (v.tag != RT_TAG_GLOB) return rt_handle_new(cx);\n    return v;"),
     ("open of a variable that holds a handle makes a new one", FILE, "    if (v.tag == RT_TAG_GLOB) return v;\n", "    if (v.tag == RT_TAG_GLOB) return rt_handle_new(cx);\n"),
-    ("a file may be open twice", FILE, "        if (open_twice(cx, name, mode, f)) rt_fault(cx, \"open of a file the program has open, one of the two for writing\");", "        (void)0;"),
+    ("a file may be open twice", FILE, "        if (open_twice(cx, name, mode)) rt_fault(cx, \"open of a file the program has open, one of the two for writing\");", "        (void)0;"),
     ("two readers are one too many", FILE, "        if (g->mode == FILE_WRITE || mode == FILE_WRITE) return 1;", "        return 1;"),
     ("a reader does not stop a writer", FILE, "        if (g->mode == FILE_WRITE || mode == FILE_WRITE) return 1;", "        if (g->mode == FILE_WRITE) return 1;"),
     ("a writer does not stop a reader", FILE, "        if (g->mode == FILE_WRITE || mode == FILE_WRITE) return 1;", "        if (mode == FILE_WRITE) return 1;"),
     ("no collection before the fault for a file open twice", FILE, "        // A handle nothing holds is closed by a collection, as perl closed\n        // it when it was dropped.\n        rt_collect(cx);\n", ""),
-    ("the handle opened again counts against itself", FILE, "        if (g == self || g->f == NULL || g->dev != st.st_dev", "        if (g->f == NULL || g->dev != st.st_dev"),
     ("open does not close what the handle had open", FILE, "    if (file_shut(f)) rt_fault(cx, \"write to a file failed\");\n    if (open_twice", "    f->f = NULL;\n    if (open_twice"),
     ("no collection when too many files are open", FILE, "        rt_collect(cx);\n        fd = open(name, flags | O_CLOEXEC, 0666);", "        fd = -1;"),
     ("a name may hold a NUL", FILE, "    if (memchr(s->bytes, 0, s->len) != NULL) rt_fault(cx, \"a NUL in a file's name\");\n", ""),
@@ -116,6 +116,7 @@ MUTATIONS = [
     ("print($fh ...) is no handle", LEX, "                if (lopKind === 'statement' && before === tokens.length - 2 && begins) {", "                if (false) {"),
     ("print $fh ! is no handle", LEX, " || (a === '!' && b !== '=' && b !== '~')\n", "\n"),
     ("print $x != is a handle", LEX, " || (a === '!' && b !== '=' && b !== '~')\n", " || a === '!'\n"),
+    ("warn $x -1 is taken", LEX, " || lopKind === 'function' || lopKind === 'listop') && isBlank(at())) {", " || lopKind === 'function') && isBlank(at())) {"),
     ("print $fh before a heredoc is no handle", LEX, "                        || (a === '<' && b === '<' && !isBlank(src[w + 2] ?? ' ') && src[w + 2] !== '=')\n", ""),
     ("a brace after print is a hash", LEX, "            if (c === '{' && name?.kind === 'word' && NAMES.get(name.text)?.kind === 'statement') {", "            if (false) {"),
     ("$! in a string reads on into a subscript", LEX, "            if (at() === '[' || at() === '{' || (src.startsWith('->', i) && (src[i + 2] === '[' || src[i + 2] === '{'))) {", "            if (false) {"),
@@ -123,7 +124,6 @@ MUTATIONS = [
     ("$! ends no value", LEX, " || NAMES.get(last.text)?.kind === 'errno'));", "));"),
     # ---- the parser
     ("open takes a mode with a layer", PARSE, "!(mode.value === '<' || mode.value === '>' || mode.value === '>>')) {", "!/^(<|>|>>)/.test(mode.value)) {"),
-    ("open's mode may be worked out", PARSE, "        if (mode.kind !== 'str' || mode.pieces !== undefined || mode.bare || !", "        if (mode.kind !== 'str' || mode.bare || !"),
     ("open takes two arguments", PARSE, "        if (peek().kind === ')' ) {\n            return refuse(`open with two arguments", "        if (false) {\n            return refuse(`open with two arguments"),
     ("open takes a fourth argument", PARSE, "        if (peek().kind === ',') return refuse(`open with more than three arguments: ${shape}`, peek().pos);\n", "        while (peek().kind === ',') { next(); expression(COMMA_ROW); }\n"),
     ("the path is worked out after the handle is made", PARSE, "args: [path, { kind: 'assign', op: '=', target, value: handle, pos: target.pos }], pos: head.pos };", "args: [{ kind: 'assign', op: '=', target, value: handle, pos: target.pos }, path], pos: head.pos };"),
@@ -166,7 +166,118 @@ MUTATIONS = [
     ("$! has no runtime function", GEN, "name?.kind === 'unary' || name?.kind === 'changer' || name?.kind === 'errno' ? name.rt", "name?.kind === 'unary' || name?.kind === 'changer' ? name.rt"),
 ]
 
+# Where a breakage is most likely to show: the tests run first. When they
+# pass, every test is run all the same.
+HINTS = {
+    "no collection when too many files are open": ["6409"],
+    "a name may hold a NUL": ["6460"],
+    "a name may hold a character past ASCII": ["6461"],
+    "a directory is opened": ["6459"],
+    "> does not empty the file": ["6403"],
+    ">> empties the file": ["6403"],
+    "> makes no file": ["6427"],
+    "an open that fails is worth 1": ["6405"],
+    "close leaves the file open": ["6440"],
+    "close of a closed handle is nothing": ["6440"],
+    "close keeps the count of lines": ["6430"],
+    "a write that fails is not seen at close": ["unit"],
+    "a read of a closed handle is undef": ["6442"],
+    "a handle open for writing is read": ["6445"],
+    "a write to a closed handle is nothing": ["6447"],
+    "a handle open for reading is written to": ["6450"],
+    "a read does not make its handle the one read last": ["6471"],
+    "a list of lines is one line": ["6425"],
+    "eof of a handle is never true": ["6453"],
+    "the handle is looked at after the list": ["6483"],
+    "say to a handle prints no newline": ["6411"],
+    "what is written to a file is not looked at": ["6488"],
+    "the handle is written to its file": ["6427"],
+    "a number is written as nothing": ["6403"],
+    "printf to a handle prints its format": ["6411"],
+    "printf to a handle is not looked at": ["6500"],
+    "$! is read whenever": ["6466"],
+    "$! is read after an underflow": ["6496"],
+    "an open that works leaves errno": ["6420"],
+    "an open that works leaves $! to be read": ["6467"],
+    "an open that fails leaves errno": ["6421"],
+    "an open does not undo an underflow": ["6432"],
+    "a read that meets the end leaves errno": ["6422"],
+    "a read that meets the end leaves $! to be read": ["6468"],
+    "the end is looked for again": ["6433"],
+    "eof sets errno to 0": ["6424"],
+    "eof does not find the end for the read after it": ["6424"],
+    "eof takes the character it looks at": ["6400"],
+    "an uncaught die exits with 255": ["6420"],
+    "an uncaught die exits with errno, 0 too": ["6422"],
+    "a message while a file is read is written": ["6471"],
+    "a message with a newline is a fault too": ["6423"],
+    "a file that has given no line stops a message": ["6410"],
+    "stdin is named whatever was read last": ["6410"],
+    "a read of stdin does not make it the handle read last": ["6410"],
+    "eof of stdin does not make it the handle read last": ["6410"],
+    "<$fh> is refused": ["6442"],
+    "<$h{fh}> is a readline of $h": ["4818"],
+    "a handle after print is a value": ["6447"],
+    "print $x if is a handle": ["6411"],
+    "print $x x is a handle": ["6411"],
+    "print $fh \\ is taken": ["print-handle-backslash"],
+    "print($fh ...) is no handle": ["print-handle-in-brackets"],
+    "print $fh ! is no handle": ["6403"],
+    "print $x != is a handle": ["6411"],
+    "print $fh before a heredoc is no handle": ["2656"],
+    "a brace after print is a hash": ["6448"],
+    "$! in a string reads on into a subscript": ["errno-string-index"],
+    "$!{ is $! and a block": ["errno-hash-element"],
+    "$! ends no value": ["errno-bare-minus"],
+    "open takes a mode with a layer": ["open-mode-layer"],
+    "open's mode may be worked out": ['open-mode-interpolated'],
+    "open takes two arguments": ["open-two-arguments"],
+    "open takes a fourth argument": ["open-four-arguments"],
+    "the path is worked out after the handle is made": ["6440"],
+    "every open reads": ["6427"],
+    "open of a variable makes a new handle": ["6404"],
+    "open or anything": ["open-or-print"],
+    "close $fh before anything": ["close-bare-or-or"],
+    "close() is taken": ["close-nothing"],
+    "eof of two": ["eof-two"],
+    "eof($fh) is eof(STDIN)": ["6453"],
+    "<$fh> is <STDIN>": ["6442"],
+    "print to a handle prints to stdout": ["6447"],
+    "print to a handle with nothing": ["print-block-nothing"],
+    "print $fh (...) is taken": ["print-handle-brackets"],
+    "a comma after the handle's braces": ['print-block-comma'],
+    "print {STDOUT} is taken": ["printf-block-stdout"],
+    "$! in a string is the text $!": ["6421"],
+    "> appends": ["6403"],
+    ">> writes": ["6403"],
+    "a my in open keeps the handle it had": ["6404"],
+    "close takes two": ["close-two"],
+    "<$fh> names no variable": ["6442"],
+    "open alone is a statement that only has a value": ["6441"],
+    "a my in open under a modifier": ["open-my-under-a-modifier"],
+    "a my in open stands nowhere": ["6440"],
+    "an open in an element's index is no read": ['readline-element-opens'],
+    "printf's format after a handle is the handle": ['printf-handle-format-variable'],
+    "open's name may be a list": ['open-name-array'],
+    "$! is read anywhere": ["errno-bare-say"],
+    "$! in a string is refused": ["6421"],
+    "$! on the right of = is refused": ["6468"],
+    "$! is read on the right of any assignment": ["errno-bare-element"],
+    "a my assigned $! is refused": ["6468"],
+    "<$fh> where one value is wanted reads stdin": ["6442"],
+    "<$fh> where a list is wanted is one line": ["6425"],
+    "say to a handle prints": ["6411"],
+    "$! has no runtime function": ["6466"],
+    "warn $x -1 is taken": ["warn-handle-guess"],
+}
+
 argv = sys.argv[1:]
+# `--work NAME`: where the copies are made, build/NAME (two runs at once,
+# each over a part of the list, each need their own).
+WORK = 'build/mut21b'
+if argv[:1] == ['--work']:
+    WORK = 'build/' + argv[1]
+    argv = argv[2:]
 start, stop = 0, None
 if argv[:1] == ['--from']:
     start = int(argv[1])
@@ -186,9 +297,9 @@ if only == ['--match']:
 tests = []
 for src in sorted(glob.glob('t/6[4-6][0-9][0-9]-*.pl') + glob.glob('t/47[0-9][0-9]-*.pl') + glob.glob('t/2656-*.pl')):
     tests.append((src, open(src[:-3] + '.expected', 'rb').read(), checks.headers(src)))
-# The tests most likely to see a breakage first: the model's own before the
-# refusals, and stdin's last.
-tests.sort(key=lambda t: (not ('/64' in t[0]), '/47' in t[0], t[0]))
+# The small ones first, the refusals (which are only compiled) before what
+# runs, and stdin's last: most breakages show in a fault's test.
+tests.sort(key=lambda t: ('/47' in t[0], t[2].get('kind') != 'refused', len(open(t[0], 'rb').read()), t[0]))
 
 UNIT = [('reap', 0, b'open: 1\nafter a collection: 0\nopens to read: 1\nkept\nopen: 1\nclosed: 0\n'),
         ('twice', 1, b'opens to read: 1\nkept\nfault: open of a file the program has open, one of the two for writing at file.pl line 1.\n'),
@@ -200,23 +311,26 @@ UNIT = [('reap', 0, b'open: 1\nafter a collection: 0\nopens to read: 1\nkept\nop
 def unit(tree):
     """The runtime's own test of files, against the copy's runtime."""
     os.makedirs('build/unit', exist_ok=True)
-    exe = 'build/mut21b/unit-file'
+    exe = f'{WORK}/unit-file'
     cc = os.environ.get('CURLY_CC', 'cc').split()
     built = subprocess.run([*cc, '-O0', f'-I{tree}/runtime', '-o', exe, 'runtime/tests/file.c', f'{tree}/runtime/rt.c', '-lm'], capture_output=True)
     if built.returncode:
         return ['unit (does not compile)']
     bad = []
-    for which, status, output in UNIT:
-        r = subprocess.run(['sh', '-c', 'exec "$0" "$1" 2>&1', exe, which], capture_output=True, env={'PATH': '/usr/bin:/bin', 'CURLY_GC_STRESS': '1', 'CURLY_GC_POISON': '1'})
-        if r.returncode != status or r.stdout != output:
-            bad.append('unit ' + which)
+    # With a collection at every allocation and with none but those the
+    # runtime asks for, as runtime/tests/rt.test.ts runs it.
+    for knobs in ({'CURLY_GC_STRESS': '1', 'CURLY_GC_POISON': '1'}, {}):
+        for which, status, output in UNIT:
+            r = subprocess.run(['sh', '-c', 'exec "$0" "$1" 2>&1', exe, which], capture_output=True, env={'PATH': '/usr/bin:/bin', **knobs})
+            if r.returncode != status or r.stdout != output:
+                bad.append(f'unit {which}{"" if knobs else ", no knobs"}')
     return bad
 
 
 def passes(test, driver):
     src, expected, hdr = test
     name = os.path.basename(src)[:-3]
-    exe = os.path.abspath(f'build/mut21b/{name}')
+    exe = os.path.abspath(f'{WORK}/{name}')
     built = subprocess.run(['node', driver, '-o', exe, src], capture_output=True)
     if hdr.get('kind') == 'refused':
         return built.returncode != 0 and built.stderr + f'exit: {built.returncode}\n'.encode() == expected
@@ -233,14 +347,18 @@ def passes(test, driver):
     return got == expected
 
 
-def golden(driver, tree, runtime, whole=False):
+def golden(driver, tree, runtime, whole=False, hints=()):
     """The tests that fail: the first few found, unless `whole`."""
-    failed = unit(tree) if runtime else []
+    first = [t for t in tests if any(h in t[0] for h in hints)]
+    failed = [os.path.basename(t[0])[:4] for t in first if not passes(t, driver)]
+    if failed and not whole:
+        return failed
+    failed += unit(tree) if runtime else []
     if failed and not whole:
         return failed
     with ThreadPoolExecutor(int(os.environ.get('JOBS', '3'))) as pool:
-        for k in range(0, len(tests), 12):
-            batch = tests[k:k + 12]
+        for k in range(0, len(tests), 24):
+            batch = tests[k:k + 24]
             failed += [os.path.basename(t[0])[:4] for t, ok in zip(batch, pool.map(lambda t: passes(t, driver), batch)) if not ok]
             if failed and not whole:
                 return failed
@@ -248,15 +366,15 @@ def golden(driver, tree, runtime, whole=False):
 
 
 def copy():
-    shutil.rmtree('build/mut21b/tree', ignore_errors=True)
+    shutil.rmtree(f'{WORK}/tree', ignore_errors=True)
     for part in ('bin', 'compiler/src', 'runtime'):
-        shutil.copytree(part, 'build/mut21b/tree/' + part)
+        shutil.copytree(part, f'{WORK}/tree/' + part)
 
 
-os.makedirs('build/mut21b', exist_ok=True)
-tree = 'build/mut21b/tree'
+os.makedirs(WORK, exist_ok=True)
+tree = f'{WORK}/tree'
 driver = tree + '/bin/curlyc.ts'
-rt = os.path.abspath('build/mut21b/rt.o')
+rt = os.path.abspath(f'{WORK}/rt.o')
 os.environ['CURLY_RT_OBJ'] = rt
 if os.path.exists(rt):
     os.remove(rt)
@@ -276,7 +394,7 @@ for name, path, old, new in MUTATIONS[start:stop]:
     runtime = path.startswith('runtime/')
     if os.path.exists(rt):
         os.remove(rt)
-    failed = golden(driver, tree, runtime)
+    failed = golden(driver, tree, runtime, hints=HINTS.get(name, ()))
     if os.path.exists(rt):
         os.remove(rt)
     if failed:

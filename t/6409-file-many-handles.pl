@@ -17,3 +17,7 @@ for my $i (1 .. 1500) {
 open(my $in, '<', 'out.txt') or die "no\n";
 my $made = <$in>;
 say length($made);
+sub save($text) { open(my $out, '>', 'saved.txt') or die "no\n"; print $out $text; }
+save("kept\n");
+open(my $back, '<', 'saved.txt') or die "no\n";
+print <$back>;

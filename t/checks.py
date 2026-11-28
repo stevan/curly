@@ -249,6 +249,9 @@ def knobs():
 # only the fault would end is such a loop (step 6).
 OUTPUT_LIMIT = 16 * 1024 * 1024
 
+# How many files a test's program, and perl on it, may have open at once.
+OPEN_FILES = 256
+
 class Runaway(Exception):
     pass
 
@@ -264,9 +267,9 @@ def run_dir(path, hdr):
     import shutil, tempfile
     d = tempfile.mkdtemp(prefix='curly-run-')
     try:
-        if os.path.dirname(path):
+        # (A path from the root is run where it is.)
+        if not os.path.isabs(path) and os.path.exists(path):
             os.makedirs(os.path.join(d, os.path.dirname(path)), exist_ok=True)
-        if os.path.exists(path):
             shutil.copyfile(path, os.path.join(d, path))
         for name, text in hdr.get('files', {}).items():
             open(os.path.join(d, name), 'wb').write(printf_b(text))
@@ -282,6 +285,9 @@ def run_capped(argv, env, stdin, limit, cwd=None):
     import resource, signal, tempfile
     def cap():
         resource.setrlimit(resource.RLIMIT_FSIZE, (OUTPUT_LIMIT, OUTPUT_LIMIT))
+        # At most 256 files open at once, as t/run.sh has it (step 21b).
+        hard = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
+        resource.setrlimit(resource.RLIMIT_NOFILE, (OPEN_FILES if hard == resource.RLIM_INFINITY else min(OPEN_FILES, hard), hard))
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
         try:
             r = subprocess.run(argv, env=env, input=stdin, stdout=out, stderr=err, timeout=limit, preexec_fn=cap, cwd=cwd)

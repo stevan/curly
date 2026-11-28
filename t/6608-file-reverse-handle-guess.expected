@@ -1,0 +1,2 @@
+t/6608-file-reverse-handle-guess.pl:5:17: reverse $x -1: perl takes $x for a file handle here; put a blank after the '-', or none before it
+exit: 1

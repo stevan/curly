@@ -21,6 +21,8 @@ The families:
   bytes      files of bytes, read and written, with `use open` and without
   random     sequences of opens, reads, writes, closes, copies, messages
              and deaths, drawn by chance from a seed
+  guess      a variable first after each list operator and builtin, and
+             each thing that may follow it: perl's guess of a file handle
 """
 import concurrent.futures
 import os
@@ -200,7 +202,26 @@ def randoms(count=260):
         yield f'random-{seed}', '\n'.join(lines), b's1\ns2'
 
 
-FAMILIES = {'contexts': contexts, 'values': values, 'print': prints, 'errno': errno, 'bytes': bytes_, 'random': randoms}
+# What perl's lexer takes for a file handle is a guess made after every
+# list operator (T111, T125, T696): each of them, a variable, and each of
+# the things that may follow it.
+GUESSED = ['warn $x {};', 'die $x {};', 'my $s = join $x {}, "p", "q"; say $s;', 'my $s = join($x {}, "p", "q"); say $s;', 'my @r = reverse $x {}, 9; say "@r";',
+           'push @a, $x {}; say "@a";', 'unshift @a, $x {}; say "@a";', 'sub g() {{ return $x {} }} say g();', 'say length $x {};', 'say uc $x {};',
+           'my $s = substr($x {}, 0); say $s;', 'my $i = index($x {}, "5"); say $i;', 'my $i = rindex($x {}, "5"); say $i;', 'exit $x {};',
+           'my $s = sprintf("%s", $x {}); say $s;', 'my @s = sort $x {}, 1; say "@s";', 'say scalar(@a) + $x {};', 'my @l = ($x {}); say "@l";', 'say ref $x {};',
+           'say defined $x {};', 'my @m = map {{ $_ }} $x {}; say "@m";', 'say ord $x {};', 'chomp $x {};', 'say f($x {});', 'my @k = (keys %h, $x {}); say scalar(@k);']
+
+
+def guesses():
+    for k, shape in enumerate(GUESSED):
+        for n, after in enumerate(AFTER):
+            if 'E"' in after or after == '':
+                continue
+            body = f"use v5.42;\nsub f(@l) {{ return scalar(@l) }}\nmy $x = 5; my $y = 7; my @a = (1, 2); my %h = (k => 'v');\nopen(my $in, '<', 'in.txt') or die \"no\\n\";\n{shape.format(after)}\nsay \"end\";\n"
+            yield f'guess-{k}-{n}', body, b's1\n'
+
+
+FAMILIES = {'contexts': contexts, 'values': values, 'print': prints, 'errno': errno, 'bytes': bytes_, 'random': randoms, 'guess': guesses}
 
 
 def run(argv, stdin, cwd):

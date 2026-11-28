@@ -42,6 +42,17 @@ say close($out);
 open($in, '<', "made.txt");
 my @a5 = <$in>; say scalar(@a5), " lines"; for my $x (@a5) { say show($x) }
 close($in);
+open($out, '>', "first.txt");
+print $out "held\n";
+open($out, '>', "second.txt");
+print $out "second\n";
+close($out);
+open($in, '<', "first.txt");
+my @a6 = <$in>; say scalar(@a6), " lines"; for my $x (@a6) { say show($x) }
+close($in);
+open($in, '<', "second.txt");
+my @a7 = <$in>; say scalar(@a7), " lines"; for my $x (@a7) { say show($x) }
+close($in);
 open($out, '>', "here.txt");
 print $out <<"END";
 from a heredoc here
@@ -52,5 +63,5 @@ say $out join("-", map { $_ * 2 } @items);
 print $out !1, "|", !0, "\n";
 close($out);
 open($in, '<', "here.txt");
-my @a6 = <$in>; say scalar(@a6), " lines"; for my $x (@a6) { say show($x) }
+my @a8 = <$in>; say scalar(@a8), " lines"; for my $x (@a8) { say show($x) }
 close($in);

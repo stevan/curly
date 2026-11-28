@@ -1,0 +1,8 @@
+3 lines
+2:97,10
+2:98,10
+2:99,10
+undef
+0 lines
+the end was met before the second open, and not again
+exit: 25

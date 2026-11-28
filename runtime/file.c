@@ -131,12 +131,12 @@ rt_value rt_handle(rt_ctx *cx, rt_value v) {
 }
 
 // Whether the program has `path`'s file open in a way that an `open` for
-// `mode` may not join (D276).
-static int open_twice(rt_ctx *cx, const char *path, int mode, const rt_file *self) {
+// `mode` may not join (D276). (The handle being opened is closed by now.)
+static int open_twice(rt_ctx *cx, const char *path, int mode) {
     struct stat st;
     if (stat(path, &st) != 0) return 0;
     for (rt_file *g = cx->files; g; g = g->next) {
-        if (g == self || g->f == NULL || g->dev != st.st_dev || g->ino != st.st_ino) continue;
+        if (g->f == NULL || g->dev != st.st_dev || g->ino != st.st_ino) continue;
         if (g->mode == FILE_WRITE || mode == FILE_WRITE) return 1;
     }
     return 0;
@@ -164,11 +164,11 @@ static rt_value file_open(rt_ctx *cx, rt_value path, rt_value handle, int mode, 
     // perl closes what the handle had open first (T685), and the count of
     // lines goes on.
     if (file_shut(f)) rt_fault(cx, "write to a file failed");
-    if (open_twice(cx, name, mode, f)) {
+    if (open_twice(cx, name, mode)) {
         // A handle nothing holds is closed by a collection, as perl closed
         // it when it was dropped.
         rt_collect(cx);
-        if (open_twice(cx, name, mode, f)) rt_fault(cx, "open of a file the program has open, one of the two for writing");
+        if (open_twice(cx, name, mode)) rt_fault(cx, "open of a file the program has open, one of the two for writing");
     }
     int fd = open(name, flags | O_CLOEXEC, 0666);
     if (fd < 0 && (errno == EMFILE || errno == ENFILE)) {

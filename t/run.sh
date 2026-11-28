@@ -81,7 +81,9 @@ output() {
     # What it prints goes to a file, which is what the limit is on. stdout
     # and stderr apart, and then stdout first: perl's order for a `dies` or
     # a `warns` test, whatever the two buffers did (D149).
-    ( ulimit -f "$OUTPUT_BLOCKS"; envs=$(environment); cd "$1.dir" && exec env -i $envs $4 "$here/$1" $3 <"$here/$2" >"$here/$1.output" 2>"$here/$1.errors" ) &
+    # (And at most 256 files open at once, on every machine: a test that
+    # drops more handles than that shows that they are closed, D276.)
+    ( ulimit -f "$OUTPUT_BLOCKS"; ulimit -n 256; envs=$(environment); cd "$1.dir" && exec env -i $envs $4 "$here/$1" $3 <"$here/$2" >"$here/$1.output" 2>"$here/$1.errors" ) &
     set +f
     pid=$!
     ( sleep "$TIMEOUT" && : >"$1.killed" && kill "$pid" ) >/dev/null 2>&1 &

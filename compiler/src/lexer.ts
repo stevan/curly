@@ -1081,7 +1081,11 @@ export const lex = (src: string): Token[] => {
             while (tokens[before]?.kind === '(') before -= 1;
             const lop = tokens[before];
             const lopKind = lop?.kind === 'word' ? NAMES.get(lop.text)?.kind : undefined;
-            if (lop !== undefined && (lopKind === 'statement' || lopKind === 'function') && isBlank(at())) {
+            // (And after `die`, `warn`, `join`, `reverse` and `sprintf`, which
+            // are list operators as much: `warn $x -1;` does not compile,
+            // `Missing comma after first argument to warn function`. Found
+            // by step 21b's review, T696.)
+            if (lop !== undefined && (lopKind === 'statement' || lopKind === 'function' || lopKind === 'listop') && isBlank(at())) {
                 let w = i;
                 while (w < src.length && (isBlank(src[w]!) || src[w] === '#')) {
                     w = src[w] === '#' ? Math.max(src.indexOf('\n', w), w + 1) : w + 1;
@@ -1109,7 +1113,6 @@ export const lex = (src: string): Token[] => {
                 }
                 if (lopKind === 'statement' && before === tokens.length - 1) {
                     if (a === '\\') refuse(`${lop.text} $${name} \\...: perl takes $${name} for a file handle here, and warns (T684); write ${lop.text} {$${name}} \\...`, start);
-                    if (word === 'isa') refuse(`${lop.text} $${name} isa: perl takes $${name} for a file handle here; bracket the test`, start);
                     const written = a === '"' || a === "'" || isDigit(a) || a === '$' || a === '@' || a === '(' || (a === '!' && b !== '=' && b !== '~')
                         || (a === '<' && b === '<' && !isBlank(src[w + 2] ?? ' ') && src[w + 2] !== '=')
                         || (word !== '' && !HANDLE_NOT.has(word));

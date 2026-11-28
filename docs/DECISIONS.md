@@ -2667,7 +2667,7 @@ program.
 the end. Rejected: taking them now (perl warns of `finally`; `defer`
 needs `use feature`, which D16 cuts).
 
-**D222, D223. The adversarial review of step 21a: the reviewer's
+**D222 and D223. The adversarial review of step 21a: the reviewer's
 defaults.** *(Fable 5.2, 2026-11-28, a reader who did not build 21a,
 under the user's standing instruction of 2026-11-27; each is his to
 overturn. `briefs/step21-review/README.md` has the findings, `TRAPS.md`
@@ -2791,8 +2791,7 @@ or `@`, a word that is no operator, `!` not before `=` or `~`, a
 heredoc, `(`; the last is then refused as it is after `STDERR` (the
 list has no brackets of its own), and so is `\` (perl warns). T111's
 refusals stand (`print $fh -1`). In the braces one expression. The
-handle is worked out, and looked at, before the list (T683). The word
-`isa` after the blank is refused. Rejected: the braces only (D21's
+handle is worked out, and looked at, before the list (T683). Rejected: the braces only (D21's
 wariness: the plain form is what is written).
 **D279. A `die` or a `warn` whose message does not end in a newline,
 while the handle read last is a file's, still open, that has given a
@@ -2817,7 +2816,8 @@ brackets, as `eof(STDIN)` has. Rejected: `<$h{fh}>` (a glob to perl),
 and the program's: empty but for the files the test's `# file:
 NAME=BYTES` headers name (as `# stdin:` writes bytes), made before the
 run and removed after it, the test's own source at the path it has in
-the repository so that every message names it as before. Rejected: a
+the repository so that every message names it as before. And with at
+most 256 files open at once, whatever the machine allows. Rejected: a
 directory a test names (two runs of perl, eight seeds each, would
 share it).
 **D283. `close $fh;` without brackets is in, as a statement on one
@@ -2825,10 +2825,10 @@ scalar variable**, with `or die` or a modifier after it; `close(EXPR)`
 takes one value. Rejected: `close` with no argument (the handle
 selected last, to perl).
 
-**D284, D285. The review of step 21b: the builder's defaults.** *(Fable
+**D284 to D286. The review of step 21b: the builder's defaults.** *(Fable
 5.2, 2026-11-28, under the user's standing instruction of 2026-11-27;
 each is his to overturn. `PLAN.md`, step 21, "What the review found
-(21b)"; `TRAPS.md`, T694 and T695.)*
+(21b)"; `TRAPS.md`, T694 to T696.)*
 **D284. `$!` stands in a string, or alone on the right of `=` to a
 scalar variable, and nowhere else.** `$!` is perl's own variable, and
 perl reads a variable when the operator it is an operand of runs (D14):
@@ -2850,4 +2850,10 @@ list, a slice, a range, a line read, `map`, `grep`, `sort`, `reverse`,
 there; a call that gives a list is D18's fault as the program runs.
 Rejected: perl's list (one name is the file's, two are a death: nothing
 is gained by an array of one).
-
+**D286. T111's refusal holds after `die`, `warn`, `join`, `reverse`
+and `sprintf` too.** perl guesses that a scalar variable first after a
+list operator is a file handle when a blank and then what could begin a
+value follow it, after every list operator (T696): `warn $x -1;` and
+`join $x -1, ...` do not compile. Steps 10a, 15 and 16b took them, and
+ran them as a subtraction. Refused, with T111's message, brackets
+between or not. Rejected: nothing; they are no Perl.

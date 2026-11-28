@@ -15,6 +15,10 @@ print { $pick ? $out : $outs[0] } "picked\n";
 printf $out "%s\n", "plain" if $pick;
 say $out "no" unless $pick;
 print $out "each $_\n" for 1 .. 3;
+print $pick if $pick;
+print $pick x 2, "\n";
+say $pick != 2 ? "ne" : "eq";
+say $pick eq "1" ? "eq" : "ne";
 sub last_value($to) { print $to "in a sub\n" }
 say last_value($out) ? "true" : "false";
 close($out);

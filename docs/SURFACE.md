@@ -55,7 +55,7 @@ comparison: *in*, *out*, or *n/a*.
 | A second `my` of a name in one scope | Cut | | | D15: perl warns |
 | A variable with no `my` in sight | Cut | | | perl doesn't compile it, under `use v5.42` |
 | `${name}`, `$ name` | Cut | | | D55: perl warns of the first where it could be a block (T114) |
-| A variable first after `say`, `print`, `substr(` or `index(`, a blank, and what could begin a value: `say $x -1;` | Cut | | | D56, T111, T125: a file handle, to perl, which dies or doesn't compile |
+| A variable first after `say`, `print`, `substr(` or `index(`, or after `die`, `warn`, `join`, `reverse` or `sprintf`, a blank, and a sign, a dot, a slash, a star, a percent or a less-than hard against what follows: `say $x -1;` | Cut | | | D56, D286, T111, T125, T696: a file handle, to perl, which dies or doesn't compile. Before a quote, a digit, a variable or a word, after `say`, `print` and `printf`, it is the handle written to (21b, D278) |
 | `$x =- $y`: a sign hard after `=`, and a blank after the sign | Cut | | | D56, T127: perl warns `Reversed -= operator` |
 | A name of more than 251 characters | Cut | | | D55, T126: `Identifier too long` |
 | A statement that only has a value, `$x + 1;`; two joined by a word operator, `$x = 1 and $y = 2;` | Cut | | | D56: perl warns of each (T114) |

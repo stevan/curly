@@ -348,7 +348,7 @@ quiet has met few of them.
 | A second `my` of a name in one scope; a statement that only has a value; `$x = 1 and $y = 2;` | Each refused. A value alone is a sub's last statement | accident | sometimes | variables | D56 |
 | `*=`, `/=`, `**=`, `%=`, `x=` on an undef: a warning | Fault | accident | sometimes | numbers | D56 |
 | `say 0 or 2;` is `(say 0) or 2`; `not (0) \|\| 1` is `(not 0) \|\| 1` | A word operator after `say`'s argument or bare among arguments, a tighter operator after `not (...)`: refused | accident | rarely | printing | D51 |
-| `say $x -1;` takes `$x` for a file handle | Refused | accident | rarely | printing | D56 |
+| `say $x -1;` takes `$x` for a file handle; `warn $x -1;`, `join $x -1, ...` do not compile, for the same guess | Refused | accident | rarely | printing | D56, D286 |
 | `undef * 2` is undef of a glob named `2`, in silence | Bare `undef` only where perl can't take what follows for its argument; else `(undef)` | accident | rarely | variables | D48 |
 | A sub named for a word of perl's is never called: after `sub q($x) {...}`, `q(5)` is the string `5` | A sub may have no name perl gives a meaning to (266 words) | accident | rarely | subs | D21 |
 | `-e(2)` is a file test | A minus hard against one letter: refused | accident | rarely | subs | D73 |

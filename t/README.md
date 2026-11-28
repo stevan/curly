@@ -27,7 +27,8 @@ environment is perl's too when the check runs it.
 
 Every run of a test, perl's and the program's, is in a directory of its
 own (D282): empty but for the files its `# file:` headers name, made
-before the run and removed after it. A test that reads or writes a file
+before the run and removed after it, and may have 256 files open at
+once. A test that reads or writes a file
 names it with no directory, and what it writes is gone when it ends.
 
 ## The six kinds, and where each one's expected output comes from

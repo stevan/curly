@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""t/6400 to t/6412, t/6420 to t/6432, and the faults t/6440 to t/6489:
+"""t/6400 to t/6412, t/6420 to t/6433, and the faults t/6440 to t/6500:
 files and handles (step 21b; D270 to D283).
 
 The definition, which is all this file knows of them. A file is bytes, and
@@ -94,6 +94,8 @@ Every command that writes a file, one a line (t/checks.py runs them all):
     python3 t/models/file.py 6431 > t/6431-exit-after-caught.expected
     python3 t/models/file.py --program 6432 > t/6432-exit-open-after-underflow.pl
     python3 t/models/file.py 6432 > t/6432-exit-open-after-underflow.expected
+    python3 t/models/file.py --program 6433 > t/6433-exit-end-met-once.pl
+    python3 t/models/file.py 6433 > t/6433-exit-end-met-once.expected
     python3 t/models/file.py --program 6440 > t/6440-fault-file-close-twice.pl
     python3 t/models/file.py 6440 > t/6440-fault-file-close-twice.expected
     python3 t/models/file.py --program 6441 > t/6441-fault-file-close-never-opened.pl
@@ -214,6 +216,8 @@ Every command that writes a file, one a line (t/checks.py runs them all):
     python3 t/models/file.py 6498 > t/6498-fault-file-message-warn-in-a-sub.expected
     python3 t/models/file.py --program 6499 > t/6499-fault-file-close-after-reopen-failed.pl
     python3 t/models/file.py 6499 > t/6499-fault-file-close-after-reopen-failed.expected
+    python3 t/models/file.py --program 6500 > t/6500-fault-file-printf-past-ascii.pl
+    python3 t/models/file.py 6500 > t/6500-fault-file-printf-past-ascii.expected
 """
 import os
 import random
@@ -621,6 +625,17 @@ def case_write(w, rnd):
     w.open('in', '<', 'made.txt', my=False)
     w.all('in', 'array')
     w.close('in')
+    # (A hole the breakages found: a handle opened again while it is open
+    # for writing has what it held written to its first file.)
+    w.open('out', '>', 'first.txt', my=False)
+    w.write('out', 'print', ['held\n'])
+    w.open('out', '>', 'second.txt', my=False)
+    w.write('out', 'print', ['second\n'])
+    w.close('out')
+    for name in ('first.txt', 'second.txt'):
+        w.open('in', '<', name, my=False)
+        w.all('in', 'array')
+        w.close('in')
     # A heredoc after a handle, and a list worked out as it is written.
     w.open('out', '>', 'here.txt', my=False)
     w.perl('print $out <<"END";\nfrom a heredoc here\nEND')
@@ -780,6 +795,13 @@ def case_many(w, rnd):
     w.perl("open(my $in, '<', 'out.txt') or die \"no\\n\";")
     w.perl('my $made = <$in>;')
     w.perl('say length($made);', '1500\n')
+    # (A hole the breakages found: with no collection at every allocation,
+    # a handle dropped by a sub is closed by the collection that the next
+    # open of its file asks for, and by nothing else.)
+    w.perl('sub save($text) { open(my $out, \'>\', \'saved.txt\') or die "no\\n"; print $out $text; }')
+    w.perl('save("kept\\n");')
+    w.perl("open(my $back, '<', 'saved.txt') or die \"no\\n\";")
+    w.perl('print <$back>;', 'kept\n')
 
 
 def case_stdin(w, rnd):
@@ -830,6 +852,12 @@ def case_formats(w, rnd):
     w.perl('say $out "no" unless $pick;')
     w.perl('print $out "each $_\\n" for 1 .. 3;')
     w.files['f.txt'] += b'each 1\neach 2\neach 3\n'
+    # (Holes the breakages found: a variable after print that is no handle,
+    # by what follows it.)
+    w.perl('print $pick if $pick;', '1')
+    w.perl('print $pick x 2, "\\n";', '11\n')
+    w.perl('say $pick != 2 ? "ne" : "eq";', 'ne\n')
+    w.perl('say $pick eq "1" ? "eq" : "ne";', 'eq\n')
     w.perl('sub last_value($to) { print $to "in a sub\\n" }')
     w.perl('say last_value($out) ? "true" : "false";', 'true\n')
     w.files['f.txt'] += b'in a sub\n'
@@ -963,6 +991,17 @@ def exit_caught(w):
     w.die('after a caught one\n')
 
 
+def exit_end_once(w):
+    # (A hole the breakages found: the end, once met, is not looked for
+    # again, so a later read at the end leaves errno as it is.)
+    w.open('fh', '<', 'in.txt', how='or die')
+    w.all('fh', 'array')
+    w.open('other', '<', 'in.txt', how='or die')
+    w.one('fh')
+    w.all('fh', 'array')
+    w.die('the end was met before the second open, and not again\n')
+
+
 def exit_underflow(w):
     # A number that underflowed sets errno too (D151), and an open after
     # it sets it again.
@@ -976,10 +1015,11 @@ def exit_underflow(w):
 EXITS = {6420: (exit_open, ABC, None), 6421: (exit_fail, {}, None), 6422: (exit_read_all, ABC, None), 6423: (exit_read_some, ABC, None),
          6424: (exit_eof, ABC, None), 6425: (exit_list, ABC, None), 6426: (exit_partial, {'cut.txt': b'x\ny'}, None),
          6427: (exit_write, {}, None), 6428: (exit_stdin, ABC, b'only'), 6429: (exit_fail_ok_fail, ABC, None),
-         6430: (exit_closed, ABC, None), 6431: (exit_caught, {}, None), 6432: (exit_underflow, ABC, None)}
+         6430: (exit_closed, ABC, None), 6431: (exit_caught, {}, None), 6432: (exit_underflow, ABC, None),
+         6433: (exit_end_once, ABC, None)}
 # What each will be, which the count of its lines needs before it is run.
 KINDS = {6410: 'warns', 6420: 'warns', 6421: 'warns', 6422: 'dies', 6423: 'warns', 6424: 'warns', 6425: 'dies', 6426: 'dies',
-         6427: 'warns', 6428: 'dies', 6429: 'warns', 6430: 'warns', 6431: 'warns', 6432: 'warns'}
+         6427: 'warns', 6428: 'dies', 6429: 'warns', 6430: 'warns', 6431: 'warns', 6432: 'warns', 6433: 'warns'}
 
 
 # ---- the faults: the program, what it printed first, the message, the line
@@ -1056,6 +1096,7 @@ FAULTS = {
     6496: ('errno-after-underflow', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $small = "1e-400";', 'my $tiny = $small + 0;', 'say $tiny;', 'say "$!";'], '0\n', PAST, 5),
     6497: ('eof-not-a-handle', {}, [], ['my $x = 0;', 'say "before";', 'say eof($x) ? "eof" : "more";'], 'before\n', 'not a file handle', 3),
     6498: ('message-warn-in-a-sub', ABC, [], ['sub note($text) { warn $text; return; }', IN, 'my $l = <$fh>;', 'say "before";', 'note("careful");'], 'before\n', MESSAGE, 1),
+    6500: ('printf-past-ascii', {}, ['use utf8;'], [OUT, 'say "before";', 'printf $out "%s\\n", "café";', 'say "not reached";'], 'before\n', "a character past ASCII printed without 'use open'", 3),
     6499: ('close-after-reopen-failed', ABC, [], [IN, "open($fh, '<', 'nope.txt');", 'say "before";', 'close($fh);'], 'before\n', f'close of {CLOSED}', 4),
 }
 
@@ -1065,7 +1106,7 @@ NAMES = {6400: 'file-lines', 6401: 'file-lists', 6402: 'file-while', 6403: 'file
          6420: 'exit-open-worked', 6421: 'exit-open-failed', 6422: 'exit-read-to-the-end', 6423: 'exit-read-some',
          6424: 'exit-eof-met-the-end', 6425: 'exit-list-to-the-end', 6426: 'exit-last-line-cut', 6427: 'exit-written',
          6428: 'exit-stdin-to-the-end', 6429: 'exit-fail-ok-fail', 6430: 'exit-closed-no-newline', 6431: 'exit-after-caught',
-         6432: 'exit-open-after-underflow'}
+         6432: 'exit-open-after-underflow', 6433: 'exit-end-met-once'}
 NAMES.update({n: 'fault-file-' + f[0] for n, f in FAULTS.items()})
 
 
@@ -1089,7 +1130,7 @@ def main(argv):
         SAME[n](w, rnd)
     elif n in EXITS:
         case, files, stdin = EXITS[n]
-        w = world(n, files=files, stdin=stdin, show=n in (6422, 6423, 6424, 6425, 6426, 6428, 6430))
+        w = world(n, files=files, stdin=stdin, show=n in (6422, 6423, 6424, 6425, 6426, 6428, 6430, 6433))
         case(w)
     else:
         name, files, prelude, body, printed, message, line = FAULTS[n]

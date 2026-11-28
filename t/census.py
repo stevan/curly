@@ -238,6 +238,10 @@ def judge(perl, ours):
         if out.startswith(mine):
             return 'LOUD', re.sub(rb' at \S+ line (\d+)\.\n$', rb' at line \1', said[7:]).decode('utf-8', 'replace')
         return 'WRONG', f'it faults after printing what perl does not: {clip(mine)!r}, where perl prints {clip(out)!r}'
+    # The same in all three, whatever the status: an `exit`, or an uncaught
+    # `die` that exits with perl's errno (step 21b, D272).
+    if (code, mine, said) == (status, out, err) and not said.startswith((b'internal: ', b'fault: ')):
+        return 'SAME', ''
     # An uncaught `die`, or a `warn` (step 15; D148): perl's status and
     # stdout, and perl's stderr too, which may hold more, a warning of
     # perl's own: WARNS.
@@ -448,6 +452,12 @@ def self_test():
         ('WRONG', [(34, b'1\n', b'x\n')] * 8, (255, b'1\n', b'x\n')),
         ('WRONG', [(255, b'1\n2\n', b'x\n')] * 8, (255, b'1\n', b'x\n')),
         ('WARNS', [(255, b'', b'Use of uninitialized value in die at t/x.pl line 3.\nx\n')] * 8, (255, b'', b'x\n')),
+        # Step 21b: an uncaught die exits with perl's errno (D272), and an
+        # exit with what it is given.
+        ('SAME', [(2, b'1\n', b'no: x\n')] * 8, (2, b'1\n', b'no: x\n')),
+        ('SAME', [(3, b'1\n', b'')] * 8, (3, b'1\n', b'')),
+        ('WRONG', [(2, b'1\n', b'no: x\n')] * 8, (25, b'1\n', b'no: x\n')),
+        ('WRONG', [(25, b'1\n', b'x\n')] * 8, (255, b'1\n', b'x\n')),
         ('UNJUDGED', clean[:7] + [(0, b'2\n1\n', b'')], ok),
         ('UNJUDGED', clean[:7] + [None], ok),
         ('UNJUDGED', clean[:7] + [(0, b'2\n1\n', b'')], (0, b'9\n', b'')),
