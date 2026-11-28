@@ -6947,9 +6947,9 @@ characters past ASCII its tests change, and leaves the rest out as it
 leaves a fault out); two fixtures of the oracle's reading rule, which
 takes `undef %h` as owning the hash (`same-hash-undef`, and
 `same-hash-undef-shown`, which fails without the rule's change and with
-it). 2,291 golden tests.
+it). 2,293 golden tests.
 
-**Broken on purpose**: MUTATIONS_PLAN.
+**Broken on purpose**: `briefs/step16d-mutations.py`, 64 breakages of the runtime and every pass of the compiler, against every test of the branch and those it moved. **The first run caught 60**: four were holes, each closed with a test (a concatenation over two lines whose last piece is no newline, 6097; `$#{ $r } = N` making a scalar its loop names, which D109 refuses, 6098; `__LINE__` in an expression statement over two lines, in 6103; a lone range under a unary plus, in 6200). Two more were caught the first time only by 6103 and 6200, whose programs changed while the run went on, and are counted among the four. **The second run caught all 64.** The runtime gained no unit test: the golden tests are its net, and every breakage of it was caught by one.
 
 **The census** (`make census`, then the reason table's rows for the new
 messages and `--sort`; against `census-read`'s 1,363 SAME, 181 LOUD, 720
