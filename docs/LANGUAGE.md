@@ -1526,6 +1526,14 @@ another thing.
 where a list is wanted: `my @zeros = (0) x 10;`. Without the brackets,
 or where one value is wanted, `x` repeats a string, as before.
 
+In a branch of `? :`, or on the right of `&&`, `||` or `//` (and their
+words), a list may not be repeated by 1, nor by a count perl works out
+as it compiles (`(7) x 0x1`, `(7) x (2 - 1)`): perl 5.42 folds that
+away as it compiles and then loses its place there, printing garbage or
+running out of memory (D247). A count written as a number other than
+the integer 1, a variable, or a string is fine, and so is `(LIST) x 1`
+anywhere else.
+
 A call of a sub in a list is its value; a sub that returned nothing
 (`return;`) is no value there, so `(1, none(), 2)` is two values.
 

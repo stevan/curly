@@ -23,6 +23,15 @@ FUZZ = [
     c('T602-held', 'TRAPS; D246', 'my %h; my $r = \\%h; sub f() { $r = {}; return "k" } $r->{f()} = 1; say join(",", keys %h);', out='k\n'),
     c('T602-second-hop', 'TRAPS; D246', 'my $r = [[1]]; sub f() { $r->[0] = [5]; return 0 } say $r->[0][f()];', out='\n', err='Use of uninitialized value in say'),
     c('T602-named', 'TRAPS; D246', 'my @a = (1, 2); sub f() { @a = (5, 6); return 0 } say $a[f()];', out='5\n'),
+    # ---- T603: perl 5.42 loses its place after a list repeated by 1
+    c('T603', 'TRAPS; D247', 'my $v = 1; my @l = ($v ? (7) x 1 : 0); say scalar(@l), " @l";', out='70 \n'),
+    c('T603-and', 'TRAPS; D247', 'my $v = 1; my @l = ($v && (7) x 1); say scalar(@l), " @l";', out='70 \n'),
+    c('T603-or', 'TRAPS; D247', 'my $z = 0; my @l = ($z || (7, 8) x 1); say scalar(@l), " @l";', out='780 \n'),
+    c('T603-folded', 'TRAPS; D247', 'my $v = 1; my @l = ($v ? (7) x (2 - 1) : 0); say scalar(@l), " @l";', out='70 \n'),
+    c('T603-two', 'TRAPS; D247', 'my $v = 1; my @l = ($v ? (7) x 2 : 0); say scalar(@l), " @l";', out='2 7 7\n'),
+    c('T603-float', 'TRAPS; D247', 'my $v = 1; my @l = ($v ? (7) x 1.0 : 0); say scalar(@l), " @l";', out='1 7\n'),
+    c('T603-string', 'TRAPS; D247', 'my $v = 1; my @l = ($v ? (7) x "1" : 0); say scalar(@l), " @l";', out='1 7\n'),
+    c('T603-alone', 'TRAPS; D247', 'my @l = ((7) x 1); say scalar(@l), " @l";', out='1 7\n'),
     # ---- T601: a sort given back to a call for nothing is skipped
     c('T601', 'TRAPS; D245', 'sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } f(); say "end";', out='end\n'),
     c('T601-list-worked-out', 'TRAPS; D245', 'sub p($x) { say "p$x"; $x } sub f() { return sort { say "cmp"; $a <=> $b } (p(2), p(1)); } f(); say "end";', out='p2\np1\nend\n'),

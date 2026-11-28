@@ -43,6 +43,25 @@ r('list-assignment-target', "perl prints 2: the 5 goes to the freed array.",
 r('assigning-operator', "perl dies: Modification of a read-only value attempted.",
   'my $v = [1];\nsub f() {\n    $v = [2];\n    return 0;\n}\n$v->[f()] .= "x";\nsay $v->[0];', 'f()]', INDEX('$v'))
 
+# ---- D247, T603: perl 5.42 loses its place after a list repeated by 1
+REP = "a list repeated by 1, or by a count perl works out as it compiles, in a branch of ? : or after a logical operator: perl 5.42 loses its place there (D247); write the list once, or the count as a number"
+r('repeat-one-in-a-branch', "perl prints garbage: '70', the count and the list confused (T603).",
+  'my $v = 1;\nmy @l = ($v ? (7) x 1 : 0);\nsay scalar(@l), " @l";', '1 :', REP)
+r('repeat-one-after-and', "perl prints garbage: '70' (T603).",
+  'my $v = 1;\nmy @l = ($v && (7) x 1);\nsay scalar(@l), " @l";', '1)', REP)
+r('repeat-one-after-or', "perl prints garbage: '780' (T603).",
+  'my $z = 0;\nmy @l = ($z || (7, 8) x 1);\nsay scalar(@l), " @l";', '1)', REP)
+r('repeat-one-in-the-other-branch', "perl prints garbage: '70' (T603).",
+  'my $z = 0;\nmy @l = ($z ? 0 : (7) x 1);\nsay scalar(@l), " @l";', '1)', REP)
+r('repeat-one-among-items', "perl prints garbage: '970' (T603).",
+  'my $v = 1;\nmy @l = ($v ? (9, (7) x 1) : 0);\nsay scalar(@l), " @l";', '1)', REP)
+r('repeat-folded-to-one', "perl prints garbage, '70': 2 - 1 is folded to 1 as perl compiles (T603).",
+  'my $v = 1;\nmy @l = ($v ? (7) x (2 - 1) : 0);\nsay scalar(@l), " @l";', '- 1)', REP)
+r('repeat-hex-one', "perl prints garbage, '70': 0x1 is the integer 1 (T603).",
+  'my $v = 1;\nmy @l = ($v ? (7) x 0x1 : 0);\nsay scalar(@l), " @l";', '0x1', REP)
+r('repeat-one-in-a-loop-list', "perl runs out of memory (T603).",
+  'my $v = 1;\nfor my $x ($v ? (7) x 1 : 0) {\n    say $x;\n}', '1 :', REP)
+
 def write(first, table=None):
     n = first
     for name, why, body, at, message, nth in (T if table is None else table):
@@ -60,7 +79,12 @@ def write(first, table=None):
 if __name__ == '__main__':
     if sys.argv[1] == '--perl':
         for name, why, body, at, message, nth in T:
-            r_ = subprocess.run([os.environ.get('CURLY_PERL', 'perl'), '-e', 'use v5.42;\n' + body], capture_output=True, text=True, timeout=10)
-            print(f'{name}: exit {r_.returncode}; {r_.stdout!r}; {r_.stderr.strip()[:120]!r}')
+            # (under a limit on memory: T603's programs run perl out of it)
+            try:
+                r_ = subprocess.run(['sh', '-c', 'ulimit -v 1048576; exec "$0" -e "$1"', os.environ.get('CURLY_PERL', 'perl'), 'use v5.42;\n' + body], capture_output=True, text=True, timeout=10)
+            except subprocess.TimeoutExpired:
+                print(f'{name}: no end in 10 seconds')
+                continue
+            print(f'{name}: exit {r_.returncode}; {r_.stdout[:60]!r}; {r_.stderr.strip()[:120]!r}')
     else:
         write(int(sys.argv[1]))

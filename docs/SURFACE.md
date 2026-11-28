@@ -134,7 +134,7 @@ comparison: *in*, *out*, or *n/a*.
 | `say;`, `print;` with no argument | Cut | | | D85: `$_` is always written |
 | A builtin's brackets and then an operator, `say (1 + 2) * 3;` | Cut | | | D21, T25: perl prints 3 |
 | `say (...)` after one space, not ending on its line, or with a bracket in a string or a comment that perl's count of them trips on | Cut | | | T76, T100: perl warns. `say(...)`, hard against, may run over lines |
-| `(LIST) x N`, a list repeated, where a list is wanted | In | 9 | | D80, T101. After `return` and as a sub's last statement too, from step 10 (T143); a comma list on the left of `x` where one value is wanted: Cut (T168) |
+| `(LIST) x N`, a list repeated, where a list is wanted | In | 9 | | D80, T101. After `return` and as a sub's last statement too, from step 10 (T143); a comma list on the left of `x` where one value is wanted: Cut (T168); in a branch of `? :` or after a logical operator, a count of 1, or one perl folds as it compiles: Cut (D247, T603: perl 5.42 loses its place) |
 | `print STDERR ...`, `say STDERR ...` | In | 15 | | 15b, with `warn`: `STDERR` and a list not in brackets of its own (T320); no other handle |
 | `1;` ending a module | In | 18 | | Not needed under `use v5.42`; harmless |
 

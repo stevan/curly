@@ -354,6 +354,7 @@ quiet has met few of them.
 | A store before the start of an array dies | Fault | accident | rarely | data | D80 |
 | `@a = sort { ... } @a` sorts in place and drops elements that were never stored | An undef there is a fault | accident | rarely | data | D87 |
 | A `sort` block's value past 32 bits wraps | Fault | accident | rarely | data | D89 |
+| `$c ? (LIST) x 1 : ...`, which perl 5.42 compiles wrongly and answers with garbage | Refused there, and a count perl folds to 1 (found by the fuzzer) | accident | rarely | data | D247 |
 | An index that frees the container it indexes: `$v->{f()}` where `f` assigns `$v`, which perl reads as undef or dies of | Refused when an index or key can change what holds its container (found by the fuzzer) | accident | rarely | data | D246 |
 | A sub called for nothing works its value out for nothing: a range it gives back is a flip-flop, `(LIST) x N` and `reverse` work on one value, a `sort` is skipped | The sort skipped too; the other three a fault as the sub gives them back (found by the fuzzer) | accident | rarely | subs | D245 |
 | `0x1_0000_0000` warns non-portable; `1.` is a number; digits past 2^63 - 1 are a float in silence | Each refused | accident | rarely | numbers | D38 |

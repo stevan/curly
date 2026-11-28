@@ -2658,3 +2658,21 @@ container); refusing only where the container is certainly freed
 whether one does is known only as the program runs). Stricter than
 perl where something else holds the container, and where an index
 stores through some reference that does not reach it.
+
+**D247. In a branch of `? :` or after a logical operator, a list may
+not be repeated by 1, nor by a count perl folds as it compiles.** *(The
+builder's recommendation, under Stevan's standing instruction of
+2026-11-27; his to overturn. Found by the differential fuzzer,
+`briefs/fuzz/`, T603.)* perl 5.42 compiles `(LIST) x 1`, the integer
+1 written or folded (`0x1`, `2 - 1`, `!0`, `length("a")`), to the list
+alone, and where the repeat is what a `? :` or an `&&`, `||`, `//`,
+`and`, `or` may jump to or past, the jump lands on the wrong op:
+`my @l = ($v ? (7) x 1 : 0); say scalar(@l), " @l";` prints `70 `, `for my $x ($v ? (7) x 1 : 0)` runs out of memory. A bug of
+perl's, like T194's crash; the language printed the sane list. Refused,
+by the checker, in those places, through brackets and the items of a
+list: the count must be a number written out other than the integer 1
+(`1.0`, `"1"` and `2` are fine to perl), or anything with a variable in
+it. Rejected: agreeing with perl (garbage); refusing `(LIST) x 1`
+everywhere (perl is right outside those places, and model tests write
+it); a constant folder to tell which counts perl folds to 1 (the
+refusal is cheaper, and a count that folds is rare).

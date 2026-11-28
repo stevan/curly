@@ -856,13 +856,14 @@ Every program is kept there and is a row of `briefs/claims17.py`
 
 A differential fuzzer across the features (`briefs/fuzz/`, README
 there): generated programs, each compiled, run and held to perl. Each
-row is a program in `briefs/claimsfuzz.py`; D245 and D246 answer them.
+row is a program in `briefs/claimsfuzz.py`; D245 to D247 answer them.
 
 | | Program | perl prints | Step | Way out |
 |---|---|---|---|---|
 | T600 | `sub a() { say "a"; 0 } sub b() { say "b"; 3 } sub f() { return (a() .. b()); } f(); say "end";`; `my $n = 2; sub f() { return (0 .. $n); } f();`; `return (LIST) x 2`, `return reverse(@a)` with an undef in `@a`, each in a call for nothing | `a` `end`: in a call for nothing the range is a flip-flop, which works out its left end and stops at a false one; `Use of uninitialized value $. in range (or flip)` for a constant end; `in repeat (x)` and an undef in `reverse`, which work on one value. The language printed `a` `b` `end`, and was silent | fuzz | A fault as the sub gives it back (D245; 5701 to 5703) |
 | T601 | `sub f() { return sort { say "cmp"; $a <=> $b } (2, 1); } f(); say "end";`, and the sort as a last statement, in a branch of `? :`, on the right of `\|\|`, as an item of a list, behind a unary plus, in a sub with no name; `return (g(), 1)` with `g` giving that sort | `end`: a sort in a call for nothing returns at once, its list worked out and its block never run. The language printed `cmp` `end` | fuzz | Agree: the list, not the sort (D245; 5700) |
 | T602 | `my $v; sub f() { $v = undef; return "k" } $v->{f()} = 5;`; `my $v = [1, 2]; sub f() { $v = [7, 8]; return 0 } say $v->[f()];`; `say $v->[($v = [7, 8]) ? 0 : 1];`; `$a[0][f()]` with `f` assigning `@a`; `$r->[0][f()]` with `f` storing `$r->[0]` | `Modification of a read-only value attempted`; an empty line and `Use of uninitialized value in say`: perl takes the container, the index frees it, and perl reads or stores what is gone. The language printed `undef` (it had made the hash and stored in it), `1` (the old array, which it kept) | fuzz | Refused (D246; 5720 to 5731, 5704 what stays in) |
+| T603 | `my $v = 1; my @l = ($v ? (7) x 1 : 0); say scalar(@l), " @l";`; `$v && (7) x 1`; `$z \|\| (7, 8) x 1`; `(7) x 0x1`, `(7) x (2 - 1)`; `for my $x ($v ? (7) x 1 : 0)` | `70 ` (garbage), and out of memory for the loop: perl 5.42 folds the repeat by 1 away and a jump past it lands on the wrong op. The language printed `1 7` | fuzz | Refused (D247; 5732 to 5739, 5705 what stays in) |
 
 ## The checks themselves
 
