@@ -273,10 +273,12 @@ static uint64_t wanted(rt_ctx *cx, const rt_str *f) {
 }
 
 // One pass over the format and the list, counting or writing.
-static void run_format(rt_ctx *cx, rt_array *a, buffer *b) {
+// The format is item `from` of the list, and its values the items after it
+// (after a file handle, 1: step 21b).
+static void run_format(rt_ctx *cx, rt_array *a, buffer *b, uint64_t from) {
     scratch fx;
-    const rt_str *f = to_str(cx, a->items[0], &fx);
-    uint64_t k = 1;
+    const rt_str *f = to_str(cx, a->items[from], &fx);
+    uint64_t k = from + 1;
     const char *p = f->bytes, *end = f->bytes + f->len;
     while (p < end) {
         const char *q = p;
@@ -317,26 +319,31 @@ static void run_format(rt_ctx *cx, rt_array *a, buffer *b) {
     }
 }
 
-static rt_value format(rt_ctx *cx, rt_value list, const char *name) {
+static rt_value format_from(rt_ctx *cx, rt_value list, const char *name, uint64_t from) {
     rt_array *a = array_of(cx, list);
-    if (a->count == 0) rt_internal(cx, "a format with no format");
+    if (a->count <= from) rt_internal(cx, "a format with no format");
     scratch fx;
-    uint64_t want = wanted(cx, to_str(cx, a->items[0], &fx));
-    if (want != a->count - 1) {
+    uint64_t want = wanted(cx, to_str(cx, a->items[from], &fx));
+    uint64_t given = a->count - 1 - from;
+    if (want != given) {
         char what[64];
-        snprintf(what, sizeof what, "%s argument in %s", want > a->count - 1 ? "missing" : "redundant", name);
+        snprintf(what, sizeof what, "%s argument in %s", want > given ? "missing" : "redundant", name);
         rt_fault(cx, what);
     }
     buffer count = { NULL, 0, 0 };
-    run_format(cx, a, &count);
+    run_format(cx, a, &count, from);
     char *bytes;
     const rt_str *made = str_new(cx, count.len, count.chars, &bytes);
     // (The list is in a slot, and what it holds was kept by the
     // collection; its strings are read again, through `alive`.)
     buffer write = { bytes, 0, 0 };
-    run_format(cx, array_of(cx, list), &write);
+    run_format(cx, array_of(cx, list), &write, from);
     if (write.len != count.len) rt_internal(cx, "a format wrote another length than it counted");
     return rt_string(made);
+}
+
+static rt_value format(rt_ctx *cx, rt_value list, const char *name) {
+    return format_from(cx, list, name, 0);
 }
 
 rt_value rt_sprintf(rt_ctx *cx, rt_value list) {

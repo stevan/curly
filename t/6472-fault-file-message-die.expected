@@ -1,0 +1,4 @@
+a
+b
+fault: a die or a warn with no newline at its end while a file a line was read from is open at t/6472-fault-file-message-die.pl line 8.
+exit: 1

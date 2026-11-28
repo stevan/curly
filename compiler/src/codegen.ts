@@ -227,7 +227,10 @@ const addItem = (in_: Expr, list: string, b: Code, strict: Strict, given = false
         e.items.forEach(item => addItem(item, list, b, strict, given));
     } else if (e.kind === 'readline') {
         // Where a list is wanted, every line that is left (T508).
-        b.lines.push(given ? `if (want == RT_VOID) { rt_readline(cx); } else { rt_list_add_lines(cx, ${list}); }` : `rt_list_add_lines(cx, ${list});`);
+        // (Of a file handle, step 21b: the variable is read here.)
+        const [one, all] = e.handle === undefined ? ['rt_readline(cx)', `rt_list_add_lines(cx, ${list})`]
+            : [`rt_readline_fh(cx, ${genExpr(e.handle, b).c})`, `rt_list_add_lines_fh(cx, ${list}, ${genExpr(e.handle, b).c})`];
+        b.lines.push(given ? `if (want == RT_VOID) { ${one}; } else { ${all}; }` : `${all};`);
     } else if (e.kind === 'binary' && isRange(e)) {
         const from = genExpr(e.left, b);
         const to = genExpr(e.right, b);
@@ -558,7 +561,7 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
     case 'var': return { c: variable(b, e), place: true };
     // `<STDIN>` where one value is wanted: the next line, or undef (step
     // 21a, D211); `eof(STDIN)` (D214).
-    case 'readline': return temp(b, 'rt_readline(cx)');
+    case 'readline': return temp(b, e.handle === undefined ? 'rt_readline(cx)' : `rt_readline_fh(cx, ${genExpr(e.handle, b).c})`);
     case 'stdineof': return temp(b, 'rt_eof_stdin(cx)');
     // `my $x`: an undef, each time the `my` is reached, whatever the slot
     // held for a variable before it.
@@ -870,7 +873,7 @@ const genExpr = (e: Expr, b: Code, want: Want = 'scalar'): C => {
         // a literal by the time the call is made.
         const args = e.args.map(a => genExpr(a, b).c);
         const name = NAMES.get(e.name);
-        const rt = name?.kind === 'unary' || name?.kind === 'changer' ? name.rt : name?.kind === 'function' ? name.rt[e.args.length - name.min] : undefined;
+        const rt = name?.kind === 'unary' || name?.kind === 'changer' || name?.kind === 'errno' ? name.rt : name?.kind === 'function' ? name.rt[e.args.length - name.min] : undefined;
         if (rt === undefined) throw new Error(`no runtime function for ${e.name}`);
         return temp(b, `${rt}(${['cx', ...args].join(', ')})`);
     }
@@ -1047,7 +1050,9 @@ const genStmt = (s: Stmt, out: Out): string[] => {
         // `say STDERR LIST` (15b), and STDOUT, and `printf` to either
         // (step 21a, D218).
         const handle = s.handle === undefined ? undefined : NAMES.get(s.handle);
-        const rt = handle?.kind === 'handle' ? (s.name === 'say' ? handle.say : s.name === 'printf' ? handle.printf : handle.print) : name.rt;
+        // To a file handle, the list's first item (step 21b, D278).
+        const rt = s.to ? `rt_${s.name}_fh${s.name === 'printf' ? '' : '_list'}`
+            : handle?.kind === 'handle' ? (s.name === 'say' ? handle.say : s.name === 'printf' ? handle.printf : handle.print) : name.rt;
         // A block of its own keeps each statement's temporaries out of the
         // next one's way: a C compiler is slow over ten thousand locals in
         // one scope.

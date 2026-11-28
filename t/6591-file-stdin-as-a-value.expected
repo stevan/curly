@@ -1,0 +1,2 @@
+t/6591-file-stdin-as-a-value.pl:4:10: \ before '*': \ takes a named array, a named hash or a scalar variable, \@a, \%h or \$x (D110)
+exit: 1

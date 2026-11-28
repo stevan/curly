@@ -1,0 +1,2 @@
+t/6529-file-open-mode-encoding.pl:4:14: open's second argument is one of the literals '<', '>' and '>>', and here is '<:encoding(UTF-8)': a mode with a layer, a '+', a pipe or a blank, and one worked out, are not in the language (D270)
+exit: 1

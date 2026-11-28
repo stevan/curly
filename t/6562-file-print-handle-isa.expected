@@ -1,0 +1,2 @@
+t/6562-file-print-handle-isa.pl:5:7: print $x isa: perl takes $x for a file handle here; bracket the test
+exit: 1

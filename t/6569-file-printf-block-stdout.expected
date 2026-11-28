@@ -1,0 +1,2 @@
+t/6569-file-printf-block-stdout.pl:4:9: printf {STDOUT}: STDOUT is written without the braces, printf STDOUT ...; in them stands what gives a file handle of the program's own (D278)
+exit: 1

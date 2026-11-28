@@ -1,5 +1,5 @@
 # kind: refused
-# perl dies: Can't use an undefined value as a symbol reference; a handle in $fh is step 21b's.
+# perl dies: Can't use an undefined value as a symbol reference.
 use v5.42;
 my $fh;
-say eof($fh) ? 1 : 0;
+say eof $fh ? 1 : 0;

@@ -513,3 +513,18 @@ test('a die puts back the frames, the freezes and the sorts a try had open', () 
         + 'msg at unwind.pl line 9.\n' });
 });
 
+
+// Step 21b (D276, D277, D279): what a collection does with a file whose
+// handle nothing holds, a write the system refuses, and a message after
+// the handle read last was collected.
+test('a collection closes the file of a handle nothing holds, and what it held back is written', () => {
+    for (const knobs of [{}, { CURLY_GC_STRESS: '1', CURLY_GC_POISON: '1' }]) {
+        assert.deepEqual(run('file', 'reap', knobs), { status: 0, output: 'open: 1\nafter a collection: 0\nopens to read: 1\nkept\nopen: 1\nclosed: 0\n' });
+        assert.deepEqual(run('file', 'twice', knobs), { status: 1, output: 'opens to read: 1\nkept\n'
+            + 'fault: open of a file the program has open, one of the two for writing at file.pl line 1.\n' });
+        assert.deepEqual(run('file', 'write-failed', knobs), { status: 1, output: 'written\nfault: write to a file failed at file.pl line 1.\n' });
+        assert.deepEqual(run('file', 'last-read-lines', knobs), { status: 1, output: 'open after the collection: 0\n'
+            + 'fault: a die or a warn with no newline at its end while a file a line was read from is open at file.pl line 1.\n' });
+        assert.deepEqual(run('file', 'last-read-none', knobs), { status: 0, output: 'open after the collection: 0\nmsg at file.pl line 1.\nwarned\n' });
+    }
+});

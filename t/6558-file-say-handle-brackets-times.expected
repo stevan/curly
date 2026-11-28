@@ -1,0 +1,2 @@
+t/6558-file-say-handle-brackets-times.pl:5:9: say to a file handle, and then (...): write the list without brackets of its own; to perl they would not hold all of it (T684)
+exit: 1

@@ -1,0 +1,2 @@
+t/6579-file-errno-array-element.pl:4:5: $![ is an element of perl's own @!, which is not in the language (D273)
+exit: 1

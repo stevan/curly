@@ -1,0 +1,3 @@
+undef
+fault: $! where no open has just failed at t/6469-fault-file-errno-after-stdin-end.pl line 7.
+exit: 1

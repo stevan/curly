@@ -1,0 +1,18 @@
+3:115,49,10
+undef
+3:115,50,10
+3:102,49,10
+more
+more
+2:115,51
+undef
+c: caught at t/6410-file-and-stdin.pl line 35, <STDIN> line 3.
+before at t/6410-file-and-stdin.pl line 14.
+stdin read at t/6410-file-and-stdin.pl line 16, <STDIN> line 1.
+opened at t/6410-file-and-stdin.pl line 18, <STDIN> line 1.
+nothing read from the file at t/6410-file-and-stdin.pl line 20.
+stdin again at t/6410-file-and-stdin.pl line 22, <STDIN> line 2.
+read and closed at t/6410-file-and-stdin.pl line 26.
+eof of stdin at t/6410-file-and-stdin.pl line 28, <STDIN> line 2.
+eof of the file at t/6410-file-and-stdin.pl line 31.
+stdin at its end at t/6410-file-and-stdin.pl line 34, <STDIN> line 3.

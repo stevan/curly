@@ -1,0 +1,2 @@
+t/6577-file-errno-in-braces.pl:4:5: ${!}: perl's $! is written $! (D273)
+exit: 1

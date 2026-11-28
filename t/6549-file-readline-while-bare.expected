@@ -1,0 +1,2 @@
+t/6549-file-readline-while-bare.pl:5:8: a <$fh> alone in a loop's test: perl stores each line in its global $_, which is not in the language (D212, T511); write while (my $line = <$fh>) { ... }
+exit: 1

@@ -1,0 +1,3 @@
+before
+fault: a reference where a string is wanted at t/6479-fault-file-handle-in-a-string.pl line 7.
+exit: 1

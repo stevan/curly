@@ -72,6 +72,8 @@ const parts = (e: Expr): readonly Expr[] =>
     : e.kind === 'hashop' && e.deref !== undefined ? [...(e.keys ?? []), e.deref]
     : e.kind === 'slice' && e.deref !== undefined ? [...e.indexes, e.deref]
     : e.kind === 'unary' ? [e.operand]
+    // `<$fh>` reads its variable where it stands (step 21b).
+    : e.kind === 'readline' ? (e.handle === undefined ? [] : [e.handle])
     : e.kind === 'binary' ? [e.left, e.right]
     : e.kind === 'ternary' ? [e.test, e.then, e.else]
     : e.kind === 'apply' || e.kind === 'invoke' || e.kind === 'arrayop' || e.kind === 'listop' ? e.args
@@ -601,7 +603,20 @@ const notTested = (e: Expr): void => {
 // (T508-order), against D80's order: so working that out may not read a
 // line or call a sub (D213).
 const lineTested = (where: string): string => `a line assigned ${where}: perl warns that the line can be "0", and wants it tested with defined (D222, T518); assign the line in a statement of its own, and test it with defined(...)`;
-const readsOutside = (e: Expr): boolean => e.kind === 'readline' || e.kind === 'stdineof' || e.kind === 'invoke' || e.kind === 'callref' || parts(e).some(readsOutside);
+// (And what opens, closes or asks of a file, step 21b.)
+const fileCall = (e: Expr): boolean => e.kind === 'apply' && (e.name.startsWith('open ') || e.name === 'close');
+// How the readline of a test is written, for a message: `<STDIN>`, or
+// `<$fh>` (step 21b).
+const lineOf = (test: Expr): string => {
+    const e = behind(test);
+    const read = e.kind === 'assign' ? behind(e.value) : e;
+    return read.kind === 'readline' && read.handle !== undefined ? `<$${read.handle.name}>` : '<STDIN>';
+};
+const readsOutside = (e: Expr): boolean => e.kind === 'readline' || e.kind === 'stdineof' || e.kind === 'invoke' || e.kind === 'callref' || fileCall(e) || (e.kind === 'apply' && e.name === 'eof handle')
+    || parts(e).some(readsOutside);
+// `open(...)`, `close(...)`, and either before `or die LIST` or `|| die
+// LIST`: a statement, done for what it does (step 21b; D274).
+const fileStatement = (e: Expr): boolean => fileCall(e) || (e.kind === 'binary' && (e.op === 'or' || e.op === '||') && fileCall(e.left) && isDie(e.right));
 
 const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = false): void => {
     checkLiteral(e);
@@ -651,7 +666,7 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
             refuse(`${index.text} as an index is not a number: perl warns of it as it compiles`, index.pos);
         }
     }
-    const of = e.kind === 'apply' ? plain(e.args[0]!) : undefined;
+    const of = e.kind === 'apply' && e.args.length > 0 ? plain(e.args[0]!) : undefined;
     // (And of the whole container through a reference, T256.)
     if (e.kind === 'apply' && (e.name === 'length' || e.name === 'defined') && (of?.kind === 'array' || (of?.kind === 'deref' && !of.last))) {
         refuse(`${e.name} of ${of.hash ? 'a hash' : 'an array'}: perl ${e.name === 'length' ? 'warns, and means the length of its count' : 'refuses it'}; scalar(${of.hash ? '%h' : '@a'}) is how many it holds`, e.pos);
@@ -904,7 +919,8 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
     case 'use': return refuse(`'use ${s.version};' here: the version is the first statement, and is said once`, s.pos);
     case 'pragma': return refuse(`'${said(s.name)}' goes at the top, after 'use ${VERSION};' and before anything else`, s.pos);
     case 'call':
-        if (s.name === 'printf') checkFormat(s.args, 'printf', s.pos);
+        // (After a file handle, the format is the second item: step 21b.)
+        if (s.name === 'printf') checkFormat(s.to ? s.args.slice(1) : s.args, 'printf', s.pos);
         checkOrder(w, `${s.name}'s list`, s.args, true);
         return s.args.forEach(a => checkExpr(w, a, false, 'list'));
     case 'do':
@@ -921,7 +937,8 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
             // does not warn of it (D87).
             || s.expr.kind === 'binder'
             // `die` and `warn` are done for what they do (step 15).
-            || (s.expr.kind === 'listop' && (s.expr.op === 'die' || s.expr.op === 'warn'));
+            || (s.expr.kind === 'listop' && (s.expr.op === 'die' || s.expr.op === 'warn'))
+            || fileStatement(s.expr);
         // (perl is silent about `exists $h{k};` and `keys %h;`, which
         // sets `each`'s place back: nothing, here.)
         if (!does && !last && s.expr.kind === 'hashop') refuse('this statement only has a value, and nothing is done with it', s.pos);
@@ -944,6 +961,15 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         if (s.expr.kind === 'listassign') {
             // (Its targets are declarations, or checked as targets.)
             return checkExpr(w, s.expr, false, 'list', true);
+        }
+        // The `my` of `open(my $fh, ...)` is the statement's own (D274).
+        if (fileStatement(s.expr)) {
+            const call = s.expr.kind === 'binary' ? s.expr.left : s.expr;
+            const opened = call.kind === 'apply' ? call.args.at(-1) : undefined;
+            if (modified && opened?.kind === 'assign' && opened.target.kind === 'my') {
+                refuse('my under a modifier: when the test fails, perl leaves in the variable what it last held; declare it in a statement of its own', opened.target.pos);
+            }
+            return checkExpr(w, s.expr, true, 'scalar', true);
         }
         return checkExpr(w, s.expr, false, 'list', true);
     case 'block': return s.body.forEach(b => checkStmt(w, b));
@@ -969,9 +995,9 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         // loop's test (T501): the language in `while (... = <STDIN>) { }`,
         // and nowhere else (D212).
         const reads = readsLine(s.test);
-        if (reads === 'bare') refuse("a <STDIN> alone in a loop's test: perl stores each line in its global $_, which is not in the language (D212, T511); write while (my $line = <STDIN>) { ... }", s.test.pos);
+        if (reads === 'bare') refuse(`a ${lineOf(s.test)} alone in a loop's test: perl stores each line in its global $_, which is not in the language (D212, T511); write while (my $line = ${lineOf(s.test)}) { ... }`, s.test.pos);
         if (reads !== undefined && (s.modifier || s.negate)) {
-            refuse(`a line read in the test of ${s.negate ? 'until' : 'a while modifier'}: perl tests it with defined in some of these shapes and not others (D212, T501); write while (my $line = <STDIN>) { ... }`, s.test.pos);
+            refuse(`a line read in the test of ${s.negate ? 'until' : 'a while modifier'}: perl tests it with defined in some of these shapes and not others (D212, T501); write while (my $line = ${lineOf(s.test)}) { ... }`, s.test.pos);
         }
     }
         notTested(s.test);
@@ -981,7 +1007,7 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
     case 'for':
         s.first.forEach(e => checkPart(w, e, true));
         if (s.test && readsLine(s.test) !== undefined) {
-            refuse("a line read in the test of a for (;;): perl tests it with defined there (D212, T501); write while (my $line = <STDIN>) { ... }", s.test.pos);
+            refuse(`a line read in the test of a for (;;): perl tests it with defined there (D212, T501); write while (my $line = ${lineOf(s.test)}) { ... }`, s.test.pos);
         }
         if (s.test) {
             notTested(s.test);

@@ -1,0 +1,3 @@
+words
+fault: $! where no open has just failed at t/6467-fault-file-errno-after-success.pl line 8.
+exit: 1

@@ -1,2 +1,2 @@
-t/3145-try-say-stderr-in-braces.pl:4:5: '{' first after say: perl takes it for a block that gives a file handle; write +{ ... } for a new hash
+t/3145-try-say-stderr-in-braces.pl:4:6: say {STDERR}: STDERR is written without the braces, say STDERR ...; in them stands what gives a file handle of the program's own (D278)
 exit: 1

@@ -25,7 +25,10 @@ export type Token =
     // `qw(...)`, its words (step 16a, D122): a bracketed list of strings.
     | { kind: 'qw'; text: string; words: readonly string[]; pos: Pos }
     // A variable: `text` is `$name`.
-    | { kind: 'var'; text: string; name: string; pos: Pos }
+    // (`handle`: it stands first after `say`, `print` or `printf`, a blank
+    // and what begins a value after it: the file handle written to, step
+    // 21b, D278.)
+    | { kind: 'var'; text: string; name: string; pos: Pos; handle?: true }
     // An array, `@name`, and its last index, `$#name`.
     | { kind: 'array' | 'lastindex'; text: string; name: string; pos: Pos }
     // A hash, `%name` (step 12).
@@ -38,14 +41,15 @@ export type Token =
     // a reference is worked out from, `@{ EXPR }` (step 13b).
     // `sub`: the brace opens or closes the block of a sub with no name,
     // whose end ends a value (step 14).
-    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true; sub?: true }
+    | { kind: ';' | '(' | ')' | ',' | '?' | ':' | '{' | '}' | '[' | ']'; text: string; pos: Pos; subscript?: true; anon?: true; deref?: true; sub?: true; handle?: true }
     // The sigil of a whole container through a reference, `@`, `%` or
     // `$#`, its brace next (step 13b; D108); and `$`, the scalar through
     // one, `${ EXPR }` (step 13c).
     | { kind: 'cast'; text: '@' | '%' | '$#' | '$'; pos: Pos }
     | { kind: 'op'; text: string; pos: Pos }
-    // `<STDIN>`, the one readline of step 21a (D211).
-    | { kind: 'readline'; text: string; pos: Pos }
+    // `<STDIN>`, the one readline of step 21a (D211); and `<$name>`, of a
+    // file handle in a scalar variable, `name` (step 21b, D281).
+    | { kind: 'readline'; text: string; pos: Pos; name?: string }
     | { kind: 'eof'; text: string; pos: Pos };
 
 // An index in a string (D91): a whole number, with a minus or without, or
@@ -57,6 +61,11 @@ export type Index =
 
 // A piece of a string that has a variable in it (D92): text, or one of
 // the shapes that interpolate. `pos` is the `$`'s or the `@`'s.
+// The words after `print $x ` that are operators, or begin no value: with
+// one of them `$x` is no file handle to perl, but what is printed (T684;
+// toke.c's list, and the modifiers, which begin no list).
+const HANDLE_NOT = new Set(['x', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'cmp', 'and', 'or', 'xor', 'if', 'unless', 'while', 'until', 'for', 'foreach', 'isa']);
+
 export type Piece =
     | { kind: 'text'; value: string }
     | { kind: 'var' | 'array' | 'lastindex'; name: string; pos: Pos }
@@ -72,7 +81,9 @@ export type Piece =
     | { kind: 'chain'; head: Piece; index?: Index; key?: Key; pos: Pos }
     | { kind: 'deref'; head: Piece; last?: true; pos: Pos }
     | { kind: 'sderef'; head: Piece; pos: Pos }
-    | { kind: 'dslice'; head: Piece; indexes: readonly Index[]; pos: Pos };
+    | { kind: 'dslice'; head: Piece; indexes: readonly Index[]; pos: Pos }
+    // `$!` (step 21b; D273).
+    | { kind: 'errno'; pos: Pos };
 
 // A key in a string (D99): a word, or a scalar variable.
 export type Key = { kind: 'word'; text: string } | { kind: 'var'; name: string; pos: Pos };
@@ -119,7 +130,7 @@ export const lex = (src: string): Token[] => {
     // For each brace that is open, what it opened: a hash's key, a new
     // hash, or a block (step 13a).
     // (`sderef`: the braces of `${ EXPR }`, step 13c.)
-    const braces: ('subscript' | 'anon' | 'block' | 'deref' | 'sderef' | 'sub')[] = [];
+    const braces: ('subscript' | 'anon' | 'block' | 'deref' | 'sderef' | 'sub' | 'handle')[] = [];
     // Whether the signature that is open is a sub's with no name, and the
     // index of the `)` that closed the last such one: the block after it is
     // that sub's (step 14).
@@ -349,6 +360,16 @@ export const lex = (src: string): Token[] => {
     // mark by perl's tables (T205). After a name in braces nothing is.
     const variable = (sigil: string, where: Pos): Piece => {
         const from = i - 1;
+        // `$!` (step 21b; D273). perl reads on into an element of `@!` or
+        // `%!`, or through an arrow (T689).
+        if (sigil === '$' && at() === '!') {
+            take();
+            if (at() === '[' || at() === '{' || (src.startsWith('->', i) && (src[i + 2] === '[' || src[i + 2] === '{'))) {
+                const next = at() === '-' ? '->' + src[i + 2] : at();
+                refuse(`'${next}' hard after $! in a string: perl reads an element of its own @! or %! there, or goes through $! as a reference (D273, T689); write $!\\${next}`, pos());
+            }
+            return { kind: 'errno', pos: where };
+        }
         let open = sigil;
         if (sigil === '$' && at() === '#') {
             if (!isWordStart(src[i + 1] ?? '') && src[i + 1] !== '{' && src[i + 1] !== '$') {
@@ -603,11 +624,13 @@ export const lex = (src: string): Token[] => {
             return target?.kind === 'var' || target?.kind === ']' || (target?.kind === '}' && (target.subscript === true || target.deref === true))
                 || (target?.kind === 'op' && target.text === '->$*');
         }
+        // (A handle after `print` is followed by its list, step 21b.)
+        if (last?.kind === 'var' && last.handle === true) return false;
         return last?.kind === 'int' || last?.kind === 'num' || last?.kind === 'str' || last?.kind === 'qw' || last?.kind === ')' || last?.kind === 'var' || last?.kind === 'readline'
             || last?.kind === ']' || last?.kind === 'array' || last?.kind === 'lastindex' || last?.kind === 'hash'
             || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true || last.sub === true))
             || (last?.kind === 'op' && WHOLE.has(last.text))
-            || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub'));
+            || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub' || NAMES.get(last.text)?.kind === 'errno'));
     };
 
     // Whether a brace that is no hash's key opens a new hash: where a value
@@ -932,9 +955,17 @@ export const lex = (src: string): Token[] => {
             const close = src.indexOf('>', i);
             const inside = close < 0 ? '' : src.slice(i + 1, close);
             if (inside === '') refuse("<> reads the files named in @ARGV, or stdin, and is not in the language (D211): read stdin with <STDIN>", start);
-            if (inside.startsWith('$')) refuse(`<${inside}> reads a file handle, which is step 21b's: stdin is read with <STDIN>`, start);
+            // `<$fh>` (step 21b, D281): one scalar variable. Anything
+            // more in the angle brackets is a glob to perl (T693).
+            if (/^\$[A-Za-z_][A-Za-z0-9_]*$/.test(inside)) {
+                for (let k = 0; k < inside.length + 2; k++) take();
+                if (inside.length - 1 > NAME_MAX_LENGTH) refuse(`a name of more than ${NAME_MAX_LENGTH} characters: perl refuses it as too long`, start);
+                push({ kind: 'readline', text: `<${inside}>`, name: inside.slice(1), pos: start });
+                continue;
+            }
+            if (inside.startsWith('$')) refuse(`<${inside}>: a line is read from a file handle in a scalar variable, <$fh>; anything more in the angle brackets is a glob to perl (D281, T693): take the handle into a my first`, start);
             if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(inside)) refuse(`<${inside}>: a bareword file handle, which is not in the language (D211); stdin is read with <STDIN>`, start);
-            refuse("'<' where a value begins is a readline or a glob to perl, and only <STDIN> is in the language (D211)", start);
+            refuse("'<' where a value begins is a readline or a glob to perl: the readlines of the language are <STDIN> and <$fh>, a scalar variable hard against both angle brackets (D211, D281)", start);
         } else if (isWordStart(c)) {
             const operator = afterValue();
             let text = run(isWord);
@@ -1012,7 +1043,17 @@ export const lex = (src: string): Token[] => {
                 refuse("$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* or ${ $r }", start);
             }
             if (at() === '{') {
+                if (src[i + 1] === '!' && src[i + 2] === '}') refuse("${!}: perl's $! is written $! (D273)", start);
                 cast('$', start);
+                continue;
+            }
+            // `$!` (step 21b; D273): the system's words for why the last
+            // open failed. `$!{...}` and `$![...]` are elements of perl's
+            // own %! and @!.
+            if (at() === '!') {
+                take();
+                if (at() === '{' || at() === '[') refuse(`$!${at()} is an element of perl's own ${at() === '{' ? '%!' : '@!'}, which is not in the language (D273)`, start);
+                push({ kind: 'word', text: '$!', pos: start });
                 continue;
             }
             if (!isWordStart(at())) refuse("after '$' comes a name: a letter or '_', then letters, digits and '_'", start);
@@ -1054,6 +1095,28 @@ export const lex = (src: string): Token[] => {
                     || (a === '/' && hard && b !== '=' && b !== '/');
                 if (handle) {
                     refuse(`${lop.text} $${name} ${a}${b}: perl takes $${name} for a file handle here; put a blank after the '${a}', or none before it`, start);
+                }
+                // And where what follows the blank can only begin a value,
+                // the variable is the handle written to (step 21b; D278,
+                // T684): a quote, a digit, `$` or `@`, `!` that is no
+                // `!=` or `!~`, a heredoc, a bracket (which the parser
+                // refuses), a word that is no operator. Right after `say`,
+                // `print` or `printf`, no bracket between.
+                const word = isWordStart(a) ? src.slice(w, wordEnd(w)) : '';
+                const begins = a === '"' || a === "'" || isDigit(a) || a === '$' || a === '@' || (word !== '' && !HANDLE_NOT.has(word));
+                if (lopKind === 'statement' && before === tokens.length - 2 && begins) {
+                    refuse(`${lop.text}($${name} ...): perl takes $${name} for a file handle here; a handle stands before the list with no bracket, ${lop.text} $${name} ...; (D278)`, start);
+                }
+                if (lopKind === 'statement' && before === tokens.length - 1) {
+                    if (a === '\\') refuse(`${lop.text} $${name} \\...: perl takes $${name} for a file handle here, and warns (T684); write ${lop.text} {$${name}} \\...`, start);
+                    if (word === 'isa') refuse(`${lop.text} $${name} isa: perl takes $${name} for a file handle here; bracket the test`, start);
+                    const written = a === '"' || a === "'" || isDigit(a) || a === '$' || a === '@' || a === '(' || (a === '!' && b !== '=' && b !== '~')
+                        || (a === '<' && b === '<' && !isBlank(src[w + 2] ?? ' ') && src[w + 2] !== '=')
+                        || (word !== '' && !HANDLE_NOT.has(word));
+                    if (written) {
+                        push({ kind: 'var', text: '$' + name, name, pos: start, handle: true });
+                        continue;
+                    }
                 }
             }
             push({ kind: 'var', text: '$' + name, name, pos: start });
@@ -1117,6 +1180,14 @@ export const lex = (src: string): Token[] => {
                 }
                 continue;
             }
+            // `print { EXPR } LIST` (step 21b; D278): what gives the file
+            // handle, right after the word. Its closing brace ends no
+            // value: the list follows.
+            if (c === '{' && name?.kind === 'word' && NAMES.get(name.text)?.kind === 'statement') {
+                braces.push('handle');
+                push({ kind: '{', text: take(), pos: start, handle: true });
+                continue;
+            }
             if (c === '{' && opensHash()) {
                 braces.push('anon');
                 push({ kind: '{', text: take(), pos: start, anon: true });
@@ -1134,6 +1205,10 @@ export const lex = (src: string): Token[] => {
                 const opened = braces.pop();
                 if (opened === 'sub') {
                     push({ kind: '}', text: take(), pos: start, sub: true });
+                    continue;
+                }
+                if (opened === 'handle') {
+                    push({ kind: '}', text: take(), pos: start, handle: true });
                     continue;
                 }
                 if (opened === 'subscript' || opened === 'anon') {

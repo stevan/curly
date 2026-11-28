@@ -1,2 +1,2 @@
-t/4829-io-eof-stdout.pl:4:9: eof takes STDIN here, eof(STDIN): other handles are step 21b's (D214)
+t/4829-io-eof-stdout.pl:4:9: eof(STDOUT): eof takes STDIN, or a file handle in a variable, eof($fh) (D214, D281)
 exit: 1

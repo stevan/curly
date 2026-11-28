@@ -1,0 +1,2 @@
+t/6556-file-eof-two.pl:5:12: eof takes one file handle, eof($fh) (D281)
+exit: 1

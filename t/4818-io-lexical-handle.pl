@@ -1,5 +1,5 @@
 # kind: refused
-# perl warns: readline() on unopened filehandle; a handle in $fh is step 21b's.
+# perl globs: the one name it gives is the handle's address (T693).
 use v5.42;
-my $fh;
-my $l = <$fh>;
+my %h;
+my $l = <$h{fh}>;

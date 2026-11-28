@@ -59,10 +59,23 @@ static int64_t utf8_characters(const unsigned char *b, size_t n) {
 // at the end of the input, and every time after (D211). The line's bytes
 // are kept in the context between calls, so that a fault leaves nothing
 // to free.
-rt_value rt_readline(rt_ctx *cx) {
+//
+// From `in`, stdin or a file (step 21b). A read that meets the end of the
+// input for the first time sets perl's errno to 0, and the end once met
+// is not looked for again (D272, T681): `*ended`.
+static rt_value read_line(rt_ctx *cx, FILE *in, int *ended, uint64_t *lines) {
     size_t n = 0;
-    int c;
-    while ((c = getc(stdin)) != EOF) {
+    int c = EOF;
+    while (!*ended) {
+        c = getc(in);
+        if (c == EOF) {
+            if (ferror(in)) rt_fault(cx, "read of a file failed");
+            *ended = 1;
+            cx->perl_errno = 0;
+            cx->open_failed = 0;
+            cx->underflowed = 0;
+            break;
+        }
         if (n == cx->read_room) {
             size_t room = cx->read_room ? 2 * cx->read_room : 256;
             char *grown = realloc(cx->read_buf, room);
@@ -74,7 +87,7 @@ rt_value rt_readline(rt_ctx *cx) {
         if (c == '\n') break;
     }
     if (n == 0) return rt_undef();
-    cx->stdin_lines += 1;
+    *lines += 1;
     if (!cx->out_utf8) return bytes_as_characters(cx, cx->read_buf, n);
     int64_t chars = utf8_characters((const unsigned char *)cx->read_buf, n);
     if (chars < 0) rt_fault(cx, "malformed UTF-8 read");
@@ -82,6 +95,25 @@ rt_value rt_readline(rt_ctx *cx) {
     const rt_str *s = str_new(cx, n, (uint64_t)chars, &out);
     memcpy(out, cx->read_buf, n);
     return rt_string(s);
+}
+
+rt_value rt_readline(rt_ctx *cx) {
+    cx->last_read = 1;
+    cx->last_file = NULL;
+    return read_line(cx, stdin, &cx->stdin_ended, &cx->stdin_lines);
+}
+
+// Whether a read would find nothing: a character is looked at and put
+// back. perl's errno is as it was, and the end, once met, is known (T681).
+static int at_end(FILE *in, int *ended) {
+    if (*ended) return 1;
+    int c = getc(in);
+    if (c == EOF) {
+        *ended = 1;
+        return 1;
+    }
+    ungetc(c, in);
+    return 0;
 }
 
 // Where a list is wanted: every line that is left (T508). Each line is
@@ -97,11 +129,10 @@ void rt_list_add_lines(rt_ctx *cx, rt_value list) {
 // `eof(STDIN)` (D214): whether a read would find nothing. A character is
 // looked at and put back.
 rt_value rt_eof_stdin(rt_ctx *cx) {
-    (void)cx;
-    int c = getc(stdin);
-    if (c == EOF) return rt_bool(1);
-    ungetc(c, stdin);
-    return rt_bool(0);
+    // stdin is the handle read last from here (T682).
+    cx->last_read = 1;
+    cx->last_file = NULL;
+    return rt_bool(at_end(stdin, &cx->stdin_ended));
 }
 
 // `@ARGV` (D215), filled into the array in `*argv`, a slot: each argument

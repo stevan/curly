@@ -44,7 +44,9 @@ export type Expr = Int | Num | Str | Interp | Constant | Var | My | Assign | Ste
 // `<STDIN>` (step 21a; D211): the next line, or undef, where one value is
 // wanted, and every line that is left where a list is, as an array is its
 // count or its elements. `eof(STDIN)` (D214).
-export type Readline = { kind: 'readline'; pos: Pos; bracketed?: true };
+// With `handle`, `<$fh>`: of the file handle the scalar variable holds
+// (step 21b; D281).
+export type Readline = { kind: 'readline'; handle?: Var; pos: Pos; bracketed?: true };
 export type StdinEof = { kind: 'stdineof'; pos: Pos; bracketed?: true };
 
 // A sub with no name, where a value may begin (step 14; D161): `sub
@@ -196,7 +198,11 @@ export type Pragma = { kind: 'pragma'; name: string; args: readonly Expr[]; pos:
 // A builtin that is a statement, `say` and `print`, and its arguments.
 // With `handle`, `say STDERR LIST;` (15b), and STDOUT, and `printf` to
 // either (step 21a; D218).
-export type Call = { kind: 'call'; name: string; args: readonly Expr[]; handle?: string; pos: Pos };
+// With `to`, `print $fh LIST;` and `print { EXPR } LIST;` (step 21b; D278):
+// the first of `args` is then what gives the file handle written to, an
+// `apply` of `print handle`, worked out before the list as any first item
+// is (T683).
+export type Call = { kind: 'call'; name: string; args: readonly Expr[]; handle?: string; to?: true; pos: Pos };
 
 // `exit;` and `exit EXPR;` (step 21a; D217).
 export type Exit = { kind: 'exit'; value?: Expr; pos: Pos };

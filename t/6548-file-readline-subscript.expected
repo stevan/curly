@@ -1,0 +1,2 @@
+t/6548-file-readline-subscript.pl:5:14: '[' after <$fh>: take the line into a my first, or the lines into an array
+exit: 1

@@ -1,0 +1,2 @@
+fault: malformed UTF-8 read at t/6491-fault-file-read-cut.pl line 8.
+exit: 1

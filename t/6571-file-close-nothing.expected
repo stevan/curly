@@ -1,0 +1,2 @@
+t/6571-file-close-nothing.pl:4:1: close() with no file handle: to perl it closes the handle selected last, which is not in the language (D283); write close($fh)
+exit: 1

@@ -1,0 +1,2 @@
+t/6573-file-close-bare-or-or.pl:5:11: '||' after close $fh: without brackets close takes one scalar variable, and then the statement ends, or a modifier or 'or' follows (D283); write close(...)
+exit: 1

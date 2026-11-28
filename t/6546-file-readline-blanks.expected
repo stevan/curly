@@ -1,0 +1,2 @@
+t/6546-file-readline-blanks.pl:5:9: '<' where a value begins is a readline or a glob to perl: the readlines of the language are <STDIN> and <$fh>, a scalar variable hard against both angle brackets (D211, D281)
+exit: 1

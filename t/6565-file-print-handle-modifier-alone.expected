@@ -1,0 +1,2 @@
+t/6565-file-print-handle-modifier-alone.pl:5:11: say to a file handle with nothing to print: perl prints $_
+exit: 1

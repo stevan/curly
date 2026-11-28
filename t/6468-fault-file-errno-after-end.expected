@@ -1,0 +1,3 @@
+3
+fault: $! where no open has just failed at t/6468-fault-file-errno-after-end.pl line 9.
+exit: 1

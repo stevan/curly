@@ -1,0 +1,2 @@
+t/6554-file-readline-until.pl:6:20: a line read in the test of until: perl tests it with defined in some of these shapes and not others (D212, T501); write while (my $line = <$fh>) { ... }
+exit: 1

@@ -1,0 +1,3 @@
+2:97,10
+a line was read, and the handle closed at t/6430-exit-closed-no-newline.pl line 15.
+exit: 25

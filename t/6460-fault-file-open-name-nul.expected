@@ -1,0 +1,3 @@
+before
+fault: a NUL in a file's name at t/6460-fault-file-open-name-nul.pl line 7.
+exit: 1

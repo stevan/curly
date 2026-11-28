@@ -1,0 +1,3 @@
+before
+fault: a reference where a string is wanted at t/6463-fault-file-open-name-reference.pl line 6.
+exit: 1

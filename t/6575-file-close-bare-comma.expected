@@ -1,0 +1,2 @@
+t/6575-file-close-bare-comma.pl:5:10: ',' after close $fh: without brackets close takes one scalar variable, and then the statement ends, or a modifier or 'or' follows (D283); write close(...)
+exit: 1

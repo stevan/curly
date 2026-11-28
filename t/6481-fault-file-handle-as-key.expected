@@ -1,0 +1,3 @@
+before
+fault: a reference where a string is wanted at t/6481-fault-file-handle-as-key.pl line 7.
+exit: 1

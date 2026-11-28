@@ -138,6 +138,7 @@ static const rt_str STR_HASH = { 4, 4, "HASH", RT_STR_CONSTANT };
 static const rt_str STR_SCALAR = { 6, 6, "SCALAR", RT_STR_CONSTANT };
 static const rt_str STR_REF = { 3, 3, "REF", RT_STR_CONSTANT };
 static const rt_str STR_CODE = { 4, 4, "CODE", RT_STR_CONSTANT };
+static const rt_str STR_GLOB = { 4, 4, "GLOB", RT_STR_CONSTANT };
 
 // A reference to a scalar is SCALAR, or REF when the scalar holds a
 // reference now (T242).
@@ -146,6 +147,8 @@ rt_value rt_ref(rt_ctx *cx, rt_value v) {
     if (v.tag == RT_TAG_HREF) return rt_string(&STR_HASH);
     if (v.tag == RT_TAG_SREF) return rt_string(is_ref(RT_CELL(v)) ? &STR_REF : &STR_SCALAR);
     if (v.tag == RT_TAG_CODE) return rt_string(&STR_CODE);
+    // A file handle (step 21b; D271).
+    if (v.tag == RT_TAG_GLOB) return rt_string(&STR_GLOB);
     if (!a_scalar(v.tag)) rt_fault(cx, "not a value");
     return rt_string(&STR_FALSE);
 }

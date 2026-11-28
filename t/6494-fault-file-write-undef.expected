@@ -1,0 +1,3 @@
+before
+fault: undef where a string is wanted at t/6494-fault-file-write-undef.pl line 7.
+exit: 1

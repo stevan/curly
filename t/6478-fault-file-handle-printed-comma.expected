@@ -1,0 +1,3 @@
+before
+fault: a reference where a string is wanted at t/6478-fault-file-handle-printed-comma.pl line 7.
+exit: 1

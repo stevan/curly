@@ -1,2 +1,2 @@
-t/4828-io-eof-no-brackets.pl:4:5: eof is written eof(STDIN) here: eof alone is the handle perl read last (D214)
+t/4828-io-eof-no-brackets.pl:4:5: eof is written with brackets, eof(STDIN) or eof($fh): eof alone is the handle perl read last (D214)
 exit: 1

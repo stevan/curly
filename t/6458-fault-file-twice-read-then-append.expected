@@ -1,0 +1,3 @@
+before
+fault: open of a file the program has open, one of the two for writing at t/6458-fault-file-twice-read-then-append.pl line 8.
+exit: 1

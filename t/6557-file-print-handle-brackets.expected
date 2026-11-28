@@ -1,0 +1,2 @@
+t/6557-file-print-handle-brackets.pl:5:11: print to a file handle, and then (...): write the list without brackets of its own; to perl they would not hold all of it (T684)
+exit: 1

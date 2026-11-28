@@ -1,0 +1,3 @@
+more
+fault: eof of a file handle that is not open at t/6453-fault-file-eof-closed.pl line 8.
+exit: 1

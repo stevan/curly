@@ -1,0 +1,2 @@
+t/6525-file-open-element.pl:5:8: '{' after open's first argument: it is my $fh or a scalar variable alone, not an element or anything worked out (D271); open is written open(my $fh, MODE, PATH), or with a scalar variable for my $fh: three arguments, in brackets (D270)
+exit: 1

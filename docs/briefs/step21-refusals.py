@@ -17,8 +17,7 @@ WRITE = 'write while (my $line = <STDIN>) { ... }'
 UNTIL = f"a line read in the test of until: perl tests it with defined in some of these shapes and not others (D212, T501); {WRITE}"
 MOD = f"a line read in the test of a while modifier: perl tests it with defined in some of these shapes and not others (D212, T501); {WRITE}"
 ELEM = 'a line read into an element whose index, key or reference reads a line or calls a sub: perl works the element out first and then reads, against the order of every other assignment (D213, T508); take the index into a my first'
-GLOB = "'<' where a value begins is a readline or a glob to perl, and only <STDIN> is in the language (D211)"
-EOFH = "eof takes STDIN here, eof(STDIN): other handles are step 21b's (D214)"
+GLOB = "'<' where a value begins is a readline or a glob to perl: the readlines of the language are <STDIN> and <$fh>, a scalar variable hard against both angle brackets (D211, D281)"
 AFTER_EXIT = "{} after exit's argument: exit takes only what binds more tightly than a named unary operator, and perl warns of the rest; bracket the argument, exit(...)"
 
 # ---- the loop's tests (D212)
@@ -42,7 +41,8 @@ r('diamond', "perl reads the files named in @ARGV, or stdin (T513).", 'my $l = <
 r('double-diamond', "perl reads the files named in @ARGV, or stdin.", 'my $l = <<>>;', '<<>>', "<<>> reads the files named in @ARGV, or stdin, and is not in the language (D211): read stdin with <STDIN>")
 r('bareword-handle', "perl refuses it: Bareword filehandle not allowed (T513).", 'my $l = <FH>;', '<FH>', "<FH>: a bareword file handle, which is not in the language (D211); stdin is read with <STDIN>")
 r('stdout-read', "perl reads nothing, and warns: Filehandle STDOUT opened only for output.", 'my $l = <STDOUT>;', '<STDOUT>', "<STDOUT>: a bareword file handle, which is not in the language (D211); stdin is read with <STDIN>")
-r('lexical-handle', "perl warns: readline() on unopened filehandle; a handle in $fh is step 21b's.", 'my $fh;\nmy $l = <$fh>;', '<$fh>', "<$fh> reads a file handle, which is step 21b's: stdin is read with <STDIN>")
+# (Step 21b took `<$fh>` in: the row is what is still refused, an element.)
+r('lexical-handle', "perl globs: the one name it gives is the handle's address (T693).", 'my %h;\nmy $l = <$h{fh}>;', '<$h', "<$h{fh}>: a line is read from a file handle in a scalar variable, <$fh>; anything more in the angle brackets is a glob to perl (D281, T693): take the handle into a my first")
 r('glob', "perl lists the files that match (T513).", 'my @f = <*.pl>;', '<*.pl>', GLOB)
 r('readline-word', "perl reads a line.", 'my $l = readline(STDIN);', 'readline', "expected a value, found 'readline'")
 r('subscript-after', "perl does not compile it.", 'my $l = <STDIN>[0];', '[', "'[' after <STDIN>: take the line into a my first, or the lines into an array")
@@ -52,10 +52,11 @@ r('stdin-alone', "perl does not compile it: Bareword \"STDIN\" not allowed while
 r('print-to-stdin', "perl prints nothing, and warns: Filehandle STDIN opened only for input.", 'print STDIN "x";', 'STDIN', 'print STDIN: stdin is read, not written')
 # ---- eof (D214)
 r('eof-empty', "perl asks of the files named in @ARGV, or stdin (T509).", 'say eof() ? 1 : 0;', 'eof', 'eof() is the files named in @ARGV, or stdin, to perl, and not in the language (D214): eof(STDIN)')
-r('eof-bare', "perl asks of the handle last read (T509).", 'my $l = <STDIN>;\nsay eof ? 1 : 0;', 'eof', 'eof is written eof(STDIN) here: eof alone is the handle perl read last (D214)')
-r('eof-no-brackets', "perl asks of STDIN.", 'say eof STDIN ? 1 : 0;', 'eof', 'eof is written eof(STDIN) here: eof alone is the handle perl read last (D214)')
-r('eof-stdout', "perl says true, and warns: Filehandle STDOUT opened only for output.", 'say eof(STDOUT) ? 1 : 0;', 'STDOUT', EOFH)
-r('eof-variable', "perl dies: Can't use an undefined value as a symbol reference; a handle in $fh is step 21b's.", 'my $fh;\nsay eof($fh) ? 1 : 0;', '$fh)', EOFH)
+r('eof-bare', "perl asks of the handle last read (T509).", 'my $l = <STDIN>;\nsay eof ? 1 : 0;', 'eof', 'eof is written with brackets, eof(STDIN) or eof($fh): eof alone is the handle perl read last (D214)')
+r('eof-no-brackets', "perl asks of STDIN.", 'say eof STDIN ? 1 : 0;', 'eof', 'eof is written with brackets, eof(STDIN) or eof($fh): eof alone is the handle perl read last (D214)')
+r('eof-stdout', "perl says true, and warns: Filehandle STDOUT opened only for output.", 'say eof(STDOUT) ? 1 : 0;', 'STDOUT', 'eof(STDOUT): eof takes STDIN, or a file handle in a variable, eof($fh) (D214, D281)')
+# (Step 21b took `eof($fh)` in: the row is `eof $fh`, without brackets.)
+r('eof-variable', "perl dies: Can't use an undefined value as a symbol reference.", 'my $fh;\nsay eof $fh ? 1 : 0;', 'eof', 'eof is written with brackets, eof(STDIN) or eof($fh): eof alone is the handle perl read last (D214)')
 # ---- exit (D217)
 r('exit-or', "perl exits 0, and warns: Possible precedence issue with control flow operator (T506).", 'exit 0 || 3;', '||', AFTER_EXIT.format("'||'"))
 r('exit-less', "perl exits 2, and warns (T506).", 'exit 2 < 3;', '<', AFTER_EXIT.format("'<'"))

@@ -1,0 +1,3 @@
+before
+fault: a noncharacter printed at t/6489-fault-file-write-noncharacter.pl line 9.
+exit: 1

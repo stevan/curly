@@ -1,0 +1,3 @@
+before
+fault: a die or a warn with no newline at its end while a file a line was read from is open at t/6476-fault-file-message-opened-again.pl line 9.
+exit: 1

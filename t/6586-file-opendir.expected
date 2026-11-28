@@ -1,0 +1,2 @@
+t/6586-file-opendir.pl:4:1: 'opendir' is not in the language
+exit: 1

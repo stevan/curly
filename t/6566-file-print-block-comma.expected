@@ -1,0 +1,2 @@
+t/6566-file-print-block-comma.pl:5:12: ',' after the file handle: perl prints the handle itself; no comma stands between the handle and the list
+exit: 1

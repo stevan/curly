@@ -1,0 +1,3 @@
+before
+fault: read of a file handle opened for writing at t/6446-fault-file-read-append-only.pl line 6.
+exit: 1

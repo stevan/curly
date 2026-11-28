@@ -11,7 +11,11 @@
 # reads from stdin, written with printf %b's escapes (\n, \t, \\, \0nnn
 # in octal; \033 is ESC); without one, stdin is empty. "# args: words"
 # gives the program its arguments, split at spaces, and
-# "# env: NAME=value ..." sets variables for it.
+# "# env: NAME=value ..." sets variables for it. "# file: NAME=bytes", as
+# many as wanted, each puts a file in the directory the program runs in,
+# its bytes written as stdin's are: a directory of the test's own, empty
+# but for these, made before the run and removed after it (step 21b,
+# D282).
 #
 # Whether a .expected is right is not this script's business: perl says,
 # through t/checks.py oracle.
@@ -64,11 +68,20 @@ environment() {
 # output can't go down the pipe to diff: diff would wait for it.
 output() {
     rm -f "$1.killed" "$1.output" "$1.errors"
+    # The directory the program runs in (D282): its own, with the files
+    # the test names and nothing else. The program is run by its whole
+    # path, and names its source as the compiler was given it.
+    rm -rf "$1.dir"
+    mkdir "$1.dir"
+    header file "$5" | while IFS= read -r spec; do
+        printf '%b' "${spec#*=}" >"$1.dir/${spec%%=*}"
+    done
+    here=$(pwd)
     set -f                                  # $3 and $4 are split into words, not globbed
     # What it prints goes to a file, which is what the limit is on. stdout
     # and stderr apart, and then stdout first: perl's order for a `dies` or
     # a `warns` test, whatever the two buffers did (D149).
-    ( ulimit -f "$OUTPUT_BLOCKS"; exec env -i $(environment) $4 "./$1" $3 <"$2" >"$1.output" 2>"$1.errors" ) &
+    ( ulimit -f "$OUTPUT_BLOCKS"; envs=$(environment); cd "$1.dir" && exec env -i $envs $4 "$here/$1" $3 <"$here/$2" >"$here/$1.output" 2>"$here/$1.errors" ) &
     set +f
     pid=$!
     ( sleep "$TIMEOUT" && : >"$1.killed" && kill "$pid" ) >/dev/null 2>&1 &
@@ -87,6 +100,7 @@ output() {
         cat "$1.output" "$1.errors"
     fi
     rm -f "$1.output" "$1.errors"
+    rm -rf "$1.dir"
     [ -f "$1.killed" ] && echo "killed after ${TIMEOUT}s"
     [ $status -eq 0 ] || echo "exit: $status"
 }
@@ -124,7 +138,7 @@ if [ "$1" = "--one" ]; then
     if ! node bin/curlyc.ts -o "$bin" "$src" >"$bin.fail" 2>&1; then
         echo "FAIL $name (compile)"
         exit 1
-    elif output "$bin" "$bin.stdin" "$(header args "$src")" "$(header env "$src")" | diff -u "${src%.*}.expected" - >"$bin.fail"; then
+    elif output "$bin" "$bin.stdin" "$(header args "$src")" "$(header env "$src")" "$src" | diff -u "${src%.*}.expected" - >"$bin.fail"; then
         rm -f "$bin.fail"
         echo "ok   $name"
     else

@@ -1,0 +1,2 @@
+t/6572-file-close-two.pl:6:1: close takes 1 to 1 arguments, and here are 2
+exit: 1

@@ -1,0 +1,2 @@
+t/6539-file-open-or-warn.pl:4:29: 'or' after open(...): what may follow it as a statement is 'or die ...' (D274); for anything else, test it with an if or an unless
+exit: 1

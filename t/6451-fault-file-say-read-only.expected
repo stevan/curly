@@ -1,0 +1,3 @@
+before
+fault: write to a file handle opened for reading at t/6451-fault-file-say-read-only.pl line 7.
+exit: 1

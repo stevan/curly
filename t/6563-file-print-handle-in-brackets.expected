@@ -1,0 +1,2 @@
+t/6563-file-print-handle-in-brackets.pl:5:7: print($fh ...): perl takes $fh for a file handle here; a handle stands before the list with no bracket, print $fh ...; (D278)
+exit: 1

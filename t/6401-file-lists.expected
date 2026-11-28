@@ -1,0 +1,62 @@
+2:48,10
+4 lines
+4:120,32,121,10
+1:10
+3:45,49,10
+3:52,50,10
+0 lines
+undef
+3 lines
+2:48,10
+3:45,49,10
+4:113,9,122,10
+0 lines
+undef
+0 lines
+0 lines
+undef
+2:48,10
+4:120,32,121,10 then 3
+undef then 0
+undef
+2:48,10
+3:45,49,10 then 1
+undef then 0
+undef
+undef then 0
+undef then 0
+undef
+for 2:48,10
+for 4:120,32,121,10
+for 1:10
+for 3:45,49,10
+for 3:52,50,10
+undef
+2:48,10
+for 3:45,49,10
+for 4:113,9,122,10
+undef
+undef
+undef
+2:48,10
+4
+0
+undef
+2:48,10
+2
+0
+undef
+0
+0
+undef
+2:48,10
+while 4:120,32,121,10
+while 1:10
+while 3:45,49,10
+while 3:52,50,10
+undef
+2:48,10
+while 3:45,49,10
+while 4:113,9,122,10
+undef
+undef

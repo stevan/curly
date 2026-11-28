@@ -73,6 +73,10 @@ export type Name =
     // `handle` beside STDERR.
     | { kind: 'stdin' }
     | { kind: 'eof'; rt: string }
+    // Step 21b (D270 to D283): `open`, whose three arguments the parser
+    // reads; `$!`, a value with no arguments.
+    | { kind: 'open' }
+    | { kind: 'errno'; rt: string }
     | { kind: 'exit'; rt: string }
     // `chomp` and `chop` (step 16c, D130): a statement on one scalar
     // variable, built as the variable assigned what `rt` makes of it.
@@ -143,6 +147,20 @@ export const NAMES: ReadonlyMap<string, Name> = new Map<string, Name>([
     ['STDOUT', { kind: 'handle', say: 'rt_say_list', print: 'rt_print_list', printf: 'rt_printf' }],
     ['STDIN', { kind: 'stdin' }],
     ['eof', { kind: 'eof', rt: 'rt_eof_stdin' }],
+    // Step 21b. `open(TARGET, MODE, PATH)` is built as the builtin named
+    // for its mode, of the path and of the target assigned its handle
+    // (`open handle`: a new one, or the one the variable holds); no
+    // program can write a name with a blank in it. `eof handle` is `eof`
+    // of a handle that is not STDIN.
+    ['open', { kind: 'open' }],
+    ['open <', { kind: 'function', min: 2, rt: ['rt_open_read'] }],
+    ['open >', { kind: 'function', min: 2, rt: ['rt_open_write'] }],
+    ['open >>', { kind: 'function', min: 2, rt: ['rt_open_append'] }],
+    ['open handle', { kind: 'function', min: 0, rt: ['rt_handle_new', 'rt_handle'] }],
+    ['close', { kind: 'function', min: 1, rt: ['rt_close'] }],
+    ['eof handle', { kind: 'function', min: 1, rt: ['rt_eof_fh'] }],
+    ['print handle', { kind: 'function', min: 1, rt: ['rt_handle_out'] }],
+    ['$!', { kind: 'errno', rt: 'rt_errstr' }],
     ['exit', { kind: 'exit', rt: 'rt_exit' }],
     ['index', { kind: 'function', min: 2, rt: ['rt_index2', 'rt_index3'] }],
     ['rindex', { kind: 'function', min: 2, rt: ['rt_rindex2', 'rt_rindex3'] }],

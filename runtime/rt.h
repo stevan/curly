@@ -26,12 +26,14 @@
 // which no program sees, and then what the sub captured, each a cell or a
 // container, in the order the compiler numbered them.
 enum { RT_TAG_INT = 1, RT_TAG_NUM = 2, RT_TAG_STR = 3, RT_TAG_UNDEF = 4, RT_TAG_BOOL = 5, RT_TAG_ARRAY = 6, RT_TAG_ABSENT = 7, RT_TAG_HASH = 8,
-       RT_TAG_AREF = 9, RT_TAG_HREF = 10, RT_TAG_CELL = 11, RT_TAG_SREF = 12, RT_TAG_CODE = 13, RT_TAG_FN = 14 };
+       RT_TAG_AREF = 9, RT_TAG_HREF = 10, RT_TAG_CELL = 11, RT_TAG_SREF = 12, RT_TAG_CODE = 13, RT_TAG_FN = 14,
+       // A file handle (step 21b; D271): a reference, to perl a glob's.
+       RT_TAG_GLOB = 15 };
 
 // Whether a tag is one of the references, each true, defined, `==` by
 // identity, and a fault as a number or a string (D112).
 static inline int rt_ref_tag(uint64_t tag) {
-    return tag == RT_TAG_AREF || tag == RT_TAG_HREF || tag == RT_TAG_SREF || tag == RT_TAG_CODE;
+    return tag == RT_TAG_AREF || tag == RT_TAG_HREF || tag == RT_TAG_SREF || tag == RT_TAG_CODE || tag == RT_TAG_GLOB;
 }
 
 // An array (D80): a row of values that grows and shrinks in place, the
@@ -201,6 +203,19 @@ typedef struct rt_ctx {
     char *read_buf;
     size_t read_room;
     uint64_t stdin_lines;   // how many lines have been read: perl's `$.` for STDIN, which a `die` names
+    // Step 21b (file.c). The files the program's handles are for, each
+    // closed when its handle is collected; perl's errno, which an uncaught
+    // `die` exits with (D272), and whether the last `open` failed, which
+    // is when `$!` may be read (D273); the handle read last, which a
+    // message names (D279): 0 none, 1 stdin, 2 the file `last_file`, 3 a
+    // file that had given a line and whose handle was collected since
+    // (perl may have freed it, and may not).
+    struct rt_file *files;
+    int perl_errno;
+    int open_failed;
+    int stdin_ended;        // the end of stdin was met: no read looks again
+    int last_read;
+    rt_array *last_file;
 } rt_ctx;
 
 // Run a compiled program: make its context, call its body, return the
@@ -217,6 +232,32 @@ void rt_leave(rt_ctx *cx, rt_frame *frame);
 // holds is freed. The runtime runs one by itself inside an allocation,
 // when the knobs or the bytes allocated say so; this is for its tests.
 void rt_collect(rt_ctx *cx);
+
+// Files and handles (step 21b; D270 to D283; file.c).
+// `rt_handle`: what `open` puts in its variable, a new handle for an
+// undef and a handle itself; `rt_handle_new` for a `my`. The three
+// `open`s: 1, or undef when the system refuses, the path first, as it is
+// worked out first. `rt_close`: 1. A line, every line, and `eof`, of a
+// handle. `rt_handle_out`: the handle `print` is given, looked at before
+// its list is worked out (T683), the list's first item; and the three
+// ways to write the rest of the list to it.
+// `rt_errstr`: `$!`. `rt_file_count`: how many files are open, for the
+// runtime's own tests.
+rt_value rt_handle_new(rt_ctx *cx);
+rt_value rt_handle(rt_ctx *cx, rt_value v);
+rt_value rt_open_read(rt_ctx *cx, rt_value path, rt_value handle);
+rt_value rt_open_write(rt_ctx *cx, rt_value path, rt_value handle);
+rt_value rt_open_append(rt_ctx *cx, rt_value path, rt_value handle);
+rt_value rt_close(rt_ctx *cx, rt_value handle);
+rt_value rt_readline_fh(rt_ctx *cx, rt_value handle);
+void rt_list_add_lines_fh(rt_ctx *cx, rt_value list, rt_value handle);
+rt_value rt_eof_fh(rt_ctx *cx, rt_value handle);
+rt_value rt_handle_out(rt_ctx *cx, rt_value handle);
+void rt_say_fh_list(rt_ctx *cx, rt_value list);
+void rt_print_fh_list(rt_ctx *cx, rt_value list);
+void rt_printf_fh(rt_ctx *cx, rt_value list);
+rt_value rt_errstr(rt_ctx *cx);
+uint64_t rt_file_count(rt_ctx *cx);
 
 // `use open ':std', ':encoding(UTF-8)';` (D39): from here a character
 // past ASCII may be printed.

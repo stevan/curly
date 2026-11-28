@@ -269,7 +269,9 @@ def probe(name, knobs):
         try:
             perl = [triple(checks.run_perl([], path, {}, seed, checks.PERL_LIMIT)) for seed in checks.SEEDS]
             env = dict(knobs, PATH=os.environ.get('PATH', ''))
-            ours = triple(checks.run_capped([exe], env, b'', OURS_LIMIT))
+            # (In a directory of the run's own, as perl is: step 21b, D282.)
+            with checks.run_dir(path, {}) as d:
+                ours = triple(checks.run_capped([os.path.abspath(exe)], env, b'', OURS_LIMIT, cwd=d))
         except checks.Runaway as e:
             return {'verdict': 'UNJUDGED', 'why': str(e)}
         verdict, why = judge(perl, ours)

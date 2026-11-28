@@ -1,0 +1,2 @@
+t/6531-file-open-mode-variable.pl:5:14: open's second argument is one of the literals '<', '>' and '>>', and here is '$m': a mode with a layer, a '+', a pipe or a blank, and one worked out, are not in the language (D270)
+exit: 1

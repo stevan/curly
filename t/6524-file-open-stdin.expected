@@ -1,0 +1,2 @@
+t/6524-file-open-stdin.pl:4:6: open(STDIN, ...): a bareword file handle, which perl keeps for its own (D270); open is written open(my $fh, MODE, PATH), or with a scalar variable for my $fh: three arguments, in brackets (D270)
+exit: 1

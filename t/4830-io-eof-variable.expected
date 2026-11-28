@@ -1,2 +1,2 @@
-t/4830-io-eof-variable.pl:5:9: eof takes STDIN here, eof(STDIN): other handles are step 21b's (D214)
+t/4830-io-eof-variable.pl:5:5: eof is written with brackets, eof(STDIN) or eof($fh): eof alone is the handle perl read last (D214)
 exit: 1

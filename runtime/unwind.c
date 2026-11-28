@@ -89,10 +89,12 @@ void rt_throw(rt_ctx *cx, rt_value v) {
         // underflowed set it (T319, D151): the language keeps no errno.
         if (cx->underflowed) rt_fault(cx, "an uncaught die after a number underflowed: perl exits with the status of $! there, which the language does not keep");
         if (rt_ref_tag(v.tag)) rt_fault(cx, "a reference where a string is wanted");
-        // Uncaught: the message on stderr, and 255 (D12).
+        // Uncaught: the message on stderr, and 255 (D12); or perl's
+        // errno, when it is not 0 (step 21b; D272, T680).
         to_stderr(cx, v);
+        int status = (cx->perl_errno & 255) != 0 ? cx->perl_errno & 255 : 255;
         release(cx);
-        exit(255);
+        exit(status);
     }
     while (cx->frozen_count > t->frozen) {
         rt_array *a = cx->frozen[--cx->frozen_count];
@@ -138,8 +140,14 @@ static rt_value message(rt_ctx *cx, rt_value list, const char *empty) {
     }
     // Once a line has been read, perl names the handle and how many lines
     // it has given (step 21a, T516): `, <STDIN> line N`.
+    // And of a file's handle, while it lives (step 21b; T682), which a
+    // collector cannot know: a fault for one that has given a line and
+    // was not closed since (D279).
+    if (!newline && cx->last_read >= 2 && file_lines(cx) != 0) {
+        rt_fault(cx, "a die or a warn with no newline at its end while a file a line was read from is open");
+    }
     char tail[96];
-    int taillen = newline ? 0 : cx->stdin_lines == 0 ? snprintf(tail, sizeof tail, " line %" PRId64 ".\n", cx->line)
+    int taillen = newline ? 0 : cx->last_read != 1 || cx->stdin_lines == 0 ? snprintf(tail, sizeof tail, " line %" PRId64 ".\n", cx->line)
         : snprintf(tail, sizeof tail, " line %" PRId64 ", <STDIN> line %" PRIu64 ".\n", cx->line, cx->stdin_lines);
     uint64_t filelen = newline ? 0 : strlen(cx->file) + 4;
     uint64_t filechars = 0;

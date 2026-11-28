@@ -188,6 +188,17 @@ def headers_and_problems(path):
         if not m:
             continue
         name, value = m.group(1), m.group(2)
+        # `# file: NAME=bytes`, as many as wanted (step 21b, D282): the
+        # files that stand in the directory the test runs in.
+        if name == 'file':
+            fm = re.fullmatch(r'([A-Za-z0-9_][A-Za-z0-9_.-]*)=(.*)', value)
+            if not fm:
+                problems.append(f'`# file: {value}`: NAME=bytes, the name of letters, digits, `_`, `.` and `-`')
+            elif fm.group(1) in found.setdefault('files', {}):
+                problems.append(f'more than one `# file:` header for {fm.group(1)}')
+            else:
+                found['files'][fm.group(1)] = fm.group(2)
+            continue
         if name in found:
             problems.append(f'more than one `# {name}:` header')
         found[name] = value
@@ -241,7 +252,29 @@ OUTPUT_LIMIT = 16 * 1024 * 1024
 class Runaway(Exception):
     pass
 
-def run_capped(argv, env, stdin, limit):
+import contextlib
+
+@contextlib.contextmanager
+def run_dir(path, hdr):
+    """The directory one run of a test is in (step 21b, D282): its own,
+    empty but for the files the test's `# file:` headers name, and for the
+    test's source at the path it has in the repository, so that perl,
+    given that path, names it in its messages as it does from the
+    repository's root."""
+    import shutil, tempfile
+    d = tempfile.mkdtemp(prefix='curly-run-')
+    try:
+        if os.path.dirname(path):
+            os.makedirs(os.path.join(d, os.path.dirname(path)), exist_ok=True)
+        if os.path.exists(path):
+            shutil.copyfile(path, os.path.join(d, path))
+        for name, text in hdr.get('files', {}).items():
+            open(os.path.join(d, name), 'wb').write(printf_b(text))
+        yield d
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+def run_capped(argv, env, stdin, limit, cwd=None):
     """A program run to its end, with what it printed. None if it didn't
     end in `limit` seconds. What it prints goes to two files, each with
     the system's limit on its size: past it the program is stopped
@@ -251,7 +284,7 @@ def run_capped(argv, env, stdin, limit):
         resource.setrlimit(resource.RLIMIT_FSIZE, (OUTPUT_LIMIT, OUTPUT_LIMIT))
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
         try:
-            r = subprocess.run(argv, env=env, input=stdin, stdout=out, stderr=err, timeout=limit, preexec_fn=cap)
+            r = subprocess.run(argv, env=env, input=stdin, stdout=out, stderr=err, timeout=limit, preexec_fn=cap, cwd=cwd)
         except subprocess.TimeoutExpired:
             return None
         if r.returncode == -signal.SIGXFSZ:
@@ -261,11 +294,21 @@ def run_capped(argv, env, stdin, limit):
         return subprocess.CompletedProcess(argv, r.returncode, out.read(), err.read())
 
 def run_perl(flags, path, hdr, seed, limit):
-    """perl on a test, from the repository's root and by the path the
-    compiler is given, with the test's stdin, arguments and environment
-    and nothing else of this process's. None if it didn't end in time."""
+    """perl on a test, by the path the compiler is given, in a directory
+    of the run's own (D282), with the test's stdin, arguments, environment
+    and files and nothing else of this process's. None if it didn't end
+    in time."""
     env = {**program_environment(hdr), 'PERL_HASH_SEED': str(seed)}
-    return run_capped([PERL, *flags, path, *words(hdr.get('args', ''))], env, printf_b(hdr.get('stdin', '')), limit)
+    perl = shutil_which(PERL)
+    with run_dir(path, hdr) as d:
+        return run_capped([perl, *flags, path, *words(hdr.get('args', ''))], env, printf_b(hdr.get('stdin', '')), limit, cwd=d)
+
+def shutil_which(program):
+    """The program by its whole path: it is run from another directory,
+    and with another PATH."""
+    import shutil
+    found = shutil.which(program)
+    return os.path.abspath(found) if found else program
 
 # The PATH a test's program and perl are given: one value on every machine,
 # as t/run.sh has it (D223), so that a test that prints it prints the same
@@ -635,7 +678,8 @@ def program_stdout(path, hdr, errors=False):
         return f'it does not compile: {clip(c.stderr)}', None
     env = program_environment(hdr)
     env.update({k: v for k, v in os.environ.items() if k in ('ASAN_OPTIONS', 'UBSAN_OPTIONS', 'LSAN_OPTIONS')})
-    r = run_capped([binary, *words(hdr.get('args', ''))], env, printf_b(hdr.get('stdin', '')), int(os.environ.get('TIMEOUT', '60')))
+    with run_dir(path, hdr) as d:
+        r = run_capped([os.path.abspath(binary), *words(hdr.get('args', ''))], env, printf_b(hdr.get('stdin', '')), int(os.environ.get('TIMEOUT', '60')), cwd=d)
     if r is None:
         return ('the compiled program did not finish', None, None) if errors else ('the compiled program did not finish', None)
     cut = r.stderr.rfind(b'fault: ')

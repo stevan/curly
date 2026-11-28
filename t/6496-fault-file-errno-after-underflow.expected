@@ -1,0 +1,3 @@
+0
+fault: $! where no open has just failed at t/6496-fault-file-errno-after-underflow.pl line 7.
+exit: 1

@@ -1,0 +1,2 @@
+t/6585-file-unlink.pl:4:1: 'unlink' is not in the language
+exit: 1

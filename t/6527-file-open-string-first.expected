@@ -1,0 +1,2 @@
+t/6527-file-open-string-first.pl:4:6: open's first argument is my $fh or a scalar variable, and here is 'x': take the handle into a my, and store it after (D271)
+exit: 1

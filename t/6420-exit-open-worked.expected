@@ -1,0 +1,3 @@
+opened
+an open that worked leaves errno 25
+exit: 25

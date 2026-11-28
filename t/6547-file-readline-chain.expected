@@ -1,0 +1,2 @@
+t/6547-file-readline-chain.pl:5:9: <$r->: a line is read from a file handle in a scalar variable, <$fh>; anything more in the angle brackets is a glob to perl (D281, T693): take the handle into a my first
+exit: 1

@@ -1,0 +1,2 @@
+t/6587-file-seek.pl:5:1: 'seek' is not in the language
+exit: 1

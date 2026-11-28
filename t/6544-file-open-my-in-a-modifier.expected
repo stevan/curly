@@ -1,0 +1,2 @@
+t/6544-file-open-my-in-a-modifier.pl:4:17: my $g here: a my begins a statement or a for, or stands in the test of an if or a while, where it is always reached
+exit: 1

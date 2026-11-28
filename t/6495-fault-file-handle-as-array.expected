@@ -1,0 +1,3 @@
+before
+fault: not a reference to an array at t/6495-fault-file-handle-as-array.pl line 7.
+exit: 1

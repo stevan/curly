@@ -1,0 +1,2 @@
+t/6568-file-print-block-statements.pl:5:11: a brace first after print holds one expression, which gives the file handle to write to, and here ';' follows it (D278); write +{ ... } for a new hash
+exit: 1

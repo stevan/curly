@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "rt.h"
 
 // 2^53: a double holds every whole number below it, and not every one
@@ -75,10 +78,17 @@ static void sorts_release_to(rt_ctx *cx, struct rt_sort *keep);
 static void unwind_frozen(rt_ctx *cx, rt_array *a);
 static void unwind_thawed(rt_ctx *cx, rt_array *a);
 static void unwind_release(rt_ctx *cx);
+// file.c's (step 21b): every file closed, as the program ends; and the
+// files whose handles a collection did not reach, before its sweep.
+static void files_release(rt_ctx *cx);
+static void files_reap(rt_ctx *cx);
+// How many lines the file read last has given since it was closed last.
+static uint64_t file_lines(rt_ctx *cx);
 
 static void release(rt_ctx *cx) {
     sorts_release(cx);
     unwind_release(cx);
+    files_release(cx);
     free_list(cx->heap);
     free_list(cx->dead);
     cx->heap = NULL;
@@ -146,7 +156,7 @@ static void mark(rt_ctx *cx, rt_value v) {
         if (v.as.s->where == RT_STR_DEAD) rt_internal(cx, "a slot holds a string that was collected");
         if (v.as.s->where == RT_STR_HEAP) ((rt_block *)v.as.s - 1)->marked |= REACHED;
         return;
-    case RT_TAG_ARRAY: case RT_TAG_HASH: case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_CELL: case RT_TAG_SREF: case RT_TAG_CODE:
+    case RT_TAG_ARRAY: case RT_TAG_HASH: case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_CELL: case RT_TAG_SREF: case RT_TAG_CODE: case RT_TAG_GLOB:
         mark_container(cx, v.as.a);
         return;
     default:
@@ -167,6 +177,9 @@ void rt_collect(rt_ctx *cx) {
         rt_array *a = cx->marks[--cx->marking];
         for (uint64_t n = 0; n < a->count; n++) mark(cx, a->items[n]);
     }
+    // A handle nothing reached: its file is closed, what was written to
+    // it written (step 21b, D276).
+    files_reap(cx);
     // Sweep: what was not reached is poisoned, and freed; or, under the
     // poison knob, kept where nothing will be put in its place.
     uint64_t live = 0;
@@ -600,7 +613,7 @@ static number numeric(rt_ctx *cx, rt_value v) {
     case RT_TAG_UNDEF:
         rt_fault(cx, "undef where a number is wanted");
     // perl takes the address, in silence (D112, T241).
-    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE:
+    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE: case RT_TAG_GLOB:
         rt_fault(cx, "a reference where a number is wanted");
     default:
         rt_fault(cx, "not a numeric value");
@@ -1141,7 +1154,7 @@ int rt_is_true(rt_ctx *cx, rt_value v) {
         return !(s->len == 0 || (s->len == 1 && s->bytes[0] == '0'));
     }
     // A reference is true (D112).
-    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE: return 1;
+    case RT_TAG_AREF: case RT_TAG_HREF: case RT_TAG_SREF: case RT_TAG_CODE: case RT_TAG_GLOB: return 1;
     default: rt_fault(cx, "not a value");
     }
 }
@@ -1710,3 +1723,4 @@ void rt_internal(rt_ctx *cx, const char *what) {
 #include "format.c"
 #include "strfn.c"
 #include "io.c"
+#include "file.c"

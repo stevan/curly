@@ -1,0 +1,11 @@
+while 2:97,10
+while 2:98,10
+while 2:99,10
+2:97,10
+2:98,10
+2:99,10
+eof
+undef
+0 lines
+eof met the end, and no read looked again
+exit: 25

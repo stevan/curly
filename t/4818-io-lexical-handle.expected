@@ -1,2 +1,2 @@
-t/4818-io-lexical-handle.pl:5:9: <$fh> reads a file handle, which is step 21b's: stdin is read with <STDIN>
+t/4818-io-lexical-handle.pl:5:9: <$h{fh}>: a line is read from a file handle in a scalar variable, <$fh>; anything more in the angle brackets is a glob to perl (D281, T693): take the handle into a my first
 exit: 1

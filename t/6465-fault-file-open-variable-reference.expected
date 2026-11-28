@@ -1,0 +1,3 @@
+before
+fault: open's variable holds what is not a file handle at t/6465-fault-file-open-variable-reference.pl line 7.
+exit: 1
