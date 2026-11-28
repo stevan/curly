@@ -116,7 +116,8 @@ programs, as it is built. In outline:
 - **Classes:** `class`, `field`, `method`, `ADJUST`, `:isa` (D19), on
   a core of `Object`, `Role` and `Class` the runtime holds (D182);
   stricter than perl's where perl's is lax (D179, D187: a `:param`
-  given twice to `new` is a fault); step 17 (D170 to D178).
+  given twice to `new` is a fault); step 17 (D170 to D178), its
+  classes built (17a), its roles (17b) and representations (17c) to come.
 - **Packages:** `package Name;` names a file's subs, and nothing
   more: no `bless`, no package variables (D19).
 - **Strings and regexes:** Unicode strings (D24); Perl 5's regexes, a

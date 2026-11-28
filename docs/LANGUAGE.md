@@ -35,17 +35,18 @@ left out, and it must be `v5.42` exactly. It appears once. The `v5.42`
 is followed by its semicolon or by a blank: a comment hard against it,
 `use v5.42#`, is refused, because perl then reads something else.
 
-Three more lines may follow it, in any order, each once, before
+Four more lines may follow it, in any order, each once, before
 anything else:
 
     use utf8;
     use open ':std', ':encoding(UTF-8)';
     no warnings 'recursion';
+    use experimental 'class';
 
 The first lets the program's text hold characters past ASCII, the
-second lets the program print them, and the third keeps perl quiet
-about a sub that calls itself a hundred deep; each is described where
-it matters, below. They are written exactly so (either kind of quote
+second lets the program print them, the third keeps perl quiet
+about a sub that calls itself a hundred deep, and the fourth lets it
+declare a class; each is described where it matters, below. They are written exactly so (either kind of quote
 will do), and no other `use` or `no` is in the language.
 
 ## The text of a program
@@ -2646,6 +2647,169 @@ or `{`, which perl takes for a call: `(\&name)->(...)` says it. `my $f =
 sub { $f->() };`, where the sub would use a `$f` not yet declared: `my
 $f; $f = sub { ... };`, or `__SUB__`. `__SUB__` outside a sub with no
 name. Not yet: `state` and `my sub`.
+
+## Classes
+
+**`class NAME { DECLARATIONS }`**, at the top level of the file, declares
+a class, and **`class NAME :isa(PARENT) { ... }`** one below a parent
+declared above it. A class may be used above its declaration: every class
+is made before the program's first statement runs. A program that
+declares a class says **`use experimental 'class';`** among its pragmas,
+as perl 5.42 needs.
+
+    use v5.42;
+    use experimental 'class';
+
+    class Point {
+        field $x :param :reader = 0;
+        field $y :param :reader = 0;
+        method plus($o) { Point->new(x => $x + $o->x, y => $y + $o->y) }
+        method show { "($x, $y)" }
+    }
+    say Point->new(x => 1)->plus(Point->new(y => 2))->show;    # (1, 2)
+
+A class's name is a word, or words joined by `::`, each beginning with a
+capital letter; not `Object`, `Role` or `Class`, which the language
+holds for itself; not one of perl's own names or a package perl has loaded
+by the end of the pragmas (`Carp`, `IO`, `UNIVERSAL` and the rest); not
+the name of a sub of the program's; and declared once.
+
+**A class's block holds declarations, and nothing else**: `field`,
+`method`, `my method` and `ADJUST`. To perl a class's block is code that
+runs where it stands, so a `my` in it is undef for a method called before
+then; here there is no `my`, no statement, no `sub` and no pragma in it.
+
+### Fields
+
+**`field $x`, `field @a` and `field %h`** declare the variables every
+object of the class has a copy of. A default, `field $n = 1;`, is worked
+out for each new object; an array's or a hash's is a list (an odd number
+of values for a hash is a fault). **A field is seen from its declaration
+on**, in the methods, `ADJUST` blocks and defaults below it in its own
+class, and in no other class: a subclass may declare a field of the same
+name, which is another. A default may read the fields above it; it may
+not name `$self`.
+
+**`:param`** makes a scalar field an argument of `new`, by its own name
+or by `:param(NAME)`. A default with `=` is used when the argument is not
+given, with `//=` also when it is undef, and with `||=` when it is false;
+a parameter with no default must be given. **`:reader`** makes a method
+that gives a copy of the field, of the field's name or `:reader(NAME)`;
+the reader of an array or a hash gives a list, so where one value is
+wanted it is the fault `P->a returned a list where one value is wanted`,
+where perl gives the count. **`:writer`** on a scalar field makes
+`set_x`, or `:writer(NAME)`, which stores its one argument and gives the
+object back. An attribute is written hard against its colon, its
+argument in brackets hard against it, and once.
+
+**A field is a container**: a loop over a field's array or hash freezes
+it, as over any array or hash, and a method that changes it from the loop
+is the fault `an array was changed while a foreach is over it`; `\@a`,
+`\%h` and `\$x` of a field are references to the object's own, and `\$x`
+of a scalar field is the same reference for the object's whole life.
+
+### Methods
+
+**`method NAME (SIGNATURE) { ... }`**, or `method NAME { ... }` with no
+signature, which takes any number of arguments and sees none, is a sub
+of the class: every rule of a sub holds, its count of arguments (the
+object not counted), `return`, the value of its last statement, a list
+or not. **`$self`** is the object, and read-only; it may not be declared
+again, as a parameter, a `my` or a field, and no `my` or parameter may
+take a field's name. A method may be named for most of perl's own words
+(`method keys`, `method length`), but not `new`, `isa`, `can`, `DOES`,
+`VERSION`, `DESTROY`, `AUTOLOAD`, `import`, `unimport`, a special block
+(`BEGIN`, `END` and the rest), a function `use v5.42` brings in (`floor`,
+`trim`, `blessed` and the rest), a file handle, nor for a class: perl
+gives each of those a meaning of its own. A method's name is given once
+in its class, readers and writers counted.
+
+**`my method NAME ...`** is a method seen only in its class, called as
+**`$self->&NAME(...)`**, below its declaration, on `$self` alone, with no
+dispatch. It is not named for one of perl's words.
+
+**`ADJUST { ... }`** runs as each object is made, after every field of
+it; it sees `$self` and the fields above it, and `return` leaves it.
+
+**A sub of the program's is called from a class by its whole name,
+`main::helper(...)`**: to perl a bare `helper(...)` in a class is the
+class's own `P::helper`, and dies; here it is refused.
+
+### Making an object
+
+**`NAME->new(NAME => VALUE, ...)`** makes an object of a class, and
+**`__CLASS__->new(...)`**, in a method, an `ADJUST` block or a default,
+one of the object's own class. `new` is called on a class's name and on
+nothing else. **Its arguments are looked at before anything is made**: an
+odd number of them, a name that is no parameter of the class or of a
+parent, a name given twice, and a parameter with no default not given,
+are each a fault, `P->new was given x twice` and its kin.
+
+**Construction is two passes, as perl has it**: every field of every
+class, the root's first and each class's in order, and only then every
+`ADJUST` block, the root's first. Each argument is copied at its field's
+turn, after the defaults above it have run, as perl copies it:
+
+    my $v = "old";
+    sub change() { $v = "new"; return 1 }
+    class Late { field $w = main::change(); field $got :param :reader; }
+    say Late->new(got => $v)->got;      # new
+
+**`__CLASS__`** alone is the name of the object's own class.
+
+### Calling a method
+
+**`EXPR->NAME(ARGUMENTS)`**, or `EXPR->NAME` with none, calls the
+method its object's class has for the name, its own or its parent's.
+The object is worked out first, then the arguments, and **the object is
+read when the call is made**, as an argument that is a variable is:
+`$o->m(($o = P->new) ? 1 : 0)` calls the new object's method. A blank
+before the bracket is refused. **`$self->SUPER::NAME(...)`** calls the
+method of the parent of the class it is written in, whatever the object.
+Calling a method on undef is the fault `undef where an object is wanted`,
+on anything that is no object `not an object`, and on an object whose
+class has no such method `an object of P has no method m`.
+
+**A method call is, to every rule about what a call may change or give
+back, a call of every method of its name**, in any class: so `my @l = ($x,
+$o->m);` is refused if any method called `m` may store to `$x`, and a
+call's arguments are built as one list if any method of a name among them
+may return a list. **`NAME->new` is a call of every field's default and
+`ADJUST` block of the class and its parents**, and `__CLASS__->new` of
+every class below too: a `new` among the pieces of a row of dots is
+refused where an `ADJUST` may change what an earlier piece reads. A reader
+reads its field, and a writer stores to it.
+
+### Objects
+
+**An object is a reference**: true, defined, `==` and `!=` to another by
+identity; `ref` and `blessed` give its class's name and `reftype` gives
+`OBJECT` (`blessed` gives undef for anything else, `reftype` the kind of
+a reference, or undef); and wherever else a number or a string is wanted,
+printing and a hash's key among them, the fault `a reference where a
+string is wanted`, where perl uses its address. **`EXPR isa NAME`** is
+true for an object of the class or a class below it, and false for
+anything else; NAME is a class of the program's. It binds as perl has
+it, more loosely than arithmetic and `.`, so brackets go round it before
+one of those, `($o isa A) + 1`, and beside `<`, `>`, `<=`, `>=`, `lt`,
+`gt`, `le` or `ge`, where perl compiles neither `$o isa A < 2` nor `2 <
+$o isa A`; `==`, `&&`, `? :` and what is looser follow it bare. `die`
+throws an object as itself, and a `catch` has it.
+
+    class Err { field $msg :param :reader; }
+    try { die Err->new(msg => "boom") } catch ($e) { say $e->msg if $e isa Err }
+
+### What classes may not do, and what is to come
+
+Not in the language: a class's block with anything but declarations;
+`$obj->new` and `ref($self)->new` (`__CLASS__->new` says it); a method of
+the class's name, `P->m`; a method or a class named by what a value
+holds, `$o->$name`, `$class->new`; `P::m($obj)`; `$o->A::m`;
+`next::method`; `isa`, `can`, `DOES` and `VERSION` as methods (the `isa`
+operator says the first); `method m;` with no block; `\$self`; `bless`,
+`@ISA` and `package` as classes. Not yet: `class NAME;` with no block, a
+class's version, roles (step 17b), and objects of other representations
+(step 17c).
 
 ## die, try and catch
 

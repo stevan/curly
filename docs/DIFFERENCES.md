@@ -128,6 +128,10 @@ every one under both.
 | `my %h = (a => 1, b => 2); for my $k (sort keys %h) { delete $h{$k}; } say scalar(%h);` | `0` | Same |
 | `my %h = ("a b" => 1); say "$h{'a b'}";` | `1` | Refused |
 | `my %h = (a => 1); my $k = "a"; say "$h{a} $h{$k}";` | `1 1` | Same |
+| `use experimental 'class'; class P { field $x :param :reader; method twice { $x * 2 } } say P->new(x => 4)->twice;` | `8` | Same |
+| `use experimental 'class'; class P { field $x :param :reader; } say P->new(x => 1, x => 2)->x;` | `2` | Fault: `P->new was given x twice` |
+| `use experimental 'class'; class P { field @a :reader = (1, 2, 3); } my $n = P->new->a; say $n;` | `3` | Fault: `P->a returned a list where one value is wanted` |
+| `use experimental 'class'; sub helper() { return 1 } class P { method m { helper() } } say P->new->m;` | dies: `Undefined subroutine &P::helper` | Refused |
 | `my $r = {a => [1, 2]}; say "$r->{a}[1] @{$r->{a}} $r->{a}->$#*";` | `2 1 2 1` | Same |
 | `my @l = (1, 2); say "count: @{[ scalar(@l) ]}";` | `count: 2` | Refused |
 | `my $h = {}; say "<$h->{a}{b}>";` | `<>`, and warns | Fault: `undef where a reference is wanted` |
@@ -214,6 +218,9 @@ is where the feel changes.
 | `chomp(my $line = <STDIN>)`, `my $n = chomp($s)`, `chomp(@lines)`, `chomp;` | `chomp` and `chop` are statements on one scalar variable, `chomp $line;` (about 20 of the census's programs use the rest) | idiom | sometimes | strings | D130, D131 |
 | `sprintf($fmt, @args)`, a format made as the program runs | A format is a string literal with no variable in it; pick between literals, or join | idiom | sometimes | printing | D124 |
 | Code in a string: `"@{[ scalar(@a) ]}"`, `"${\ join(",", @a) }"`, and anything in `"@{ ... }"` but a scalar variable and its subscripts | Refused: work the value out first, into a `my`, and put that in the string | idiom | sometimes | strings | D111 |
+| A class method or a constructor of one's own, `sub make($class, ...)` in a class, `P->make(...)`; `ref($self)->new`, `$obj->new` | A class's block holds `field`, `method`, `my method` and `ADJUST` alone; `NAME->new(...)`, and `__CLASS__->new(...)` in a method (a guess at how often: the census has 16 programs of `class`) | idiom | sometimes | objects | D171, D173 |
+| A `my` in a class's block, shared by its methods: `class P { my $count = 0; method inc { ++$count } }` | Refused: perl runs the block where it stands, so the `my` is undef until then. A file variable above the class, or a field, says it | idiom | sometimes | objects | D171 |
+| `$obj->isa("P")`, `$obj->can("m")`, `$obj->DOES(...)` | Refused: `$obj isa P` for the first; the rest are not in the language | idiom | sometimes | objects | D19, D178 |
 
 ## 2. Habits that now stop
 
@@ -225,7 +232,10 @@ feels like.
 
 | Perl | Curly | Feel | Met | Where | Decision |
 |---|---|---|---|---|---|
-| `use strict; use warnings;`, and any pragma | Refused: `use v5.42;` is both. Then `use utf8;`, `use open ':std', ':encoding(UTF-8)';`, `no warnings 'recursion';`, and nothing else (57 of the census's programs) | habit | often | layout, old code | D16 |
+| `use strict; use warnings;`, and any pragma | Refused: `use v5.42;` is both. Then `use utf8;`, `use open ':std', ':encoding(UTF-8)';`, `no warnings 'recursion';`, `use experimental 'class';`, and nothing else (57 of the census's programs) | habit | often | layout, old code | D16 |
+| A call of the program's sub from a method: `helper($x)` in a class | `main::helper($x)`: to perl a bare name in a class is the class's own sub, and the call dies (a guess at how often) | habit | sometimes | objects | D178 |
+| A method, a reader or a `my method` named `floor`, `trim`, `blessed` or another of `use v5.42`'s functions, or `new`, `isa`, `END`, a class's name | Refused: perl does not install the method, or takes the name for its own (a guess at how often) | habit | sometimes | objects | D178 |
+| `my $x` or a parameter `$x` in a method of a class with a field `$x`; `my $self` | Refused: perl hides the field, or the object, in silence. Choose another name | habit | sometimes | objects | D178 |
 | A file with no `use v5.42;` | It is the first line, always | habit | often | layout, old code | D16 |
 | `#!/usr/bin/perl` on the first line | Refused, on any line: perl reads switches from it | habit | often | layout | D33 † |
 | An undef printed, interpolated or joined: the empty string, and a warning | Fault. `$x // ""` says it | habit | often | printing | D48, D15 |
@@ -270,6 +280,9 @@ someone.
 
 | Perl | Curly | Feel | Met | Where | Decision |
 |---|---|---|---|---|---|
+| A reader of an array or a hash field where one value is wanted: `my $n = $p->items;` | Fault: `P->items returned a list where one value is wanted`; `my @l = $p->items; my $n = scalar(@l);` | habit | rarely | objects | D18, D172 |
+| A method call whose method in some class returns a list, where one value is wanted | Fault where the method reached is list-shaped, whichever class it is; a call's arguments are built as one list if any method of a name among them may give one | idiom | rarely | objects | D172 |
+| `$o->m (1)`, a blank before a method's bracket; `: param`, `:param( x)` | Refused: hard against the name, and hard against the colon and brackets (a guess at how often) | habit | rarely | objects, layout | D178 |
 | String increment: `"aa"++` is `"ab"`, `"Az"++` is `"Ba"` | Fault. A numeric string that is stepped becomes a number | idiom | rarely | strings | D52 |
 | A list assignment has a value, its right side's count: `my $n = () = f();`, `if ((my @r = f()))` | A statement, and refused as a value | idiom | rarely | data | D78 |
 | A bare block is a loop that runs once: `{ ...; last if $x; ... }` | A scope and nothing else; an unlabelled `last` nearest one is refused. Label the loop that is meant | idiom | rarely | control | D59 † |
@@ -318,6 +331,9 @@ quiet has met few of them.
 
 | Perl | Curly | Feel | Met | Where | Decision |
 |---|---|---|---|---|---|
+| `P->new(x => 1, x => 2)`; `P->new("x")`; a name that is no parameter; a required one missing | Each a fault, found before any of the construction runs: perl lets the last win in silence, warns of the odd count, and dies of the others only after the defaults and `ADJUST` blocks have run | accident | rarely | objects | D178, D187 |
+| An object printed or made a hash's key: `say $obj;`, `$seen{$obj} = 1` | Fault: `a reference where a string is wanted`, where perl uses its address | accident | sometimes | objects | D176 |
+| `$self = ...` in a method | Refused: `$self` is read-only | accident | rarely | objects | D175 |
 | `say (1 + 2) * 3;` prints 3 | A builtin's brackets and then an operator: refused. `say +(1 + 2) * 3;` is perl's own way round | accident | sometimes | printing | D21 |
 | `my $x = 10 if $c;` leaves in `$x` what it last held | `my` under a modifier, or in an operand that may not be worked out: refused | accident | sometimes | variables | D56 |
 | `if ($x = 5)`: perl warns that `==` was meant | Refused, wherever a `=` with a constant on its right is tested for truth | accident | sometimes | control | D53 |
@@ -442,7 +458,8 @@ full when its step is, and its rows join the sections above then.
   value is wanted, `__FILE__` and `__LINE__`, POD, `printf` to a handle
   (step 21). 16a to 16c (D121 to D131) are built, and their rows are in
   the sections above.
-- **Objects** (step 17; D19). `class` as 5.42 has it, on a core
+- **Objects, the rest** (step 17; D19). 17a is built, and its rows
+  are in the sections above; what follows is 17b and 17c. `class` as 5.42 has it, on a core
   the runtime holds, `Object`, `Role` and `Class`, of which every
   class and role is an instance (D182). Roles are wanted, and perl
   5.42 has none: an exception to D2 (D5), refereed by a perl with

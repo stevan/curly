@@ -852,6 +852,15 @@ Every program is kept there and is a row of `briefs/claims17.py`
 | T436 | `field $y :param` on one line, `= die "no y";` on the next (15) | `no y at ... line 4.`, the field's first line | 17a | A field's declaration is a statement to D150 (D178) |
 | T437 | `grep { $self->drop } @a`, `drop` shifting the field `@a` (17) | perl dies of a segmentation fault | 17a | No test asks perl for it (T194's kin) |
 
+## Found building step 17a
+
+Each row is in `briefs/claims17.py`.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T440 | `no warnings 'recursion'; class N { field $d :param; field $kid = $d < 100000 ? N->new(d => $d + 1) : undef; } N->new(d => 0);` | Nothing: perl 5.42 dies of a segmentation fault somewhere past 10,000 deep on an 8 MB stack (10,000 finishes, `17a-nested-10000`), as T194's `grep` does | 17a | The language faults first, `recursion too deep` (D68), at about 2,000 deep; the fault test of nested construction goes to 4,000, which perl finishes |
+| T441 | `say $o isa A - 1;`, and `$o isa A < 2`, `2 ge $o isa A` (17) | perl compiles none: `Bareword "A" not allowed` for what binds tighter than `isa`, which takes the name; a syntax error for a comparison of the row below on either side (T52). The build read each from the left and printed `0` | 17a | Refuse an operator of those rows after `isa NAME`, and an unbracketed `isa` on the right of such a comparison (4219 to 4221). Found finishing the step, after the build's commit |
+
 ## The checks themselves
 
 - A `fault` test that perl can't compile passes a check that only

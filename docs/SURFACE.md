@@ -33,7 +33,8 @@ comparison: *in*, *out*, or *n/a*.
 | Construct | Here | Step | Chalk | Note |
 |---|---|---|---|---|
 | `use v5.42;` first | In, required | 0 | in | D16 |
-| `use utf8`, `use experimental '...'` | In | 3, 17 | in | D16. On a line before the first character past ASCII, a comment's included (T73) |
+| `use utf8` | In | 3 | in | D16. On a line before the first character past ASCII, a comment's included (T73) |
+| `use experimental 'class';`, with the pragmas | In | 17 | in | D16: perl 5.42 compiles `class` under it alone; any other feature named is refused |
 | A line that starts `#!`, the first or any other | Cut | | | D33: perl takes switches from it when it is line 1, and a `# line 1` comment makes any line that (T72). After code on its line: a comment |
 | A version literal hard against a comment, `use v5.42#c` | Cut | | | perl then asks for a module called `v5` (T75) |
 | A comment that is a line directive, `# line 100 "file"` | Cut | | | D147, T74, T311: it changes the line and file a `die` reports. A line whose first character is `#`, then blanks, `line`, blanks and a digit |
@@ -355,6 +356,11 @@ that names it.
 | The order of construction: every field of every class from the root down, then every `ADJUST`, each argument copied at its field's turn | In | 17 | T400, T427, D187: perl's, for 17a; taken up again at 17c |
 | `$obj->$name(...)`, a method chosen by a string; a class named by a string | Later | 17 |
 | `$obj->m` and `Name->new` without brackets | In | 17 |
+| `$obj->m (...)`, a blank before a method's bracket | Cut | | the builder's default (17a), as for a call through a reference |
+| `->&name` of a `my method`, on `$self`, below its declaration | In | 17 | D178, T424 |
+| `->&name` on anything but `$self`, above its `my method`, or of a public method | Cut | | D178, T424 |
+| `field $x //= E` or `||= E` with no `:param` | Cut | | the builder's default (17a): perl takes it as `=` |
+| An attribute with a blank after its colon or in its brackets, empty brackets, an attribute twice | Cut | | D178, T434 |
 | A method named for a builtin, `method keys` | In | 17 |
 | `$self->SUPER::m()` | In | 17 |
 | `$self->next::method()`, `Name::m($obj)`, `method m;` with no block | Cut | | T417, T411, T419 (17b takes `method m;` in a role) |
@@ -370,7 +376,7 @@ that names it.
 | A parent's field read in a subclass; `:isa` of a class the program doesn't define | Cut | |
 | `:param(name)`, `:reader(name)`, `my method` | In | 17 | |
 | `class Name VERSION`, `:isa(Name VERSION)` | Later | | D174 |
-| `__CLASS__`, `isa`, `ref($obj)` | In | 17 |
+| `__CLASS__`, `isa`, `ref($obj)`, `blessed`, `reftype` | In | 17 | D176: an object's class's name, and `OBJECT` |
 | `DESTROY`, `AUTOLOAD`, `can` to fetch code, `bless`, `@ISA`, overloading | Cut | |
 | `role`, `:does` (perl 5.42 has neither; refereed by a perl with Stevan's roles, D181) | New | 17 |
 | `class Object`, `role Role`, `class Class`: every class and role an instance of one, made by the runtime (D182) | New | 17 |

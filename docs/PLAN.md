@@ -6579,7 +6579,7 @@ value`). A chain in `qq` or a heredoc is refused for step 13d, as in
 double quotes, by the same function; `sprintf`'s and `printf`'s lists
 are walked for D109 as `join`'s. Tests 3820 to 3837.
 
-### 17. Classes
+### 17. Classes (17a done)
 
 Referee: perl, and for roles a perl with Stevan's roles (D181).
 Size: large, and split (D185).
@@ -7173,6 +7173,207 @@ defaults for Stevan to confirm. They amend 17a as follows.
   instance in a slot; nested construction counts against D68's limit;
   `use experimental 'class'` stands with the pragmas, before the first
   statement.
+
+#### 17a, as built
+
+**Built** (2026-11-27, by Fable 5.2, alone, on D170 to D178 and D187).
+**The Size line**, large, and "17a alone is about 13a's", match the
+workbench's `docs/MODELS.md` for this model: every pass of the compiler, a
+file of the runtime, and one session.
+
+- **What is in**: `class NAME { ... }` and `class NAME :isa(PARENT) { ...
+  }` at the top level, under `use experimental 'class';` (a pragma of
+  D16's list now, the one spelling); `field $x`, `field @a`, `field %h`,
+  defaults with `=`, and with `//=` and `||=` for a `:param`; `:param`,
+  `:param(NAME)`, `:reader`, `:reader(NAME)`, `:writer`, `:writer(NAME)`;
+  `method NAME SIGNATURE BLOCK` and `method NAME BLOCK`; `my method` and
+  `$self->&NAME(...)`; `ADJUST BLOCK`; `NAME->new(PAIRS)`,
+  `__CLASS__->new(PAIRS)`, `__CLASS__`; `EXPR->NAME(ARGS)`, `EXPR->NAME`,
+  `$self->SUPER::NAME(...)`; `EXPR isa NAME`; `blessed` and `reftype`,
+  named unary operators as `ref` is; `main::NAME(ARGS)` and
+  `\&main::NAME`. Every refusal of D171, D173, D174, D177, D178 and D187,
+  each with a test. **Construction is perl's two passes** (T400): the
+  constructor looks at the pairs first and faults for an odd count, an
+  unknown name, a name twice (D187) and a missing required one, before
+  anything is made (D178, T435); then the instance, in a slot; then each
+  class's fields, root first, each argument copied at its field's turn
+  from where the caller has it (T427); then every `ADJUST`, root first.
+  **A method call** works out its invocant, then its arguments, and reads
+  the invocant where it is when the call is made (T405, T429); the
+  runtime finds the method by its number in the object's class's table,
+  and the generated code calls it (D83). **Every walk** (D18's shapes,
+  D57, D69, D76, D77, D109, T230's rule) takes a method call as a call of
+  every method of its name (D172), a `my method` and `SUPER::` as a call
+  of the one function they name, and `new` as a call of every field
+  default and `ADJUST` of the chain (and of every class below, for
+  `__CLASS__->new`), its defaults being the functions of the fields
+  (D178); a reader reads its field and a writer stores, being methods of
+  one statement each. **A field is a container** (D175): a loop over one
+  freezes it, `\` reaches it, D109 knows it, and a closure has it (step
+  14, `17-clo-*`).
+- **The tree**: `class` (its body the fields and the subs in order, the
+  readers and writers made by the parser as subs of one statement each
+  after their field, and `init`, a sub whose body is the fields' defaults
+  as statements, for the walks), `field`, a `method` on `Sub` (`how`:
+  `method`, `lexical`, `adjust`, `reader`, `writer`, `init`), and the
+  expressions `methcall` (`super`, `lexical`), `new`, `curclass`, `isa`.
+- **The lexer**: `A::B`, `main::f` and `SUPER::m` are one word; a word
+  after `->`, `->&` or `method`, or an attribute's argument, is a name
+  and nothing else (so `method x`, `$p->q`, `$p->not` are names); after a
+  method's name an operator comes, as perl has it (`$p->m - 1`); `->&` is
+  one token; `method NAME (` opens a signature.
+- **The resolver**: before anything is read, the classes (their numbers,
+  parents, fields' places, parameters, methods and `my method`s, each
+  class's table inherited from its parent's, every method name's
+  dispatch number) and every rule of a class's or a method's name; then,
+  where a class stands, its fields in `init`, each default read with the
+  fields above it in a scope of the class's own (T401, T430), each field a
+  declaration of no function's (`owner` -1, its slot its place in an
+  instance); then each sub of the class, seeing the fields above it, its
+  `$self` declared first and read-only. `targetsOf`, `newOf`, `isaOf`,
+  `selfOf`, `fnClass` and `fieldOf` are what the other passes ask.
+- **The checker**: `parts` of a method call are its invocant and then its
+  arguments; `calleeTargets` gives every function a call may run, and
+  `calleeChanges`, `calleeDefaults`, `gives` and `changedBy` are the union
+  over them; a class needs the pragma; `checkClass` checks a field's
+  default where it stands, one value or a list.
+- **The code generator**: every function of a class is `fn_N`, an
+  `rt_code_fn` handed `self`, the place of the invocant, which its
+  prologue copies into `$self`'s slot; a field is
+  `RT_FIELD(self, index)`, a scalar one's a cell (`RT_CELL` of it), and a
+  sub with no name captures it as it captures a `my`'s cell (D161);
+  `genInit` writes a class's fields, `genNew` its constructor, and
+  `curly_main` makes the core (`rt_core`) and each class, with its own
+  methods in its table, before the program's first statement.
+- **The runtime** (`runtime/obj.c`): `RT_TAG_OBJ`, an instance a block of
+  the collector's (its class, then its fields), walked as an array is; a
+  class an instance of `Class` (its name, parent, how many fields, its
+  constructor, the roles it does, its method table); the core,
+  `Object`, `Role` and `Class`, bootstrapped (D182: Class an instance of
+  itself, Object and Role of Class, both below Object, Class doing Role),
+  held in the context and marked as roots; `rt_class_new`,
+  `rt_class_method`, `rt_object_new`, `rt_method` (with dispatch's three
+  faults), `rt_class_maker`, `rt_class_name`, `rt_isa`, `rt_blessed`,
+  `rt_reftype`, `rt_new_args`. `rt_ref_tag` and every switch on the
+  references learned the tag, so D112 holds for an object everywhere;
+  `ref` gives its class's name and `ref \$o` `REF`.
+- **Builder's defaults** (none of them a decision; each the simplest
+  answer that cannot be WRONG, and Stevan's to overturn): **a blank
+  before a method's bracket is refused**, `$o->m (1)`, as before a call
+  through a reference's (17-call-forms: perl takes it); `//=` and `||=`
+  on a field with no `:param` are refused (perl takes them as `=`); a
+  blank after an attribute's colon is refused (`: param`, which perl
+  takes); a `my`, a parameter, a loop's or a catch's variable is refused
+  when it takes the name of any field of its class, declared above it or
+  not; a reader and a writer obey the names a method may not have, though
+  perl installs a reader called `floor` (R17-02-reader-floor); a method
+  name that begins with `__` or is a `v` and digits is refused; **a class
+  whose first part is a package perl holds is refused** (`IO::Thing`,
+  which perl takes, `17a-held-inside`), and so is one any part of which
+  is one of perl's words; **`isa NAME` of a name no class has is refused**
+  (perl gives false); `main::NAME(...)` is taken anywhere, not only in a
+  class, and `\&NAME` in a class only as `\&main::NAME`; `__CLASS__` and
+  `__CLASS__->new` are refused in a sub with no name (perl refuses the
+  first, `17a-curclass-closure`); a key of `new`'s that is undef or a
+  reference is D48's or D112's fault, and a number is the unknown name;
+  the count of a method's arguments leaves the object out; **D76 counts
+  every default of the chain as a later part of `new`'s arguments**, not
+  only those above a `:param` (stricter); a lone `;` in a class's block
+  is refused; `blessed` and `reftype` are named unary operators, and the
+  `builtin::` spellings are refused; **the core is made by a program that
+  declares a class** and by no other, so a program with none allocates
+  what it did (the runtime's own tests count allocations).
+- **What the build found**: nothing in the proposal, D170 to D178 or D187
+  that perl contradicted; the 22 claims the build leaned on all hold
+  (`briefs/claims17.py`, "building 17a"). **T440**: perl 5.42 itself dies
+  of a segmentation fault on construction nested past 10,000 deep, so the
+  fault test of D68's limit goes to 4,000. The oracle's reading rule
+  learned a hash field (declared and filled; its reader shows the order,
+  so a test with one is a `new` test, 4005), a method's hash parameter,
+  and a method called `keys` (three fixtures, 75 in `t/checks/`). The
+  four refusals of earlier steps that named step 17 have the messages of
+  what replaced them (1925, 1927, 2118, 3505).
+- **Tests**: 4000 to 4003 from `t/models/obj.py` (an object a Python
+  dict, a class's methods Python functions by hand, perl's two passes
+  written out), on which perl agreed once the model's own count of the
+  objects a parent's `ADJUST` greeted was mended; 4004 by hand with perl's
+  answers (the orders, the invocant in every shape, `SUPER`, closures over
+  fields, methods named for perl's words); 4005, a `new` test, a hash
+  field's reader in D27's order; 4006, two hundred thousand objects in
+  cycles under a cap of 8 MB; 4007, construction nested 500 deep under
+  the stress knob; the faults 4020 to 4068 from the model (the
+  constructor's four and its keys, dispatch's three, the counts of a
+  method, a reader and a writer, D18 of a method and of a reader, the
+  freeze of a field by a loop and by a method, D112 and D107 of an object
+  at twenty-four places, `recursion too deep` through construction); 4100
+  to 4213, 114 refusals from a table by hand
+  (`briefs/step17a-refusals.py`, each comment perl's own words, pasted by
+  its `--perl`); `runtime/tests/obj.c` (dispatch, the core, an instance
+  and the class blocks under the collector, a million deep and a cycle,
+  the constructor's look at its pairs, every fault); three unit tests of
+  the parser and the resolver; and from the breakages below, 4008 (a
+  method's placeholders and slurpy parameters), 4009 (a method's list
+  handed on, among arguments and by a sub and a method), 4070 (the line of
+  a fault after a method call) and the refusals 4214 to 4218; and 4219 to
+  4221, T441's three. **2,354 golden tests, 165 unit tests, 1,385
+  statements about perl.**
+- **Broken on purpose** (`briefs/step17a-mutations.py`, the runtime and
+  every pass of the compiler, 98 breakages): 88 of 98 caught the first
+  time. Nine were holes, closed by 4008 (a method's signature not lexed as
+  one), 4009 (a method call that hands on no list, a method that gives
+  none, in shapes.ts), 4070 (the line not stored again after a method
+  call), and five refusals, 4214 to 4218 (`isa` after `isa`; a parent's
+  field seen in a child; a method call reaching one method of its name; a
+  method's list not seen by the checker; a field's default not checked).
+  One nothing in the language can see, an `ADJUST` block's label (an
+  `ADJUST` is called for no value and handed nothing, so no fault names
+  it), and the script breaks a method's label instead. Run again whole
+  with the tests added, and with three more breakages for T441's rules
+  (101): all caught.
+- **T441, found finishing the step, after the build's commit** (by the
+  builder's successor, the first having been stopped by a restart of its
+  machine): `$o isa A - 1` printed `0`, and `$o isa A < 2` and `2 < $o isa
+  A` ran, where perl compiles none of them (T52 was this step's trap, and
+  only `SURFACE.md` had it). `isa` has a class's name for its right side,
+  so the parser took the operator after it from the left: what binds
+  tighter than `isa` is refused there now, and so is a comparison of the
+  row below, after it or with an unbracketed `isa` on its right (4219 to
+  4221; four claims). Not a WRONG by the census's rule, perl printing
+  nothing, but a program taken that is not Perl. No breakage had asked
+  for it, and no test: the lesson is T107's, an operand that is not an
+  expression needs its own rule for what follows.
+- **The census** (`make census`, then sorted): of the 124 probes that
+  waited for step 17, 7 print what perl prints, 73 are refused by design
+  and moved for D19 (`bless`, `package`, `@ISA`, `->isa` and its kin), 24
+  for D16: **they spell the pragma `use feature 'class'; no warnings
+  'experimental::class';`**, which D16 refuses as it refuses every second
+  spelling; 15 of those 24, the pragma rewritten by hand, print what perl
+  prints, two fault for D18 (a method's array where one value is wanted)
+  and the rest stop at other refusals, and none differs. 15 are open (a
+  method chosen by a variable, modules by name), and the rest are moved
+  for D13, D17 and D21, or wait for step 18. **1,307 SAME, 178 LOUD, 1,141
+  REFUSED (280 for a later step, 861 open), 4 UNJUDGED, of 2,630 run,
+  2,950 by design, no WRONG**, no probe left SAME.
+- **Doubtful or left**: D172 makes a method that changes a field a change
+  of that field's name at every call of its name, and a field is one name
+  for every instance, so the walks refuse more than perl would show
+  (blunt and safe, as the proposal said); `use feature 'class'` as a
+  second spelling of the pragma, which a Perl programmer will write, is
+  Stevan's to take or leave; the core is made only by a program with a
+  class, where D182 says the runtime holds it (no program can tell);
+  the census meets classes in 16 programs only, so the language's
+  surface for objects is tested by its own tests and the review's
+  programs more than by other people's code.
+- **What 17b needs**: the roles perl as a second oracle (`CURLY_PERL_ROLES`,
+  `tools/perl-roles/build.sh`, a test kind for it in `t/checks.py`); `role
+  NAME { }` with `method NAME;` for a required method, `:does(...)` on a
+  class and a role, composition by the algebra and its errors as
+  refusals; where a role's fields go in an instance (each class's `base`
+  is the place to start), and whether a role's method that names a
+  role's field is compiled once or once per class; a role's `ADJUST`
+  after the class's (T420); `EXPR does ROLE`; T433's rules (no
+  `SUPER::` in a role, T422's rule there). The runtime's class block has
+  its list of roles already (`CLASS_DOES`), and `Class` does `Role`.
 
 ### 18. Modules
 
