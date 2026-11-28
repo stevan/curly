@@ -307,7 +307,7 @@ Opal's notation, `docs/BUILTINS.md`.
 | `rand`, `srand`, `time`, `localtime`, `gmtime`, `sleep` | Later | 22 |
 | `split`, `m//`, `s///`, `tr///`, `qr//`, `quotemeta` | In | 19, 20 |
 | `die`, `warn` | In | 15 | D142, D148: list operators; `warn` is `true`. One reference alone is thrown as itself; uncaught, among several values, or in a `warn`, D112's fault |
-| `open(my $fh, MODE, PATH)`, three arguments, `'<'`, `'>'` or `'>>'`; `open(...) or die LIST;` | In | 21b | D270, D271, D274, D275, T685, T686, T688: 1 or undef; the variable holds a handle either way, and one it held is opened again; only plain files, a name with no NUL and no character past ASCII |
+| `open(my $fh, MODE, PATH)`, three arguments, `'<'`, `'>'` or `'>>'`; `open(...) or die LIST;` | In | 21b | D270, D271, D274, D275, D285, T685, T686, T688, T694: 1 or undef; the name one value by how it is written; the variable holds a handle either way, and one it held is opened again; only plain files, a name with no NUL and no character past ASCII |
 | `open` with two arguments, a bareword handle, a mode with a layer or a `+`, a mode worked out, a pipe | Cut | | D270, T690 |
 | `close($fh)`, `close $fh;` | In | 21b | D277, D283: 1; of a handle that is not open, a fault (perl: false, in silence, T687) |
 | `<$fh>`, `eof($fh)` | In | 21b | D281: `<STDIN>`'s rules, word for word; a read or `eof` of a handle that is closed or open for writing is a fault (D277). `<$h{fh}>`, anything but one scalar variable in the angle brackets: Cut (a glob, T693) |
@@ -321,7 +321,7 @@ Opal's notation, `docs/BUILTINS.md`.
 | `@ARGV` | In | 21a | D215, T503: an array, filled as the program starts, each argument its bytes; `my @ARGV`: Cut (T505) |
 | `%ENV` | In | 21a | D216, T503, T504: a hash, filled as the program starts, read-only (a change faults); `my %ENV`: Cut (T505) |
 | `$0` | Cut | | T510: the path perl was given |
-| `$!` | In | 21b | D273, T689: a string, the system's words, read only while the last `open` failed (else a fault); `$! = ...`, `${!}`, `%!`, `@!`, a subscript after it in a string: Cut |
+| `$!` | In | 21b | D273, D284, T689, T695: a string, the system's words, in a string or alone on the right of `=` to a scalar variable, read only while the last `open` failed (else a fault); `$! = ...`, `${!}`, `%!`, `@!`, a subscript after it in a string: Cut |
 | `system`, backticks, `exec`, `fork`, `wait`, `kill` | Later | a library, when proposed |
 | Sockets, `getpw*` and the system databases, `select` on handles, `ioctl`, `fcntl` | Later | a library, if ever |
 | `pack`, `unpack` | Later | with bytes |

@@ -5,7 +5,7 @@ import { refuse } from './errors.ts';
 import { BASED_MAX, DECIMAL_MAX_LENGTH, INT_MAX, PRAGMAS, VERSION, infixOp, prefixOp } from './names.ts';
 import type { CallRef, Chain, Deref, Expr, Invoke, My, Pragma, Program, Sderef, Stmt, Sub, Var } from './ast.ts';
 import type { Resolution } from './resolver.ts';
-import { behind, handsOn, readsLine } from './shapes.ts';
+import { behind, handsOn, readsLine, shaped } from './shapes.ts';
 import { checkFormat } from './format.ts';
 import type { Gives } from './shapes.ts';
 
@@ -605,6 +605,18 @@ const notTested = (e: Expr): void => {
 const lineTested = (where: string): string => `a line assigned ${where}: perl warns that the line can be "0", and wants it tested with defined (D222, T518); assign the line in a statement of its own, and test it with defined(...)`;
 // (And what opens, closes or asks of a file, step 21b.)
 const fileCall = (e: Expr): boolean => e.kind === 'apply' && (e.name.startsWith('open ') || e.name === 'close');
+// `$!` is perl's own variable, and perl reads a variable when the operator
+// it is an operand of runs (D14): `say $!, f();` says what `f` left there
+// (step 21b; T695). A value here is made where it stands. So `$!` stands
+// where the two are one: in a string, which is made where it stands
+// (T196), and alone on the right of `=` to a scalar variable. The ones
+// that stand so are noted as their string or their assignment is checked.
+const errnoRead = new WeakSet<Expr>();
+const isErrno = (e: Expr): boolean => e.kind === 'apply' && e.name === '$!';
+const noteErrno = (e: Expr): void => {
+    if (e.kind === 'interp') e.parts.filter(isErrno).forEach(x => errnoRead.add(x));
+    if (e.kind === 'assign' && e.op === '=' && (e.target.kind === 'var' || e.target.kind === 'my') && isErrno(e.value)) errnoRead.add(e.value);
+};
 // How the readline of a test is written, for a message: `<STDIN>`, or
 // `<$fh>` (step 21b).
 const lineOf = (test: Expr): string => {
@@ -620,6 +632,10 @@ const fileStatement = (e: Expr): boolean => fileCall(e) || (e.kind === 'binary' 
 
 const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = false): void => {
     checkLiteral(e);
+    noteErrno(e);
+    if (isErrno(e) && !errnoRead.has(e)) {
+        refuse('$! outside a string: perl reads its own variable when the operator it is an operand of runs, which may be after something else has changed it (D284, T695); write it in a string, "$!", or take it into a variable first, my $why = $!;', e.pos);
+    }
     if (e.kind === 'assign' && e.op === '=' && behind(e.value).kind === 'readline' && (e.target.kind === 'elem' || e.target.kind === 'chain' || e.target.kind === 'sderef')
         && parts(e.target).some(readsOutside)) {
         refuse('a line read into an element whose index, key or reference reads a line or calls a sub: perl works the element out first and then reads, against the order of every other assignment (D213, T508); take the index into a my first', e.pos);
@@ -665,6 +681,14 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
         if (index.kind === 'str' && !NUMERIC_STRING.test(index.value)) {
             refuse(`${index.text} as an index is not a number: perl warns of it as it compiles`, index.pos);
         }
+    }
+    // To perl what follows `open`'s mode is a list: `open($fh, '<', @names)`
+    // opens the file the array's one element names, and dies of two; a
+    // line read there reads every line (step 21b; T694). Here it is one
+    // value, so what is a list by how it is written is refused. (A call
+    // that gives a list is D18's fault, as the program runs.)
+    if (e.kind === 'apply' && e.name.startsWith('open ') && e.name !== 'open handle' && shaped(e.args[0]!, () => false)) {
+        refuse("open's third argument is one value, the file's name: perl takes a list there, each of its values an argument of its own (T694); take the name into a my first", e.args[0]!.pos);
     }
     const of = e.kind === 'apply' && e.args.length > 0 ? plain(e.args[0]!) : undefined;
     // (And of the whole container through a reference, T256.)
@@ -955,6 +979,7 @@ const checkStmt = (w: World, s: Stmt, modified = false, last = false): void => {
         // it: its own, and no other.
         if (s.expr.kind === 'my' || s.expr.kind === 'myarray' || (s.expr.kind === 'list' && s.expr.my)) return;
         if (s.expr.kind === 'assign' && (head.kind === 'my' || head.kind === 'myarray')) {
+            noteErrno(s.expr);
             checkConcat(w, s.expr);
             return checkExpr(w, s.expr.value, false, head.kind === 'myarray' ? 'list' : 'scalar');
         }

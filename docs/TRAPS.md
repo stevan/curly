@@ -926,7 +926,19 @@ Files and handles. Each is a row or several of `briefs/claims21.py`
 | T692 | `print $o "abc\n"; open(my $in, "<", "o.txt"); my $l = <$in>;`; `print $p "x" x 8191; say -s "p.txt"; print $p "y"; say -s "p.txt";`; a sub that opens, prints and returns, and the file read after it | undef: not in the file yet; `0` and `8192`; the dropped handle's text is there, perl having closed it as the sub returned | 21b | No file open twice when one writes (D276) |
 | T693 | `while (my $l = <$fh>)` with a last line `0`; `if (my $l = <$fh>) { }`; `<$h{fh}>` | `[0]` read; `Value of <HANDLE> construct can be "0"`; a glob, of the handle's address | 21b | `<STDIN>`'s rules (D281) |
 
-## The checks themselves
+## Found by the review of step 21b
+
+The builder's own pass, after the build (no second agent could be
+started in the session): `briefs/step21b-review/hunt.py`, programs by
+rule and by chance, each run by perl and by the compiler in a directory
+of its own, stdout, stderr and the exit status compared; and two found
+by reading perl's own account of `open` and of `$!` against the build.
+D284 and D285 are what was done.
+
+| | Program | perl prints | Step | Way out |
+|---|---|---|---|---|
+| T694 | `my @n = ("in.txt"); open(my $fh, "<", @n);`; `open(my $fh, "<", <STDIN>)`; with two names in `@n` | opens `in.txt`: what follows `open`'s mode is a list, to perl, an array there its elements and a line read every line; of two names it dies, `More than one argument to open`. The compiler took the array for its count, and tried to open a file called `1`: a WRONG | 21b | A name that is a list by how it is written is refused (D285); 6592 to 6596 |
+| T695 | `say $!, g();`, `$! . g()`, `my @l = ($!, g());`, `$h{g()} = $!;`, where `g` opens something that fails another way; `say $!, $s + 0;` where the sum underflows | what `g` left in `$!`, `Is a directory`, and `Numerical result out of range`: `$!` is a variable of perl's own, read when the operator it is an operand of runs (D14). In a string it is made where it stands, and `my $e = $!;` reads it there. The compiler made the string where `$!` stood: a WRONG | 21b | `$!` stands in a string, or alone on the right of `=` to a scalar variable, and nowhere else (D284); 6597 to 6603 |
 
 - A `fault` test that perl can't compile passes a check that only
   compares stdout, whenever nothing was printed first. Hence `perl -c`

@@ -153,6 +153,12 @@ MUTATIONS = [
     ("a my in open stands nowhere", CHECK, "            return checkExpr(w, s.expr, true, 'scalar', true);\n        }", "            return checkExpr(w, s.expr, false, 'scalar', true);\n        }"),
     ("an open in an element's index is no read", CHECK, " || fileCall(e) || (e.kind === 'apply' && e.name === 'eof handle')\n", "\n"),
     ("printf's format after a handle is the handle", CHECK, "checkFormat(s.to ? s.args.slice(1) : s.args, 'printf', s.pos);", "checkFormat(s.args.slice(s.to ? 2 : 0), 'printf', s.pos);"),
+    ("open's name may be a list", CHECK, "    if (e.kind === 'apply' && e.name.startsWith('open ') && e.name !== 'open handle' && shaped(e.args[0]!, () => false)) {", "    if (false) {"),
+    ("$! is read anywhere", CHECK, "    if (isErrno(e) && !errnoRead.has(e)) {", "    if (false) {"),
+    ("$! in a string is refused", CHECK, "    if (e.kind === 'interp') e.parts.filter(isErrno).forEach(x => errnoRead.add(x));\n", ""),
+    ("$! on the right of = is refused", CHECK, "(e.target.kind === 'var' || e.target.kind === 'my') && isErrno(e.value)) errnoRead.add(e.value);", "(e.target.kind === 'var' || e.target.kind === 'my') && false) errnoRead.add(e.value);"),
+    ("$! is read on the right of any assignment", CHECK, "(e.target.kind === 'var' || e.target.kind === 'my') && isErrno(e.value)) errnoRead.add(e.value);", "isErrno(e.value)) errnoRead.add(e.value);"),
+    ("a my assigned $! is refused", CHECK, "            noteErrno(s.expr);\n            checkConcat(w, s.expr);", "            checkConcat(w, s.expr);"),
     # ---- the code generator
     ("<$fh> where one value is wanted reads stdin", GEN, "    case 'readline': return temp(b, e.handle === undefined ? 'rt_readline(cx)' : `rt_readline_fh(cx, ${genExpr(e.handle, b).c})`);", "    case 'readline': return temp(b, 'rt_readline(cx)');"),
     ("<$fh> where a list is wanted is one line", GEN, "`rt_list_add_lines_fh(cx, ${list}, ${genExpr(e.handle, b).c})`];", "`rt_list_add(cx, ${list}, rt_readline_fh(cx, ${genExpr(e.handle, b).c}))`];"),

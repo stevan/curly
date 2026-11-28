@@ -2,5 +2,6 @@
 # kind: fault
 use v5.42;
 open(my $no, '<', 'nope.txt');
+my $why = $!;
 say "before";
-my $n = $! + 0;
+my $n = $why + 0;

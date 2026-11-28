@@ -27,7 +27,8 @@ has given:
                               nothing, and the end, once met, is not
                               looked for again
   $!                          the system's words for errno, while the last
-                              open is one that failed; else a fault
+                              open is one that failed; else a fault. In a
+                              string, or alone on the right of `=`
   die, uncaught               exits with errno when it is not 0, else 255
   a message with no newline   ends ` at FILE line N.`, and names stdin
                               (`, <STDIN> line N`) when stdin was read
@@ -693,10 +694,10 @@ def case_fails(w, rnd):
     w.perl('say ref($h3), " ", defined($h3) ? "defined" : "undef", " ", $h3 ? "true" : "false";', 'GLOB defined true\n')
     words = os.strerror(ENOENT)
     w.perl('say "e1: $!.";', f'e1: {words}.\n')
-    w.perl('say "e2: " . $! . "!";', f'e2: {words}!\n')
+    w.perl('my $e2 = $!; say "e2: " . $e2 . "!";', f'e2: {words}!\n')
     w.perl('say "e3: $!::x $!->";', f'e3: {words}::x {words}->\n')
-    w.perl('my $why = $!; say length($why), " ", $why eq "' + words + '" ? "the words" : "others", " ", $! ? "true" : "false";', f'{len(words)} the words true\n')
-    w.perl('my @whys = ($!, "$!");', '')
+    w.perl('my $why = $!; say length($why), " ", $why eq "' + words + '" ? "the words" : "others", " ", "$!" ? "true" : "false";', f'{len(words)} the words true\n')
+    w.perl('my $again; $again = ($!); my @whys = ($again, "$!");', '')
     w.perl('say scalar(@whys), " ", $whys[0] eq $whys[1] ? "same" : "differ";', '2 same\n')
     w.perl('unless (open(my $d, \'<\', "no/such/dir/x.txt")) { say "unless: $!" }', f'unless: {words}\n')
     w.perl('my $h5; my $r = open($h5, \'<\', \'nope.txt\'); say defined $r ? "defined" : "undef", " ", ref($h5);', 'undef GLOB\n')
@@ -1023,10 +1024,10 @@ FAULTS = {
     6464: ('open-variable-number', ABC, [], ['my $fh = 5;', 'say "before";', "open($fh, '<', 'in.txt');", 'say "not reached";'], 'before\n', "open's variable holds what is not a file handle", 3),
     6465: ('open-variable-reference', ABC, [], ['my $fh = [1];', 'say "before";', "open($fh, '<', 'in.txt');"], 'before\n', "open's variable holds what is not a file handle", 3),
     6466: ('errno-no-open', {}, [], ['say "before";', 'say "[$!]";'], 'before\n', PAST, 2),
-    6467: ('errno-after-success', ABC, [], ["open(my $no, '<', 'nope.txt');", 'say length($!) > 0 ? "words" : "none";', IN, 'say "why: " . $!;'], 'words\n', PAST, 4),
+    6467: ('errno-after-success', ABC, [], ["open(my $no, '<', 'nope.txt');", 'say length("$!") > 0 ? "words" : "none";', IN, 'say "why: $!";'], 'words\n', PAST, 4),
     6468: ('errno-after-end', ABC, [], ["open(my $fh, '<', 'in.txt');", "open(my $no, '<', 'nope.txt');", 'my @l = <$fh>;', 'say scalar(@l);', 'my $why = $!;'], '3\n', PAST, 5),
-    6469: ('errno-after-stdin-end', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $l = <STDIN>;', 'say defined $l ? "line" : "undef";', 'say $!;'], 'undef\n', PAST, 4),
-    6470: ('errno-as-number', {}, [], ["open(my $no, '<', 'nope.txt');", 'say "before";', 'my $n = $! + 0;'], 'before\n', 'not a numeric string', 3),
+    6469: ('errno-after-stdin-end', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $l = <STDIN>;', 'say defined $l ? "line" : "undef";', 'say "$!";'], 'undef\n', PAST, 4),
+    6470: ('errno-as-number', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $why = $!;', 'say "before";', 'my $n = $why + 0;'], 'before\n', 'not a numeric string', 4),
     6471: ('message-warn', ABC, [], [IN, 'my $l = <$fh>;', 'print $l;', 'warn "careful";', 'say "not reached";'], 'a\n', MESSAGE, 4),
     6472: ('message-die', ABC, [], [IN, 'while (my $l = <$fh>) {', '    print $l;', '    die "bad line" if $l eq "b\\n";', '}'], 'a\nb\n', MESSAGE, 4),
     6473: ('message-die-caught', ABC, [], [IN, 'my @l = <$fh>;', 'say scalar(@l);', 'try { die "inside" } catch ($e) { say "not reached" }'], '3\n', MESSAGE, 4),
@@ -1052,7 +1053,7 @@ FAULTS = {
     6493: ('printf-count', {}, [], [OUT, 'say "before";', 'printf $out "%s %s\\n", "one";'], 'before\n', 'missing argument in printf', 3),
     6494: ('write-undef', {}, [], [OUT, 'my $u;', 'say "before";', 'print $out "a", $u;'], 'before\n', 'undef where a string is wanted', 4),
     6495: ('handle-as-array', ABC, [], [IN, 'say "before";', 'my @l = $fh->@*;'], 'before\n', 'not a reference to an array', 3),
-    6496: ('errno-after-underflow', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $small = "1e-400";', 'my $tiny = $small + 0;', 'say $tiny;', 'say $!;'], '0\n', PAST, 5),
+    6496: ('errno-after-underflow', {}, [], ["open(my $no, '<', 'nope.txt');", 'my $small = "1e-400";', 'my $tiny = $small + 0;', 'say $tiny;', 'say "$!";'], '0\n', PAST, 5),
     6497: ('eof-not-a-handle', {}, [], ['my $x = 0;', 'say "before";', 'say eof($x) ? "eof" : "more";'], 'before\n', 'not a file handle', 3),
     6498: ('message-warn-in-a-sub', ABC, [], ['sub note($text) { warn $text; return; }', IN, 'my $l = <$fh>;', 'say "before";', 'note("careful");'], 'before\n', MESSAGE, 1),
     6499: ('close-after-reopen-failed', ABC, [], [IN, "open($fh, '<', 'nope.txt');", 'say "before";', 'close($fh);'], 'before\n', f'close of {CLOSED}', 4),

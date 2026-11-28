@@ -8,10 +8,10 @@ say defined(open($h3, '<', "nope.txt")) ? "defined" : "undef";
 say "[$!]";
 say ref($h3), " ", defined($h3) ? "defined" : "undef", " ", $h3 ? "true" : "false";
 say "e1: $!.";
-say "e2: " . $! . "!";
+my $e2 = $!; say "e2: " . $e2 . "!";
 say "e3: $!::x $!->";
-my $why = $!; say length($why), " ", $why eq "No such file or directory" ? "the words" : "others", " ", $! ? "true" : "false";
-my @whys = ($!, "$!");
+my $why = $!; say length($why), " ", $why eq "No such file or directory" ? "the words" : "others", " ", "$!" ? "true" : "false";
+my $again; $again = ($!); my @whys = ($again, "$!");
 say scalar(@whys), " ", $whys[0] eq $whys[1] ? "same" : "differ";
 unless (open(my $d, '<', "no/such/dir/x.txt")) { say "unless: $!" }
 my $h5; my $r = open($h5, '<', 'nope.txt'); say defined $r ? "defined" : "undef", " ", ref($h5);

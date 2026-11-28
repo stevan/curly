@@ -1,0 +1,2 @@
+t/6598-file-errno-bare-list.pl:7:46: $! outside a string: perl reads its own variable when the operator it is an operand of runs, which may be after something else has changed it (D284, T695); write it in a string, "$!", or take it into a variable first, my $why = $!;
+exit: 1

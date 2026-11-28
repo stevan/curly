@@ -2825,3 +2825,29 @@ scalar variable**, with `or die` or a modifier after it; `close(EXPR)`
 takes one value. Rejected: `close` with no argument (the handle
 selected last, to perl).
 
+**D284, D285. The review of step 21b: the builder's defaults.** *(Fable
+5.2, 2026-11-28, under the user's standing instruction of 2026-11-27;
+each is his to overturn. `PLAN.md`, step 21, "What the review found
+(21b)"; `TRAPS.md`, T694 and T695.)*
+**D284. `$!` stands in a string, or alone on the right of `=` to a
+scalar variable, and nowhere else.** `$!` is perl's own variable, and
+perl reads a variable when the operator it is an operand of runs (D14):
+`say $!, f();` and `$! . f()` say what `f` left there, `$h{f()} = $!`
+too, and a sum that underflows between changes it as well (T695). A
+value of the language is made where it stands; so `$!` is refused
+wherever the two could differ, which is everywhere but a string
+(`"$!"`, made where it stands, T196) and `my $why = $!;`. D273's rule
+for when it may be read stands. Rejected: a slot of its own that the
+runtime keeps, read late as a variable is (every operator would have to
+know the value that says "no open has just failed"); refusing only
+when something after it in the statement could move errno (which
+something is, is a list as long as the language).
+**D285. `open`'s third argument is one value by how it is written.**
+To perl it is a list (T694): an array there is its elements, each an
+argument, and a line read reads every line. So an array, a hash, a
+list, a slice, a range, a line read, `map`, `grep`, `sort`, `reverse`,
+`keys`, `values`, and a `? :` or `||` with such an arm, are refused
+there; a call that gives a list is D18's fault as the program runs.
+Rejected: perl's list (one name is the file's, two are a death: nothing
+is gained by an array of one).
+

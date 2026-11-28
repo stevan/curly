@@ -105,6 +105,21 @@ r('file-test', 'perl says whether the file is there: step 21c.', "my $x = -e 'in
 r('input-separator', 'perl reads whole files from here on.', 'local $/;', '$/', "after '$' comes a name: a letter or '_', then letters, digits and '_'")
 r('line-number', 'perl gives the line number of the handle read last.', IN + 'my $l = <$fh>;\nsay $.;', '$.', "after '$' comes a name: a letter or '_', then letters, digits and '_'")
 r('stdin-as-a-value', 'perl gives a reference to the glob of stdin.', 'my $in = \\*STDIN;', '\\', "\\ before '*': \\ takes a named array, a named hash or a scalar variable, \\@a, \\%h or \\$x (D110)")
+# ---- found by the review (T694, T695; D284, D285)
+ONE = "open's third argument is one value, the file's name: perl takes a list there, each of its values an argument of its own (T694); take the name into a my first"
+LATE = '$! outside a string: perl reads its own variable when the operator it is an operand of runs, which may be after something else has changed it (D284, T695); write it in a string, "$!", or take it into a variable first, my $why = $!;'
+r('open-name-array', "perl opens the file the array's one element names, and dies of two (T694).", "my @names = ('in.txt');\nopen(my $fh, '<', @names);", '@names)', ONE)
+r('open-name-readline', 'perl reads every line of stdin, each an argument.', "open(my $fh, '<', <STDIN>);", '<STDIN>', ONE)
+r('open-name-list', "perl dies: More than one argument to open(,':perlio').", "open(my $fh, '<', ('a', 'b'));", "('a'", ONE)
+r('open-name-branch', 'perl opens the file the branch gives, a list as it is.', "my @names = ('in.txt');\nopen(my $fh, '<', (@names ? @names : 'x'));", '?', ONE)
+r('open-name-map', 'perl opens the file the map gives.', "open(my $fh, '<', map { $_ } 'in.txt');", 'map', ONE)
+r('errno-bare-say', 'perl says the empty line: nothing has failed.', 'say $!;', '$!', LATE)
+r('errno-bare-list', 'perl reads $! after the call, when die joins its list (T695).', "sub f() {\n    return 'x';\n}\nopen(my $fh, '<', 'nope.txt') or die 'no: ', $!, f(), \"\\n\";", '$!', LATE)
+r('errno-bare-concat', 'perl reads $! as the dot runs.', "open(my $fh, '<', 'nope.txt');\nmy $s = 'no: ' . $!;", '$!', LATE)
+r('errno-bare-tested', 'perl tests the number of the error.', "open(my $fh, '<', 'nope.txt');\nif ($!) {\n    say 'failed';\n}", '$!', LATE)
+r('errno-bare-element', 'perl reads $! after the key is worked out (T695).', "my %h;\nopen(my $fh, '<', 'nope.txt');\n$h{why} = $!;", '$!', LATE)
+r('errno-bare-returned', 'perl gives back what $! holds as the sub returns.', "sub why() {\n    return $!;\n}", '$!', LATE)
+r('errno-bare-compared', 'perl compares the words, or with == the number.', "open(my $fh, '<', 'nope.txt');\nsay $! eq 'x' ? 1 : 0;", '$!', LATE)
 
 
 def write(first):

@@ -1,0 +1,2 @@
+t/6595-file-open-name-branch.pl:5:27: open's third argument is one value, the file's name: perl takes a list there, each of its values an argument of its own (T694); take the name into a my first
+exit: 1

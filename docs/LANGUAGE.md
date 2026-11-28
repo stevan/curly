@@ -2915,7 +2915,8 @@ A file is read and written through a **file handle**, which is a value:
 The first is `my $fh`, or a scalar variable declared before. MODE is one
 of three string literals: `'<'` reads a file that is there, `'>'` writes
 one, emptying it first, `'>>'` adds to its end, and both make a file that
-is not there. PATH is a string, the file's name. `open` is worth 1, or
+is not there. PATH is one value, a string, the file's name (an array or
+a line read there is refused: to perl it would be a list of names). `open` is worth 1, or
 undef when the system refuses, and the variable holds a handle either
 way. A variable that already holds a handle has that same handle opened
 again, so every copy of it sees the new file.
@@ -2929,12 +2930,15 @@ statement's own, or stands in the test of an `if`, an `unless` or a
 `while`; it does not stand under a modifier or inside another call.
 
 **`$!`** is why the last `open` failed, in the system's words (`No such
-file or directory`). It is a string, in double quotes too, and it may be
-read only while the last `open` is one that failed: read after an `open`
+file or directory`). It stands in a string, `"cannot open $path: $!"`,
+or alone on the right of an assignment to a scalar variable, `my $why =
+$!;`, and nowhere else: it is perl's own variable, which perl reads as
+late as it reads any variable, so `say $!, f();` says what `f` left in
+it. And it may be read only while the last `open` is one that failed: read after an `open`
 that worked, or before any, or after a read met the end of its input, it
 is the fault `$! where no open has just failed`, where perl gives
-whatever was left there. Where a number is wanted it is a string that is
-no number.
+whatever was left there. It is a string; the number of the error is not
+in the language.
 
 **`<$fh>`** reads the handle in the scalar variable, and is `<STDIN>` in
 every way: a line or undef where one value is wanted, every line that is

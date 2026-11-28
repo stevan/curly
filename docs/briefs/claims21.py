@@ -296,6 +296,19 @@ STEP21B = [
     c('21b-append', 'PLAN 21b', 'open(my $o, ">", "o.txt"); print $o "a\\n"; close($o); open($o, ">>", "o.txt"); print $o "b\\n"; close($o); open($o, ">>", "new.txt"); print $o "n\\n"; close($o); open($o, ">", "o2.txt"); close($o); open(my $in, "<", "o.txt"); print <$in>; open($in, "<", "new.txt"); print <$in>; open($in, "<", "o2.txt"); my @l = <$in>; say scalar(@l);', out='a\nb\nn\n0\n'),
     c('21b-or-die', 'PLAN 21b', 'open(my $fh, "<", "in.txt") or die "no: $!"; open(my $g, "<", "in.txt") || die "no: $!"; close($fh) or die "no close: $!"; close $g; print "ok\\n"; open(my $h, "<", "nope") || die "no: $!\\n";', files=ABC, out='ok\n', err=r'^no: No such file or directory\n$', exit=2),
     c('21b-unflushed', 'PLAN 21b', 'open(my $o, ">", "o.txt"); print $o "kept\\n"; open(my $q, ">", "q.txt"); print $q "too\\n"; exit 3;', out='', exit=3),
+    # ---- found by the review of 21b (TRAPS T694, T695)
+    # T694: what follows open's mode is a list, to perl: an array there is
+    # its elements, and a line read reads every line.
+    c('T694', 'TRAPS; PLAN 21b', 'my @n = ("in.txt"); open(my $fh, "<", @n) or die "no\\n"; print scalar(<$fh>); open(my $g, "<", map { $_ } "in.txt") or die "no\\n"; print scalar(<$g>);', files=ABC, out='a\na\n'),
+    c('T694-two', 'TRAPS; PLAN 21b', 'my @n = ("in.txt", "b"); open(my $fh, "<", @n); say "after";', files=ABC, out='', exit=255, err=r"More than one argument to open"),
+    c('T694-one-value', 'PLAN 21b', 'my @r = (open(my $f, "<", "nope")); print scalar(@r), defined $r[0] ? "d" : "u", "\\n"; open($f, "<", "in.txt"); my @e = (eof($f)); my @c = (close($f)); print scalar(@e), "[$e[0]]", scalar(@c), "[$c[0]]\\n";', files=ABC, out='1u\n1[]1[1]\n'),
+    # T695: $! is a variable of perl's own, read when the operator it is
+    # an operand of runs: after a call that comes later in the list, the
+    # row of dots, or the key. In a string it is made where it stands, and
+    # an assignment to a variable reads it there.
+    c('T695', 'TRAPS; PLAN 21b', 'sub g() { open(my $d, ">", "."); return "|" } sub n() { open(my $d, "<", "nope"); return "" } n(); say $!, g(); n(); say $! . g(); n(); my @l = ($!, g()); say "@l"; n(); my %h; $h{g()} = $!; say %h; n(); say join(",", $!, g());', out='Is a directory|\nIs a directory|\nIs a directory |\n|Is a directory\nIs a directory,|\n'),
+    c('T695-string', 'TRAPS; PLAN 21b', 'sub g() { open(my $d, ">", "."); return "|" } sub n() { open(my $d, "<", "nope"); return "" } n(); say "$!" . g(); n(); say "e: $!", g(); n(); my $e = $!; g(); say $e;', out='No such file or directory|\ne: No such file or directory|\nNo such file or directory\n'),
+    c('T695-underflow', 'PLAN 21b', 'open(my $d, "<", "nope"); my $s = "1e-400"; say $!, $s + 0; open($d, "<", "nope"); say "[$!]", $s + 0;', out='Numerical result out of range0\n[No such file or directory]0\n'),
     c('21b-isa', 'PLAN 21b', 'my $x = 5; print $x isa Foo; say "after";', out='after\n'),
 ]
 STEP21 += STEP21B

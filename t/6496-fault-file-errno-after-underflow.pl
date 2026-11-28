@@ -5,4 +5,4 @@ open(my $no, '<', 'nope.txt');
 my $small = "1e-400";
 my $tiny = $small + 0;
 say $tiny;
-say $!;
+say "$!";

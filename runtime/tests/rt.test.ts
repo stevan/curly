@@ -518,7 +518,8 @@ test('a die puts back the frames, the freezes and the sorts a try had open', () 
 // handle nothing holds, a write the system refuses, and a message after
 // the handle read last was collected.
 test('a collection closes the file of a handle nothing holds, and what it held back is written', () => {
-    for (const knobs of [{}, { CURLY_GC_STRESS: '1', CURLY_GC_POISON: '1' }]) {
+    const each: Record<string, string>[] = [{}, { CURLY_GC_STRESS: '1', CURLY_GC_POISON: '1' }];
+    for (const knobs of each) {
         assert.deepEqual(run('file', 'reap', knobs), { status: 0, output: 'open: 1\nafter a collection: 0\nopens to read: 1\nkept\nopen: 1\nclosed: 0\n' });
         assert.deepEqual(run('file', 'twice', knobs), { status: 1, output: 'opens to read: 1\nkept\n'
             + 'fault: open of a file the program has open, one of the two for writing at file.pl line 1.\n' });

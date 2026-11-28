@@ -111,7 +111,7 @@ MOVES = ["open(my $a1, '<', 'in.txt');", "open(my $a2, '<', 'nope.txt');", "open
          "open(my $b4, '>', 'o2.txt'); print $b4 'x' x 10000; close($b4);", 'try { die "d\\n" } catch ($e) { }', 'my @so = sort { $a <=> $b } 3, 1, 2;',
          'my $f1 = sprintf("%.3f %s %d", 1.5, "a", 3);', 'my $n1 = "12" + "3.5";', 'my %hh = (a => 1); my @k = sort keys %hh;', "open(my $b5, '<', 'no/dir/x');",
          "open(my $b6, '>', 'no/dir/x');", "open(my $b7, '<', 'in.txt'); my $l = <$b7>; open($b7, '<', 'nope.txt');"]
-ENDS = ['die "x\\n";', 'say "[$!]";', 'say $! ? "t" : "f";', 'die "x: $!\\n";', 'exit 0;', 'warn "w\\n"; say length($!);', 'die "x";']
+ENDS = ['die "x\\n";', 'say "[$!]";', 'my $w = $!; say $w ? "t" : "f";', 'die "x: $!\\n";', 'exit 0;', 'warn "w\\n"; say length("$!");', 'die "x";']
 
 
 def errno():
@@ -181,7 +181,7 @@ def randoms(count=260):
             elif roll < 0.82:
                 lines.append(rnd.choice([f'warn "w{n}";', f'warn "w{n}\\n";', f'try {{ die "d{n}" }} catch ($e) {{ print "c:$e" }}', f'try {{ die "d{n}\\n" }} catch ($e) {{ print "c:$e" }}']))
             elif roll < 0.87:
-                lines.append(rnd.choice(['print "[$!]\\n";', 'print "e:", ($! ? 1 : 0), "\\n";', '{ my $t = "1e-400" + 0; }']))
+                lines.append(rnd.choice(['print "[$!]\\n";', '{ my $w = $!; print "e:", ($w ? 1 : 0), "\\n"; }', '{ my $s = "1e-400"; my $t = $s + 0; }']))
             elif roll < 0.92:
                 lines.append(f'${var} = undef;')
                 live.pop(var)
