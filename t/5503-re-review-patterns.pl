@@ -1,0 +1,40 @@
+# kind: same
+# Patterns beside the ones the independent review of step 19 had refused
+# (T562 to T567): each of these perl takes in silence.
+use v5.42;
+my $s = "a.";
+say $s =~ /[\w.]/ ? 1 : 0;
+say $s =~ /[a-zA-Z.]/ ? 1 : 0;
+say $s =~ /[.]/ ? 1 : 0;
+say $s =~ /[:=.]/ ? 1 : 0;
+say $s =~ /[\:alpha\:]/ ? 1 : 0;
+say ":" =~ /[\:alpha\:]/ ? 1 : 0;
+say "x" =~ /[ab.]/ ? 1 : 0;
+say "\x04" =~ /\x04/ ? 1 : 0;
+say "\x04-" =~ /[\x04]-/ ? 1 : 0;
+say " " =~ /[ \N{U+41}]/x ? 1 : 0;
+say "A" =~ /[\N{U+41}]/x ? 1 : 0;
+say " " =~ /[\x{41} ]/x ? 1 : 0;
+say "a" =~ /a$ /x ? 1 : 0;
+say "a\nb" =~ /a$ \n b/xm ? 1 : 0;
+say "aa" =~ /a{2}/ ? 1 : 0;
+say "aaaaaaaaaa" =~ /^a{10}$/ ? 1 : 0;
+say "aa" =~ /^a{0,2}$/ ? 1 : 0;
+say "1" =~ /[^\D]/ ? 1 : 0;
+say " " =~ /[^\S\n]/ ? 1 : 0;
+say "a" =~ /[^\W\d_]/ ? 1 : 0;
+say "ab" =~ /[^\d\s]+/ ? 1 : 0;
+my $t = "ab";
+say (($t !~ /a/) =~ /^$/);
+say (($t =~ /a/) ** 2);
+say 2 ** ($t =~ /a/);
+say "b&aaaa" =~ /b+&(?:aa){2}/ ? 1 : 0;
+say "b&aaaa" =~ /b+&(?:a{2})+/ ? 1 : 0;
+say "b&aaaa" =~ /b+&(?:.{2}){2}/ ? 1 : 0;
+say "b&aaaa" =~ /b+&(?:a{2}){1,2}/ ? 1 : 0;
+say "b&12:34:" =~ /b+&(?:\d{2}:){2}/ ? 1 : 0;
+say "b&aa" =~ /b+&a{2}/ ? 1 : 0;
+my @w = "ab" =~ /x?\x{100}|.+/g;
+say "@w";
+@w = "ab" =~ /x??\x{ff}|.+/g;
+say "@w";

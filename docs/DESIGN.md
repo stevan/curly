@@ -121,7 +121,7 @@ programs, as it is built. In outline:
   more: no `bless`, no package variables (D19).
 - **Strings and regexes:** Unicode strings (D24); Perl 5's regexes, a
   subset, compiled ahead of time into a program for a backtracking
-  matcher with perl's order of trying (steps 19 and 20; D226 to D238):
+  matcher with perl's order of trying (steps 19 and 20; D226 to D239):
   `\d \w \s` perl's own, `/i` ASCII's, captures only by the list a
   match gives, no variable in a pattern, a limit on steps.
 - **Data:** arrays, hashes in insertion order (D27), nested through

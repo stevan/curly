@@ -1,0 +1,62 @@
+# kind: same
+# A slash that divides and a slash that begins a pattern, and the words m, s,
+# y, tr and q as keys, from the independent review of step 19.
+use v5.42;
+sub twelve() { 12 }
+sub s1($x) { $x }
+my $x = 12;
+say $x / 2 / 3;
+say $x/2/3;
+say twelve() / 2 / 3;
+say twelve() /2/ 1;
+my @a = (1, 2, 3, 4);
+say @a / 2 / 1;
+say scalar(@a) /2/ 1;
+say $#a /3/ 1;
+say $a[1] /2/ 1;
+my %h = (a => 8, m => 1, s => 2, y => 3, tr => 4, q => 5, x => 6);
+say $h{a} /2/ 2;
+say $h{m} + $h{s} + $h{y} + $h{tr} + $h{q} + $h{x};
+my $r = [8];
+say $r->[0] /2/ 2;
+say $r->@* /1/ 1;
+say $r->$#* + 1 /1/ 1;
+say (($x) /2/ 2);
+say $x++ /2/ 2;
+say $x-- /3/ 1;
+my $k = { m => { s => 2 }, y => 4 };
+say $k->{m}{s} + $k->{y};
+my @l = (m => 1, s  => 1, y =>2);
+say "@l";
+my $m = 3;
+my $s = 4;
+my $y = 5;
+say $m / $s / $y;
+say s1(6) / $m;
+my $t = "a/b";
+say $t =~ /a\/b/;
+say $t =~ m{a/b};
+say $t =~ m(a/b);
+say $t =~ m[a/b];
+say $t =~ m<a/b>;
+say "a(b" =~ m(a\(b);
+say "ab" =~ m((a)(b));
+say "a[b" =~ m[a\[b];
+say "ab" =~ m[a[b]];
+say "a<b" =~ m<a\<b>;
+say "ab" =~ m<a<b>>;
+say "aa" =~ m{a{2}};
+say $t =~ /a/ x 3;
+say $t =~ / a /x;
+say $t =~ /a/?"y":"n";
+my $u;
+say $u // "d";
+say $t =~ /a/ // "d";
+say "ok" if $t=~/a/&&1;
+say "ok" if $t!~/z/;
+say $t =~ /a/ / 1;
+say 4 / ($t =~ /a/) / 2;
+my @p = $t =~ /([^\/]+)/g;
+say "@p";
+my $five = "5";
+say $five =~ /5/ ? $five / 5 : $five /5/ 1;

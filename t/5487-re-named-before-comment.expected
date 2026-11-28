@@ -1,0 +1,2 @@
+t/5487-re-named-before-comment.pl:5:13: \N{U+...} before a blank or '#' in a class under /x: perl skips the blank there, as it does nowhere else in a class (T567); write \x{...}
+exit: 1

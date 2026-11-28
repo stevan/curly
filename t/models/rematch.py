@@ -345,6 +345,13 @@ def gen_pattern(r, depth=2, ascii_only=False):
             inner = a[3:] if a.startswith('(?:') else a[1:] if a.startswith('(') else ''
             if any(inner[k] == '(' and not inner.startswith('?:', k + 1) for k in range(len(inner))):
                 return a
+            # A count of a string inside a group repeated at least twice is
+            # refused too (D239, T570: perl 5.42 answers such patterns
+            # wrongly after something of any length). `{2}` is the one
+            # count of exactly N drawn here, and this leaves out every
+            # group that holds one, whatever it counts.
+            if q.startswith('{2') and '{2}' in a:
+                return a
             return a + q
         return a
 

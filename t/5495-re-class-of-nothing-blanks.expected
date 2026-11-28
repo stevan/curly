@@ -1,0 +1,2 @@
+t/5495-re-class-of-nothing-blanks.pl:5:12: a class that matches no character: perl warns of a quantifier on it (T566)
+exit: 1

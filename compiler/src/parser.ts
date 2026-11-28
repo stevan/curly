@@ -1019,6 +1019,11 @@ export const parse = (tokens: readonly Token[]): Program => {
         if (first.kind === 'unary' && !first.bracketed && prefixOp(first.op)?.bang) {
             refuse(`'${first.op}' before the left side of '${t.text}': perl warns of a precedence problem, and applies it first (T547); write ${first.op}(... ${t.text} ...), or (${first.op}...) ${t.text} ...`, first.pos);
         }
+        // `$s !~ /a/ =~ /1/` is `!($s =~ /a/) =~ /1/` to perl, and gets the
+        // same warning (T560).
+        if (left.kind === 'match' && left.negate && !left.bracketed) {
+            refuse(`a '!~' match on the left of '${t.text}': perl warns of a precedence problem between ! and the match (T547, T560); bracket it, (... !~ ...) ${t.text} ...`, t.pos);
+        }
         const many = left.kind === 'array' || left.kind === 'myarray' || (left.kind === 'deref' && !left.last) || left.kind === 'list' || left.kind === 'slice'
             || left.kind === 'binder' || left.kind === 'sort' || (left.kind === 'hashop' && (left.op === 'keys' || left.op === 'values'));
         if (many) refuse(`${left.kind === 'list' ? 'a list' : (left as { hash?: true }).hash ? 'a hash' : 'more than one value'} on the left of '${t.text}': perl matches one value, a count or the last (T547)`, t.pos);
@@ -1028,6 +1033,12 @@ export const parse = (tokens: readonly Token[]): Program => {
             return refuse(`the right side of '${t.text}' is a pattern, /.../ or m{...}: anything else is matched as a pattern made as the program runs, which is cut (D229)`, right.pos);
         }
         const regex = compileRegex(right.body, right.bodyPos, right.flags, right.flagsPos);
+        // `**` binds tighter than `=~`: to perl the right side is then
+        // `/.../ ** N`, the pattern matched against `$_` and that number
+        // matched as a pattern made as the program runs (T561).
+        if (peek().kind === 'op' && peek().text === '**') {
+            refuse(`'**' after the pattern of '${t.text}': it binds tighter, so perl matches the pattern against $_ and raises that (T561); bracket the match, (... ${t.text} /.../) ** ...`, peek().pos);
+        }
         if (t.text === '!~' && regex.global) refuse("/g with '!~': perl ignores it there, or goes on from where the last match left off (D233)", right.flagsPos);
         return t.text === '!~' ? { kind: 'match', subject: left, negate: true, regex, pos: t.pos } : { kind: 'match', subject: left, regex, pos: t.pos };
     };

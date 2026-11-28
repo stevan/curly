@@ -2707,3 +2707,54 @@ a `$` before a blank or a `#` under `/x` is an anchor (T558), and a
 backslash before a bracket of the delimiter's kind is the character
 itself (T559), so D227's refusal of it is dropped. Rejected: perl's
 range from `-` (one more rule to say for one shape nobody writes).
+
+**D239. What the independent review of step 19 changed.** *(The
+reviewer's defaults, 2026-11-28: a reader who did not write the step,
+`briefs/step19-review/README.md`. Each is Stevan's to overturn.)* Two
+programs printed what perl does not, and both are refused, since
+agreeing would mean copying something of perl's nobody wants: `**`
+after the pattern of `=~` or `!~`, which binds tighter and makes the
+right side a pattern matched against `$_` (T561); and `\N{U+...}`
+before a blank or `#` in a class under `/x`, where perl skips the
+blank (T567). Six shapes that perl warns of or dies at, and the
+compiler took, are refused: a `!~` match unbracketed on the left of a
+match (T560); `\x` and one hex digit, wherever it stands (T562; perl
+is silent only at the pattern's end); `$#` under `/x`, which D238 had
+taken for an anchor before a comment (T563); a count with a leading
+zero (T564); a class that looks to perl like a POSIX class without
+its brackets (T565); a negated class that leaves no character (T566).
+The rule for T565 is wider than perl's guess, which is by likeness to
+the names of its classes: a class with `:`, `=` or `.` twice, or with
+one of them and three letters in a row, each unescaped, is refused,
+so `[aeiou.]` is refused where perl is silent, and `[aeiou\.]`,
+`[\w.]`, `[a-zA-Z.]` and `[.,:]` are in. Rejected: perl's own guess
+(it is a page of regcomp.c and moves between versions); refusing every
+`:`, `=` and `.` in a class (`[\w.]` is everywhere). **And one place where
+perl has two answers by a string's past** (T569, found by the
+generator once in 300,000 matches): after a lazy quantifier before a
+character past U+00FF perl 5.42 runs the next quantifier lazily too,
+when it keeps the subject as bytes, and not for an equal string kept
+as UTF-8. A string here has no past (D36, D40), so a pattern with a
+lazy quantifier and a character past U+00FF written in it is refused:
+blunter than the bug, which needs the one hard before the other, and
+simple to say. Rejected: copying either of perl's answers.
+`briefs/step19-review/pasts.py` asks perl of every pattern the
+compiler takes, as bytes and upgraded, and finds nothing else. **And
+one place where perl 5.42 is simply wrong** (T570): for a count of
+one string, `a{2}`, inside a group repeated at least twice, after
+something of any length, its optimiser looks for a string the match
+need not hold, and `"b&aaaa" =~ /b+&(?:a{2}){2}/` is false. perl is
+the referee (D2), so the pattern is refused, whatever stands before
+it: `(?:aa){2}` says it, and `(?:\d{2}:){2}` is in, a count of a
+class being right in perl. Rejected: matching it rightly (it would
+print what perl does not); copying the optimiser. A later perl may
+mend it, and the refusal can go then. **Left
+to Stevan, with nothing changed**: the step limit (D232) is met by plain
+patterns, since a match that fails and begins with a repeat is
+quadratic in this matcher: `/x+y/` faults on a run of about 2,250
+`x`, `/\s+$/` on a few thousand blanks not at the end (T568); and
+since the limit does not grow with the string it bounds the string:
+`/(\w+)/g` faults on 4.5 MB of words and `/needle/` on twelve million
+characters. The ways out, none taken: try each start only where the pattern's first
+character can stand; a limit that grows with the string; perl's own
+shortcuts.

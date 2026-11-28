@@ -380,7 +380,10 @@ quiet has met few of them.
 | `ucfirst("éa")` is `Éa`, by perl's tables | A first character past ASCII is a fault, as for `uc` | accident | rarely | strings | D129 |
 | `/i` folds past ASCII: `"\x{212A}" =~ /k/i` matches, and `"\xdf" =~ /ss/i` | A match under `/i` of a string with a character past ASCII is a fault, as `uc` and `lc` past ASCII are | accident | sometimes | strings | D230 |
 | A group that captures inside a repeated group, `/(?:(a)\|b)*/`: perl keeps or forgets its value by rules of its own | Refused, unless it is the repeated group itself: `(a\|b)*` | accident | rarely | strings | D231 † |
-| A pattern that backtracks without end, which perl's shortcuts often finish at once | A fault past ten million steps of the matcher | accident | rarely | strings | D232 |
+| A pattern that backtracks without end, which perl's shortcuts often finish at once; and a plain one that fails after a repeat, `/x+y/` or `/\s+$/`, on a run of a few thousand characters; and any match over a string of some megabytes | A fault past ten million steps of the matcher: the second kind from a run of about 2,250, the third from about four megabytes (the rating is the reviewer's guess, and was "rarely" for the first kind alone) | accident | sometimes | strings | D232, D239 |
+| `$s =~ /a/ ** 2`, and `$s !~ /a/ =~ /1/`: perl matches `$_` in the first, and warns of the second | Refused: bracket the match | accident | rarely | strings | D239 |
+| `/b+&(?:a{2}){2}/`, a count of a string inside a group repeated at least twice: perl 5.42 says no to strings it matches, a bug of its own; and a lazy quantifier with a character past U+00FF, where its answer goes by how it keeps the string | Refused, both: `(?:aa){2}` says the first | accident | rarely | strings | D239 |
+| `[aeiou.]`, a class with `:`, `=` or `.` and three letters in a row, or one of the three twice: perl warns of some, by likeness to `[:alpha:]` | Refused: write `\.` | accident | rarely | strings | D239 |
 | `!$x =~ /a/` is `(!$x) =~ /a/`; `@a =~ /x/` matches the count | Refused | accident | rarely | strings | D234 |
 
 The thread through the last six rows: **in perl a value remembers

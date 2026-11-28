@@ -1,0 +1,2 @@
+t/5477-re-count-leading-zero-second.pl:5:13: a count with a leading zero in a quantifier: perl does not compile it (Invalid quantifier, T564)
+exit: 1

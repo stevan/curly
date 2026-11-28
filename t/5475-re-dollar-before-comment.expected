@@ -1,0 +1,2 @@
+t/5475-re-dollar-before-comment.pl:5:13: a '$' before '#' in a pattern under /x: perl reads $#, and does not compile it (T563); put a blank between
+exit: 1

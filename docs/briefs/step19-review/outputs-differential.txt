@@ -1,0 +1,274 @@
+wide, seed 101: 25000 patterns; the compiler takes 11463, refuses 13537
+taken by the compiler, and perl WARNS of as it compiles: 0
+taken by the compiler, and perl DIES at as it compiles: 0
+run under perl and compiled: 11463 patterns, 91704 pairs of a pattern and a subject; the same: 91696 pairs
+faults of the compiled program: 1
+      1  pattern match too long    e.g. "/([^\\Wé\\e]{1,}?[^:k^]{2,}?){1,}'[^x\\t-\\r)\\W]/"
+perl's own complaints as it ran: 0
+DIFFERENT: 0
+refused: 13537, of which perl compiles in silence 6953
+   1631 (  975 quiet)  a _ in a pattern that is not at its end, or before _ or _: p    e.g. '/$^/'
+   1571 ( 1405 quiet)  a character past ASCII in a pattern under /i: perl folds it     e.g. '/\xa0/i'
+   1375 ( 1224 quiet)  _ inside the group it names: write it after the group closes    e.g. '/(9\\1)/'
+   1364 ( 1363 quiet)  a lazy quantifier and a character past _ in one pattern: per    e.g. '/Ā*?/'
+    931 (    0 quiet)  _ is not in the language yet
+    829 (  379 quiet)  a quantifier on what can match the empty string: perl warns,    e.g. '/^?\\Z/g'
+    641 (   94 quiet)  _ names a group the pattern does not have, or not yet: perl     e.g. '/\\1|$1/im'
+    355 (   34 quiet)  a ? after _: perl warns that it is a useless greediness modi    e.g. '/\\.{0}??  $++?/xm'
+    297 (  282 quiet)  a count of a string, a_, inside a group repeated at least tw    e.g. '/(?:-{2,2}){2}.b/'
+    261 (  210 quiet)  a class that matches no character: perl warns of a quantifie    e.g. '/[^\\Wa\\w]/gs'
+    225 (   42 quiet)  a _ in a pattern that is no quantifier's: perl warns, or pas    e.g. 'm(^{a}^.)i'
+    183 (    0 quiet)  a character past ASCII (_) outside a string or a comment is 
+    171 (   67 quiet)  a possessive quantifier is not in the language yet (D226)    e.g. '/\\W*+/'
+    168 (    0 quiet)  m<...> that never ends: it begins here
+    145 (    0 quiet)  a _ with no _ after it in the pattern: perl does not compile
+    144 (    0 quiet)  a pattern that never ends: it begins here
+    114 (   34 quiet)  _ in a class: perl may take it for a POSIX class, [:alpha:];    e.g. '/[^[]*./g'
+    111 (    7 quiet)  a quantifier after a quantifier: perl does not compile it (N    e.g. 'm<(?:\\wé{2}{3}?|\\W${0}|.{2,2})>s'
+    111 (    0 quiet)  m(...) that never ends: it begins here
+    110 (    0 quiet)  after _ comes a name: a letter or _, then letters, digits an
+     98 (   93 quiet)  the empty pattern: perl matches the last pattern that matche    e.g. '//'
+     93 (   80 quiet)  a group that captures inside a repeated group: perl keeps or    e.g. '/(?:(>{0,0}:{2,}?)){1,}/g'
+     92 (   15 quiet)  _ in a pattern: the case escapes, and _ are not in the langu    e.g. '/\\la% /g'
+     89 (    0 quiet)  m_ that never ends: it begins here
+     89 (   41 quiet)  _ in a pattern is not in the language yet (D226)    e.g. 'm(\\R)mg'
+     84 (    7 quiet)  _ in a pattern is no escape of perl's: perl warns that it pa    e.g. '/\\{{0,2}?\\i{0,2}?(?:\\s{2,}\\z){1,3}[^=a-z]{2,}/m'
+     73 (   32 quiet)  a digit after a backslash in a class is octal to perl: write    e.g. 'm{[^\\1]}'
+     71 (   28 quiet)  _ in a pattern: perl's /x takes it for a blank (D237); write    e.g. '/\\d\x85/'
+     64 (   20 quiet)  _ first in a class: perl takes it for a character of the cla    e.g. '/[]=]&*?/'
+     64 (    5 quiet)  a range with one of perl's classes at an end: perl warns, Fa    e.g. 'm<[)\\w-z%\\d-a]@$a>'
+     63 (   31 quiet)  the flag /a is not in the language (D226)    e.g. '//aa'
+     62 (    6 quiet)  a count with a leading zero in a quantifier: perl does not c    e.g. '/\\sx{2,02}\\\\|$0/g'
+     61 (   36 quiet)  _ in a class: perl may take it for a variable (D229); write     e.g. '/[$a]\\W/gm'
+     61 (   24 quiet)  _ in a pattern is not in the language: write _    e.g. 'm{[\\W)\\c]]}sgm'
+     60 (   24 quiet)  _ a Unicode property, is not in the language yet (D226)    e.g. '/\\p{L}/mg'
+     59 (   19 quiet)  a count past 32766 in a pattern (D236)    e.g. 'm[\\"{32767}]'
+     59 (   28 quiet)  blanks in a quantifier's braces: perl 5.42 takes them (D236,    e.g. '/&{ 2 }/g'
+     56 (   33 quiet)  a backreference of two digits is octal to perl or another gr    e.g. '/(?:\\10)/'
+     48 (   17 quiet)  _ first in a class: perl reads a range from _ there; write _    e.g. 'm([^--/])g'
+     47 (    2 quiet)  _ with no hex digit after it: perl reads it as a NUL; write     e.g. '/(\\D)[^-\\d\\x](\\s{2,2}|\\3[^9\\^[:^digit:]\\#]\\x{a0}{2, 3}\\B$1)|:/sg'
+     45 (    0 quiet)  a string that never ends: it begins with ' here
+     44 (    0 quiet)  _ after a pattern is no flag of perl's: perl does not compil
+     44 (   22 quiet)  (?...) is not in the language: of its forms, (?:...) is (D22    e.g. '/٣(?i)||K/g'
+     43 (   37 quiet)  _ and letters in a row in a class: perl may take it for a PO    e.g. '/[\\x{0}-\\x{10FFFF}.]\\S/ms'
+     42 (    0 quiet)  m[...] that never ends: it begins here
+     41 (    0 quiet)  s/// is not in the language yet (step 20)
+     40 (    7 quiet)  _ a backreference by a number in braces or by a name, is not    e.g. '/(\\g{-1}\\r){3}\\%/m'
+     36 (    0 quiet)  the flag /c, which goes with pos is not in the language (D22
+     35 (   11 quiet)  the flag /o is not in the language (D226)    e.g. '/./o'
+     35 (   10 quiet)  _ in a pattern holds hex digits and nothing else    e.g. '/\\B\\x{}/'
+     34 (   22 quiet)  _ twice in a class: perl may take it for a POSIX class witho    e.g. '/\\,b[^😀==]{1}/'
+     33 (    1 quiet)  m|...: a pattern_/' and, after m, a bracket hard against it     e.g. 'm|(?: \n (?:#\n[\\D/].{0,0})) # $\n|x'
+     33 (    0 quiet)  the flag /e, which is s///e is not in the language (D226)
+     33 (   18 quiet)  _ in a pattern is _ to perl 5.42: write _ (D236, T542)    e.g. "/'{,2}?/g"
+     32 (    0 quiet)  m,...: a pattern_/' and, after m, a bracket hard against it 
+     32 (   11 quiet)  the flag /d is not in the language (D226)    e.g. '/$/d'
+     32 (    2 quiet)  _ with n greater than m: perl warns that it cannot match    e.g. 'm[\\A{3,1}a|\\z[^$a]*?]m'
+     32 (    2 quiet)  m"...: a pattern_/' and, after m, a bracket hard against it     e.g. 'm"^"i'
+     31 (    5 quiet)  _ and one hex digit: perl warns unless the pattern ends ther    e.g. '/\\x4 {2}\\Sb\\r|$(?:\\b\\W|(?:${1}|\\b\\x7f|é^))\\S|\\D\\e/'
+     30 (    1 quiet)  m#...: a pattern_/' and, after m, a bracket hard against it     e.g. 'm#[\\c]à-ÿ]{2}#'
+
+wide, seed 102: 25000 patterns; the compiler takes 11464, refuses 13536
+taken by the compiler, and perl WARNS of as it compiles: 0
+taken by the compiler, and perl DIES at as it compiles: 0
+run under perl and compiled: 11464 patterns, 91712 pairs of a pattern and a subject; the same: 91712 pairs
+faults of the compiled program: 0
+perl's own complaints as it ran: 0
+DIFFERENT: 0
+refused: 13536, of which perl compiles in silence 6953
+   1591 (  930 quiet)  a _ in a pattern that is not at its end, or before _ or _: p    e.g. '/$a/'
+   1571 ( 1433 quiet)  a character past ASCII in a pattern under /i: perl folds it     e.g. '/K/i'
+   1388 ( 1233 quiet)  _ inside the group it names: write it after the group closes    e.g. 'm{(\\1)}'
+   1381 ( 1381 quiet)  a lazy quantifier and a character past _ in one pattern: per    e.g. '/Ā??/s'
+    933 (    0 quiet)  _ is not in the language yet
+    887 (  406 quiet)  a quantifier on what can match the empty string: perl warns,    e.g. '/^??/'
+    641 (   67 quiet)  _ names a group the pattern does not have, or not yet: perl     e.g. '/\\1(\\SA^)/m'
+    366 (   28 quiet)  a ? after _: perl warns that it is a useless greediness modi    e.g. '/\\|.{1}?\\x{}${1,3}/s'
+    293 (  274 quiet)  a count of a string, a_, inside a group repeated at least tw    e.g. '/.{3}|(<{2}){2,5}/'
+    259 (  208 quiet)  a class that matches no character: perl warns of a quantifie    e.g. '/9[^\\W\\S%a]/'
+    247 (   41 quiet)  a _ in a pattern that is no quantifier's: perl warns, or pas    e.g. '/\\b{wb}/m'
+    188 (    0 quiet)  a character past ASCII (_) outside a string or a comment is 
+    162 (    0 quiet)  m<...> that never ends: it begins here
+    159 (   69 quiet)  a possessive quantifier is not in the language yet (D226)    e.g. 'm[ß++]s'
+    146 (    0 quiet)  a _ with no _ after it in the pattern: perl does not compile
+    142 (    0 quiet)  a pattern that never ends: it begins here
+    118 (   32 quiet)  _ in a class: perl may take it for a POSIX class, [:alpha:];    e.g. '/😀[-[(]/'
+    103 (    0 quiet)  m(...) that never ends: it begins here
+     98 (   97 quiet)  the empty pattern: perl matches the last pattern that matche    e.g. '//'
+     93 (    7 quiet)  a quantifier after a quantifier: perl does not compile it (N    e.g. '/\xa0+*${2,}|1{a}\\z\\A/g'
+     93 (   85 quiet)  a group that captures inside a repeated group: perl keeps or    e.g. '/(?:(K)){1,}/m'
+     93 (   31 quiet)  _ in a pattern is not in the language yet (D226)    e.g. '/\\R{0,0}/s'
+     85 (   10 quiet)  _ in a pattern is no escape of perl's: perl warns that it pa    e.g. '/\\y{2}/'
+     85 (    0 quiet)  after _ comes a name: a letter or _, then letters, digits an
+     85 (    0 quiet)  m_ that never ends: it begins here
+     81 (   15 quiet)  _ in a pattern: the case escapes, and _ are not in the langu    e.g. '/\\la/'
+     80 (   45 quiet)  _ in a class: perl may take it for a variable (D229); write     e.g. '/[^@#+--}]/'
+     66 (   29 quiet)  blanks in a quantifier's braces: perl 5.42 takes them (D236,    e.g. '/\\w{ 2 }/'
+     63 (   16 quiet)  _ in a pattern: perl's /x takes it for a blank (D237); write    e.g. '/\n\\D\x85{0} \n /x'
+     63 (    3 quiet)  a range with one of perl's classes at an end: perl warns, Fa    e.g. '/[a-\\d]{1,3}^${0,2}/i'
+     62 (   26 quiet)  the flag /a is not in the language (D226)    e.g. '//ma'
+     61 (   26 quiet)  _ first in a class: perl takes it for a character of the cla    e.g. '/[]0-9a-c&]/'
+     60 (   31 quiet)  a backreference of two digits is octal to perl or another gr    e.g. '/^(\\12{0,1}){0,}?/im'
+     58 (    3 quiet)  a count with a leading zero in a quantifier: perl does not c    e.g. 'm{a{02}\\W|$&{2,2}^{1,1}??|[^[=a=]a-c]9{0,2}?}gmi'
+     58 (   22 quiet)  a digit after a backslash in a class is octal to perl: write    e.g. '/~[\\1;]{3}/g'
+     57 (    0 quiet)  s/// is not in the language yet (step 20)
+     57 (   19 quiet)  a count past 32766 in a pattern (D236)    e.g. '/\\w{65536}/m'
+     51 (    0 quiet)  _ after a pattern is no flag of perl's: perl does not compil
+     50 (   29 quiet)  _ a Unicode property, is not in the language yet (D226)    e.g. '/-\\p{L}/ms'
+     47 (    5 quiet)  _ with no hex digit after it: perl reads it as a NUL; write     e.g. 'm<\\x>'
+     45 (   29 quiet)  _ twice in a class: perl may take it for a POSIX class witho    e.g. '/[\\d.).]/'
+     45 (   17 quiet)  _ first in a class: perl reads a range from _ there; write _    e.g. 'm[|[^--]]mx'
+     42 (    3 quiet)  _ and one hex digit: perl warns unless the pattern ends ther    e.g. '/[\\n\\e]\\W\\d\\x4g|\\1${12}?\\1(;c)/'
+     41 (    0 quiet)  a string that never ends: it begins with ' here
+     40 (    8 quiet)  _ a backreference by a number in braces or by a name, is not    e.g. 'm{\\g{1}\\1{0}|(?<n>a)}g'
+     38 (   24 quiet)  _ in a pattern is not in the language: write _    e.g. '/|[\\c]\\D]ſ\\d/s'
+     38 (   15 quiet)  _ and _ in a pattern are not in the language: _ is (D226)    e.g. 'm{\\N}g'
+     38 (   11 quiet)  the flag /d is not in the language (D226)    e.g. 'm()dm'
+     37 (   35 quiet)  _ and letters in a row in a class: perl may take it for a PO    e.g. '/([="#\\x{0}-\\x{10FFFF}])++\\W/s'
+     36 (    0 quiet)  the flag /r, which is s///r is not in the language (D226)
+     36 (    2 quiet)  m!...: a pattern_/' and, after m, a bracket hard against it     e.g. 'm!\\D{1,3}!'
+     34 (   16 quiet)  the flag /o is not in the language (D226)    e.g. '/!/so'
+     33 (    0 quiet)  m[...] that never ends: it begins here
+     33 (   14 quiet)  _ in a pattern is octal to perl: write _    e.g. '/\\012/g'
+     32 (   12 quiet)  the flag /l is not in the language (D226)    e.g. '//l'
+     32 (    1 quiet)  _ with n greater than m: perl warns that it cannot match    e.g. 'm{A{3,1}|^(\\w@\\S|(?:\\2${0,1}\\cA{2,5}).|\\1$)[^\\d][^--!-/a-c\\t-\\r\\x00-\\x7f]ß}gim'
+     32 (   12 quiet)  the flag /u is not in the language (D226)    e.g. '//u'
+     32 (   13 quiet)  _ in a class is a backspace to perl: write _    e.g. '/[\\b.;-]|"/m'
+     31 (    9 quiet)  lookaround is not in the language yet (D226)    e.g. 'm{(?=a)\\S}'
+     31 (    0 quiet)  _ is not an escape in the language
+
+unicode, seed 103: 15000 patterns; the compiler takes 10619, refuses 4381
+taken by the compiler, and perl WARNS of as it compiles: 0
+taken by the compiler, and perl DIES at as it compiles: 0
+run under perl and compiled: 10619 patterns, 84952 pairs of a pattern and a subject; the same: 84944 pairs
+faults of the compiled program: 1
+      1  pattern match too long    e.g. '/c|(?:%{0}.{1,3})*\\d(?:\\d\\S{2,}[\\S\\t=]|[*-\\-\\d\\S]{0,2}\\b(?:\\Z\\S\\B)|\\s{0}\\S{0,2}\\d{0,2}?(\\AB~){0,0})\\(((\\w)\\S[^\\o{101}\\w])/msg'
+perl's own complaints as it ran: 0
+DIFFERENT: 0
+refused: 4381, of which perl compiles in silence 2369
+   1323 (  614 quiet)  a _ in a pattern that is not at its end, or before _ or _: p    e.g. '/$%/'
+    722 (  684 quiet)  a character past ASCII in a pattern under /i: perl folds it     e.g. '/😀/i'
+    559 (  558 quiet)  a lazy quantifier and a character past _ in one pattern: per    e.g. '/٣*?/'
+    409 (  184 quiet)  a quantifier on what can match the empty string: perl warns,    e.g. '/|^{0}/m'
+    375 (    0 quiet)  _ is not in the language yet
+    172 (  145 quiet)  a class that matches no character: perl warns of a quantifie    e.g. '/[^\\D\\Sb]/sm'
+    107 (    0 quiet)  a _ with no _ after it in the pattern: perl does not compile
+     71 (    0 quiet)  m<...> that never ends: it begins here
+     71 (    0 quiet)  a character past ASCII (_) outside a string or a comment is 
+     69 (    0 quiet)  a pattern that never ends: it begins here
+     57 (   54 quiet)  a count of a string, a_, inside a group repeated at least tw    e.g. '/\\z(?:\\|{2}){2}\\b\\d|\\W/'
+     57 (    0 quiet)  m(...) that never ends: it begins here
+     53 (   51 quiet)  the empty pattern: perl matches the last pattern that matche    e.g. '//'
+     44 (    0 quiet)  m_ that never ends: it begins here
+     33 (    0 quiet)  after _ comes a name: a letter or _, then letters, digits an
+     29 (    0 quiet)  s/// is not in the language yet (step 20)
+     29 (   26 quiet)  _ and letters in a row in a class: perl may take it for a PO    e.g. '/\\t[^B}\\x{0}-\\x{10FFFF}.]\\D/'
+     28 (   26 quiet)  _ twice in a class: perl may take it for a POSIX class witho    e.g. 'm{"*[==)\\^]}'
+     21 (   21 quiet)  a group that captures inside a repeated group: perl keeps or    e.g. '/(?:\\w|\\b9{1,}?|(( )\\B)\\W$){2,}/'
+     18 (    0 quiet)  a string that never ends: it begins with ' here
+     18 (    0 quiet)  10FFFF is not a number in the language
+     17 (    0 quiet)  _ after a pattern is no flag of perl's: perl does not compil
+     16 (    0 quiet)  a _ before _ in a pattern under /x: perl reads $#, and does 
+     14 (    0 quiet)  m[...] that never ends: it begins here
+     12 (    0 quiet)  _ is not an escape in the language
+      9 (    0 quiet)  m;...: a pattern_/' and, after m, a bracket hard against it 
+      8 (    0 quiet)  17f is not a number in the language
+      7 (    6 quiet)  a _ in a pattern that is no quantifier's: perl warns, or pas    e.g. 'm( {0,2}?#\n\\Z|\\+\t)xm'
+      6 (    0 quiet)  the flag /a is not in the language (D226)
+      5 (    0 quiet)  _ before a sub_&' is cut (D21, D165); call a sub by its name
+      4 (    0 quiet)  a string that never ends: it begins with " here
+      4 (    0 quiet)  -a: a minus hard against one letter is a file test, to perl;
+      3 (    0 quiet)  a quantifier with nothing before it: perl does not compile i
+      2 (    0 quiet)  1F600 is not a number in the language
+      2 (    0 quiet)  a backslash before the end of a line in a pattern: write _
+      2 (    0 quiet)  -Z: a minus hard against one letter is a file test, to perl;
+      1 (    0 quiet)  $&, a variable a match sets, is not in the language: a match
+      1 (    0 quiet)  -z: a minus hard against one letter is a file test, to perl;
+      1 (    0 quiet)  _ is not in the language; a call of a sub of the program's h
+      1 (    0 quiet)  0AA is not a number in the language
+      1 (    0 quiet)  -c: a minus hard against one letter is a file test, to perl;
+
+fold, seed 104: 8000 patterns; the compiler takes 3934, refuses 4066
+taken by the compiler, and perl WARNS of as it compiles: 0
+taken by the compiler, and perl DIES at as it compiles: 0
+run under perl and compiled: 3934 patterns, 31472 pairs of a pattern and a subject; the same: 31472 pairs
+faults of the compiled program: 0
+perl's own complaints as it ran: 0
+DIFFERENT: 0
+refused: 4066, of which perl compiles in silence 3111
+   2055 ( 2042 quiet)  a character past ASCII in a pattern under /i: perl folds it     e.g. '/[é]A/i'
+    834 (  806 quiet)  _ inside the group it names: write it after the group closes    e.g. '/(\\1)/i'
+    428 (    0 quiet)  _ is not in the language yet
+     89 (   86 quiet)  a count of a string, a_, inside a group repeated at least tw    e.g. 'm[(;{2,2}){2,5}?]i'
+     79 (    0 quiet)  a _ with no _ after it in the pattern: perl does not compile
+     63 (   53 quiet)  a class that matches no character: perl warns of a quantifie    e.g. 'm[[^\\S\\W;]]i'
+     60 (    0 quiet)  a character past ASCII (_) outside a string or a comment is 
+     56 (    0 quiet)  a pattern that never ends: it begins here
+     45 (   45 quiet)  a quantifier on what can match the empty string: perl warns,    e.g. '/k[_1x]()\\1+/i'
+     44 (    0 quiet)  m<...> that never ends: it begins here
+     40 (    0 quiet)  m(...) that never ends: it begins here
+     39 (   39 quiet)  the empty pattern: perl matches the last pattern that matche    e.g. '//i'
+     30 (    0 quiet)  m_ that never ends: it begins here
+     27 (   25 quiet)  a group that captures inside a repeated group: perl keeps or    e.g. 'm((?:A([^*#])){0,}Ak{1,3})i'
+     24 (    0 quiet)  after _ comes a name: a letter or _, then letters, digits an
+     17 (    0 quiet)  a string that never ends: it begins with ' here
+     17 (    0 quiet)  _ after a pattern is no flag of perl's: perl does not compil
+     13 (    0 quiet)  10FFFF is not a number in the language
+     13 (   12 quiet)  _ twice in a class: perl may take it for a POSIX class witho    e.g. '/Ij|j[^.\\.-]/i'
+     11 (    0 quiet)  17f is not a number in the language
+     10 (    0 quiet)  m[...] that never ends: it begins here
+     10 (    0 quiet)  s/// is not in the language yet (step 20)
+      8 (    0 quiet)  _ before a sub_&' is cut (D21, D165); call a sub by its name
+      6 (    0 quiet)  a string that never ends: it begins with " here
+      6 (    0 quiet)  _ is not an escape in the language
+      5 (    0 quiet)  -z: a minus hard against one letter is a file test, to perl;
+      5 (    0 quiet)  a _ in a pattern that is not at its end, or before _ or _: p
+      4 (    0 quiet)  the flag /a is not in the language (D226)
+      3 (    0 quiet)  -Z: a minus hard against one letter is a file test, to perl;
+      2 (    0 quiet)  -a: a minus hard against one letter is a file test, to perl;
+      2 (    0 quiet)  9B is not a number in the language
+      2 (    0 quiet)  -c: a minus hard against one letter is a file test, to perl;
+      1 (    1 quiet)  _ before a blank or _ in a class under /x: perl skips the bl    e.g. '/[\\N{U+41} \\o{101}] /mxi'
+      1 (    0 quiet)  9a is not a number in the language
+      1 (    1 quiet)  a _ in a pattern that is no quantifier's: perl warns, or pas    e.g. '/( #c\n  {2,}|a\n% # x|y\n{2,}K{1,}){1,} #c\n (  \\1|[\\w\\x{e9}!] # a{2}\n[^\\@=])[+a{]{0,}  /ix'
+      1 (    0 quiet)  the flag /c, which goes with pos is not in the language (D22
+      1 (    0 quiet)  9x is not a number in the language
+      1 (    0 quiet)  0x is not a number in the language
+      1 (    0 quiet)  a backslash before the end of a line in a pattern: write _
+      1 (    0 quiet)  1A is not a number in the language
+      1 (    1 quiet)  a backreference of two digits is octal to perl or another gr    e.g. '/b*ff[^&]K(?:fi(\\10[\\N{U+41}+]{0,})i)/mgi'
+      1 (    0 quiet)  1s is not a number in the language
+      1 (    0 quiet)  99A is not a number in the language
+      1 (    0 quiet)  1Z is not a number in the language
+      1 (    0 quiet)  2ka is not a number in the language
+      1 (    0 quiet)  _ in a class: perl may take it for a POSIX class, [:alpha:];
+      1 (    0 quiet)  1b is not a number in the language
+      1 (    0 quiet)  1. ends with a point: write 1.0
+      1 (    0 quiet)  1a is not a number in the language
+      1 (    0 quiet)  9. ends with a point: write 9.0
+      1 (    0 quiet)  %_ is perl's own, and not in the language
+
+counts, seed 105: 6000 patterns; the compiler takes 2699, refuses 3301
+taken by the compiler, and perl WARNS of as it compiles: 0
+taken by the compiler, and perl DIES at as it compiles: 0
+run under perl and compiled: 2699 patterns, 21592 pairs of a pattern and a subject; the same: 21568 pairs
+faults of the compiled program: 3
+      3  pattern match too long    e.g. '/b?.(?:a){2}(?:.?(?:\\w{1,2}){2,2}(?:.{2,3}[a]{1,2}){2,3}){3}$/s'
+perl's own complaints as it ran: 0
+DIFFERENT: 0
+refused: 3301, of which perl compiles in silence 3241
+   2933 ( 2910 quiet)  a count of a string, a_, inside a group repeated at least tw    e.g. '/b.(?:x{2}){3}9/'
+    333 (  331 quiet)  a quantifier on what can match the empty string: perl warns,    e.g. '/b+&(?:.?)+$/g'
+     35 (    0 quiet)  _ names a group the pattern does not have, or not yet: perl 
+
+wide, seed 201: 20000 patterns, 9305 taken by the compiler and perl; 52280 pairs of a pattern and a subject with no character past U+00FF, each matched as bytes and upgraded
+perl answers differently by how the subject is kept: 0 lines, 0 patterns
+
+unicode, seed 202: 15000 patterns, 10617 taken by the compiler and perl; 56638 pairs of a pattern and a subject with no character past U+00FF, each matched as bytes and upgraded
+perl answers differently by how the subject is kept: 0 lines, 0 patterns
+
+572 pairs under /i: 198 print what perl prints, 198 fault for a subject past ASCII, 176 refused for a pattern past ASCII; 0 not as they must be
+
+counts, seed 1: 20000 patterns, 160000 pairs of a pattern and a subject asked of perl and of Python's re
+perl answers differently: 714 patterns; of those the compiler takes: 0
+344164 classes: perl does not compile 30429, warns of 2361 as POSIX, is quiet about 311374; the rule misses 0 of those it warns of, and refuses 59097 of the quiet

@@ -1,0 +1,2 @@
+t/5474-re-one-hex-digit-in-a-class.pl:5:13: \x and one hex digit: perl warns unless the pattern ends there (T562); write two, \x04, or \x{...}
+exit: 1

@@ -2881,7 +2881,27 @@ wants one value is a fault, as for every list-shaped `return`.
   an escape perl does not know, `\0` and octal; a backreference to a
   group not closed before it; `]` or `--` first in a class, `[` in
   one, a range backwards or with a class at one end; other delimiters
-  than `/` and the brackets.
+  than `/` and the brackets; `\x` and one hex digit (write `\x04`); a
+  count with a leading zero, `{02}`; a class that looks like a POSIX
+  class without its brackets, which is one with `:`, `=` or `.` twice,
+  or one of them and three letters in a row (write `\.`: `[\w.]` and
+  `[a-z.]` are in, `[aeiou.]` is `[aeiou\.]`); a negated class that
+  leaves no character, `[^\d\D]`; under `/x`, `$#` and `\N{U+...}`
+  before a blank in a class; a lazy quantifier and a character past
+  U+00FF in one pattern, where perl 5.42 has two answers; a count of a
+  string inside a group repeated at least twice, `(?:ab{2}){2}`, which
+  perl 5.42 answers wrongly (write `(?:abb){2}`; `(?:\d{2}:){2}` is
+  in).
+- **A match is bracketed** before `**`, and a `!~` match before another
+  `=~`: `($s =~ /a/) ** 2`. `**` binds tighter than `=~`, and to perl
+  `$s =~ /a/ ** 2` matches `$_`.
+- **A failing match that begins with a repeat is slow**: `/x+y/` on a
+  string of `x` with no `y` tries every start and every length, and
+  past about 2,250 characters that is the fault above, where perl
+  answers at once. Anchor it (`/^x+y/`), or look for the `y` first.
+  The limit is the same for a string of any length, so a match over
+  some megabytes meets it whatever the pattern: `/(\w+)/g` over four
+  megabytes of words is the fault.
 - Not in the language yet: lookaround, possessive quantifiers,
   `(?i)` and the other `(?...)` forms but `(?:...)`, named captures,
   POSIX classes, `\p{...}`, `\h \v \R \N \X \K \G`, `\g` and `\k`, and

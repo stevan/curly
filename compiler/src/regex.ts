@@ -40,6 +40,8 @@ const COUNT_MAX = 32766;
 const PROGRAM_MAX = 100000;
 // What perl's /x takes for a blank past ASCII (D237).
 const WIDE_BLANKS = new Set([0x85, 0x200E, 0x200F, 0x2028, 0x2029]);
+// perl's \s, as runtime/regex.c has it (RE_S).
+const BLANKS: readonly [number, number][] = [[0x09, 0x0D], [0x20, 0x20], [0x85, 0x85], [0xA0, 0xA0], [0x1680, 0x1680], [0x2000, 0x200A], [0x2028, 0x2029], [0x202F, 0x202F], [0x205F, 0x205F], [0x3000, 0x3000]];
 const FLAGS = 'imsxg';
 const LATER_FLAGS: Readonly<Record<string, string>> = {
     a: '/a', u: '/u', l: '/l', n: '/n', p: '/p', o: '/o', d: '/d', e: '/e, which is s///e', r: '/r, which is s///r', c: '/c, which goes with pos',
@@ -83,6 +85,10 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
     const peek = (k = 0): number => cs[i + k] ?? -1;
     let groups = 0;
     const closed = new Set<number>();
+    // Where the pattern's first lazy quantifier stands, and whether it has
+    // a character past U+00FF written in it (T569).
+    let lazyAt: Pos | undefined;
+    let wide = false;
     for (const c of cs) if (WIDE_BLANKS.has(c)) refuse(`U+${c.toString(16).toUpperCase().padStart(4, '0')} in a pattern: perl's /x takes it for a blank (D237); write it as \\x{${c.toString(16).toUpperCase()}}`, here(cs.indexOf(c)));
 
     // Under /x the blanks and comments between pieces go (D237).
@@ -97,6 +103,7 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
 
     const literal = (c: number, where: Pos): Node => {
         if (icase && c > 0x7F) refuse('a character past ASCII in a pattern under /i: perl folds it by Unicode\'s tables, one character to two (D230, T546)', where);
+        if (c > 0xFF) wide = true;
         return { k: 'char', c };
     };
 
@@ -121,7 +128,9 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
             const from = i;
             while (i < end && i < from + 2 && isHex(peek())) i += 1;
             if (i === from) refuse('\\x with no hex digit after it: perl reads it as a NUL; write \\x00 or \\x{...}', here(k));
-            if (i === from + 1 && i < end && isAlnum(peek())) refuse('\\x and one hex digit, then a letter or a digit: write \\x{...}', here(k));
+            // (perl warns of one hex digit before anything but the pattern's
+            // end: Non-hex character terminates \x early, T562.)
+            if (i === from + 1) refuse('\\x and one hex digit: perl warns unless the pattern ends there (T562); write two, \\x0' + show(cs[from]!) + ', or \\x{...}', here(k));
             return parseInt(String.fromCodePoint(...cs.slice(from, i)), 16);
         }
         if (ch === 'o' && cs[i + 1] === 0x7B) {
@@ -189,6 +198,11 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
                 if (e >= 0 && 'dwsDWS'.includes(show(e))) { i += 1; return show(e); }
                 const v = charEscape(k2, true);
                 if (v === undefined) otherEscape(k2, true);
+                // perl skips blanks, and a comment, after \N{U+...} under
+                // /x, in a class too, where nothing else is skipped (T567).
+                if (extended && e === 0x4E && (isBlankX(peek()) || peek() === 0x23)) {
+                    refuse("\\N{U+...} before a blank or '#' in a class under /x: perl skips the blank there, as it does nowhere else in a class (T567); write \\x{...}", here(k2));
+                }
                 if (icase && v! > 0x7F) refuse('a character past ASCII in a pattern under /i: perl folds it by Unicode\'s tables, one character to two (D230, T546)', here(k2));
                 return v!;
             }
@@ -224,6 +238,39 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
             if (typeof lo === 'string') escapes.push(lo);
             else ranges.push([lo, lo]);
         }
+        // perl warns of what looks like a POSIX class with its brackets
+        // missing, [:alpha:], and of near misses, by a guess of its own
+        // (T565); this is wider than every shape it was seen to warn of.
+        {
+            // (An escaped one counts with a bare one for "twice": perl
+            // warns of `[.\.]`, and not of `[\.a\.]`.)
+            let raw = '', escaped = '';
+            for (let j = k + 1; j < i - 1; j++) {
+                if (cs[j] === 0x5C) { raw += '\\'; j += 1; escaped += show(cs[j] ?? 0x5C); }
+                else raw += show(cs[j]!);
+            }
+            const twice = [':', '=', '.'].find(d => raw.includes(d) && raw.split(d).length + escaped.split(d).length > 3);
+            if (twice !== undefined) refuse(`'${twice}' twice in a class: perl may take it for a POSIX class without its brackets, and warn (T565); write \\${twice}`, here(k));
+            const one = /[:=.]/.exec(raw);
+            if (one !== null && /[A-Za-z]{3}/.test(raw)) refuse(`'${one[0]}' and letters in a row in a class: perl may take it for a POSIX class without its brackets, and warn (T565); write \\${one[0]}`, here(k));
+        }
+        // A negated class that holds one of perl's classes and what covers
+        // the rest matches no character, and perl warns of a quantifier
+        // on it (T566).
+        if (neg) {
+            const has = (e: string): boolean => escapes.includes(e);
+            // (Or ranges that leave no character out, or with \S none of
+            // perl's blanks.)
+            const covers = (from: number, to: number): boolean => {
+                let covered = from;
+                for (const [lo, hi] of [...ranges].sort((x, y) => x[0] - y[0])) if (lo <= covered) covered = Math.max(covered, hi + 1);
+                return covered > to;
+            };
+            if (covers(0, 0x10FFFF) || (has('S') && BLANKS.every(([lo, hi]) => covers(lo, hi))) || (has('d') && has('D')) || (has('w') && has('W')) || (has('s') && has('S')) || (has('S') && (has('D') || has('W'))) || (has('D') && has('w'))) {
+                refuse('a class that matches no character: perl warns of a quantifier on it (T566)', here(k));
+            }
+        }
+        if (ranges.some(([, hi]) => hi > 0xFF)) wide = true;
         if (icase) {
             for (const [lo, hi] of [...ranges]) {
                 const a = Math.max(lo, 0x41), b = Math.min(hi, 0x5A);
@@ -257,6 +304,29 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
         }
     };
 
+    // Whether a piece can match one string and no other: characters, and
+    // counts and groups of them.
+    const oneString = (n: Node): boolean => {
+        switch (n.k) {
+        case 'char': return true;
+        case 'class': return !n.neg && n.escapes.length === 0 && n.ranges.length > 0 && n.ranges.every(([lo, hi]) => lo === hi && lo === n.ranges[0]![0]);
+        case 'group': return oneString(n.body);
+        case 'seq': return n.items.length > 0 && n.items.every(oneString);
+        case 'rep': return n.min === n.max && oneString(n.body);
+        default: return false;
+        }
+    };
+    // Whether a piece holds a count of exactly N of one string, `a{2}`.
+    const countsAString = (n: Node): boolean => {
+        switch (n.k) {
+        case 'group': return countsAString(n.body);
+        case 'seq': return n.items.some(countsAString);
+        case 'alt': return n.alts.some(countsAString);
+        case 'rep': return (n.min === n.max && oneString(n.body)) || countsAString(n.body);
+        default: return false;
+        }
+    };
+
     // A quantifier after an atom, if one comes; `k` is where the atom began.
     const quantified = (atom: Node, k: number): Node => {
         skip();
@@ -275,6 +345,7 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
         if (peek() === 0x3F) {
             if (min === max) refuse(`a ? after {${min}}: perl warns that it is a useless greediness modifier`, here(i));
             lazy = true;
+            lazyAt ??= here(i);
             i += 1;
         }
         else if (peek() === 0x2B) refuse('a possessive quantifier is not in the language yet (D226)', here(i));
@@ -286,6 +357,13 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
         if (nullable(atom)) refuse('a quantifier on what can match the empty string: perl warns, or stops by rules of its own (D231, T552)', here(qAt));
         if (hasGroup(atom) && !(atom.k === 'group' && !hasGroup(atom.body))) {
             refuse('a group that captures inside a repeated group: perl keeps or forgets its value by rules of its own (D231, T540); capture the whole repeat, ((?:...)*)', here(k));
+        }
+        // perl 5.42's optimiser works out wrongly the string a match must
+        // hold when a count of one string stands in a group repeated at
+        // least twice, and then says no where the pattern matches: `"b&aaaa"
+        // =~ /b+&(?:a{2}){2}/` is false (T570).
+        if (min >= 2 && countsAString(atom)) {
+            refuse('a count of a string, a{2}, inside a group repeated at least twice: perl 5.42 says no to strings such a pattern matches, a bug of its own (T570); write the count out, (?:aa){2}', here(k));
         }
         return { k: 'rep', body: atom, min, max, lazy };
     };
@@ -311,6 +389,7 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
         if (cs[j] === 0x2C) { j += 1; b = digits(); if (b === '') b = '-1'; }
         if (cs[j] !== 0x7D) return undefined;
         i = j + 1;
+        if (/^0\d/.test(a) || /^0\d/.test(b)) refuse('a count with a leading zero in a quantifier: perl does not compile it (Invalid quantifier, T564)', here(k));
         const min = Number(a), max = Number(b);
         if (min > COUNT_MAX || max > COUNT_MAX) refuse(`a count past ${COUNT_MAX} in a pattern (D236)`, here(k));
         if (max >= 0 && min > max) refuse('{n,m} with n greater than m: perl warns that it cannot match', here(k));
@@ -353,9 +432,9 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
         case 0x5E: return { k: 'assert', a: '^' };
         case 0x24: {
             const next = peek();
-            // (Under /x a blank or a comment after it too: perl takes no
-            // variable there.)
-            if (next >= 0 && next !== 0x29 && next !== 0x7C && !(extended && (isBlankX(next) || next === 0x23))) refuse("a '$' in a pattern that is not at its end, or before ')' or '|': perl may take it for a variable (D229, T550); write \\$ for the character", here(k));
+            // (Under /x a blank after it too: perl takes no variable there.
+            // Before a comment's `#` it reads `$#`, T563.)
+            if (next >= 0 && next !== 0x29 && next !== 0x7C && !(extended && isBlankX(next))) refuse(next === 0x23 && extended ? "a '$' before '#' in a pattern under /x: perl reads $#, and does not compile it (T563); put a blank between" : "a '$' in a pattern that is not at its end, or before ')' or '|': perl may take it for a variable (D229, T550); write \\$ for the character", here(k));
             return { k: 'assert', a: '$' };
         }
         case 0x40: return refuse("'@' in a pattern: perl may take it for an array (D229); write \\@", here(k));
@@ -405,6 +484,11 @@ export const compileRegex = (body: string, at: Pos, flags: string, flagsAt: Pos)
     if (end === 0) refuse('the empty pattern: perl matches the last pattern that matched (T66)', at);
     const tree = parseAlt();
     if (i < end) refuse("a ')' with no '(' before it in the pattern: perl does not compile it", here());
+    // After a lazy quantifier before a character past U+00FF, perl 5.42
+    // runs the next quantifier lazily too when the subject is kept as
+    // bytes, and not when an equal string is kept as UTF-8 (T569): two
+    // answers by the string's past, which a string here does not have.
+    if (lazyAt !== undefined && wide) refuse("a lazy quantifier and a character past U+00FF in one pattern: perl 5.42's answer goes by how it happens to keep the string, a bug of its own (T569)", lazyAt);
 
     // ---- the program
     const code: number[] = [];

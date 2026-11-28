@@ -7431,6 +7431,77 @@ runtime's, and agrees with perl on all of its four programs. The build
 found two places where the proposal was stricter than perl's reading
 needs (T558, T559), and D238 gives them back.
 
+#### What the independent review found
+
+**2026-11-28, by a reader who did not write the step** (Fable 5.2, a
+second agent; `briefs/step19-review/README.md` has every finding with
+its program and both outputs, and D239 what was done). Its tools are
+kept beside the builder's: `differential.py`, a generator with a wide
+grammar (every construct of the subset and well past it, subjects
+sampled from the pattern and then spoiled, ASCII and Unicode), which
+puts every pattern to the compiler's whole front end and to perl and
+runs the ones both take, compiled and under perl; `pasts.py`, which
+asks perl of each taken pattern with its subject kept as bytes and as
+UTF-8; `counts.py`, which holds perl to Python's `re` over one family;
+`folds.py`, `/i` at the edge of ASCII.
+
+**Four programs printed what perl does not**, all refused now:
+
+- **`"1" =~ /a/ ** 2`** (T561, by hand): `**` binds tighter than
+  `=~`, so perl matches the pattern against `$_` and raises that. The
+  parser had read `(... =~ /a/) ** 2`.
+- **`/[\N{U+41} ]/x`** (T567, the generator): after `\N{U+...}` perl
+  skips a blank under `/x` even in a class.
+- **`/x??\x{100}|.+/g`** (T569, the generator, once in 300,000
+  matches): perl's answer goes by how it keeps the subject, as bytes
+  or as UTF-8, a bug of its own; a string here has no past.
+- **`/b+&(?:a{2}){2}/`** (T570, the generator, once in 700,000): perl
+  5.42 says no to a string the pattern matches, its optimiser looking
+  for the wrong string. `counts.py` then found 714 such patterns in
+  20,000 of the family, every one refused by the rule.
+
+**Six shapes perl warns of or dies at, which the compiler took**
+(T560, T562 to T566): a `!~` match on the left of a match; `\x` and
+one hex digit before anything; `$#` under `/x` (D238 had it for an
+anchor and a comment); a count with a leading zero; a class that
+looks like a POSIX class without its brackets; a negated class that
+leaves no character.
+
+**What stood**: the match as an expression. Where a list and where one
+value is wanted (arguments, where a failed match is no argument at
+all; `return`, by the caller; `? :`, `||`, `push`, `map`, `grep`,
+`sort`, a slice, a hash's braces), what binds tighter and looser than
+`=~`, every kind of left side, the slash that divides and the slash
+that begins a pattern, `m`, `s`, `y`, `tr` and `q` as keys: about 190
+programs by hand, each the same as perl or a refusal or a fault, and
+kept as tests 5500 to 5502. And the matcher: after the fixes, of
+321,432 pairs of a pattern and a subject run compiled and under perl
+(40,179 patterns taken, of 79,000 drawn), 321,392 are the same and
+the other 40 are five patterns that fault at the step limit: none
+differs.
+
+**For Stevan, nothing changed** (D239's note, T568): the step limit
+is met by plain patterns. A failing match that begins with a repeat
+is quadratic in this matcher, and faults on a run of about 2,250
+characters (`/x+y/`, `/\s+$/`); and the limit does not grow with the
+string, so `/(\w+)/g` faults on four megabytes of words. Among random
+patterns over subjects of sixty characters it is rare (five patterns of
+40,179). Also stricter than a Perl programmer will expect, none
+new: `if (my ($k, $v) = $s =~ /.../)` (D78: a list assignment is a
+statement), `while ($s =~ /x/g)` (D233), `a+ ?` under `/x` (perl
+takes the blank; the message says perl does not compile it, which is
+wrong), `m /a/` with a blank.
+
+Tests: 5469 to 5497 refusals from a table by hand
+(`briefs/step19-review/review-refusals.py`), 5500 to 5503 `same`
+tests with perl's answers; claims T560 to T570 and six more.
+`t/models/rematch.py` drew three patterns T570's rule refuses (a `{2}`
+in a group repeated twice or more; perl had them right, nothing of any
+length standing before): the model leaves that shape out now and was
+run again, three lines of 5100, 5102 and 5103 changed and no expected
+line. The review's rules were each broken on purpose
+(`briefs/step19-mutations.py`, the thirty named `review:`): 29 of 30 caught the first time. The hole: no test had a count of a string of two characters (`(?:a)` is the character itself to the parser, so the rule's reading of a group was never run); 5497 closes it, and that breakage, run again, is caught. The other 29 were not run a second time.
+
 #### 19, as built
 
 **Built 2026-11-27, 19a to 19c together, by Fable 5.2 under Stevan's

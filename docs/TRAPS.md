@@ -880,7 +880,9 @@ Numbered from T540.
 
 The builder's own pass, a generator of random patterns held to perl
 (`briefs/step19-review/patterns.py`; no fresh agent could be spawned
-for this step), and the build. Each row is in `briefs/claims19.py`.
+for this step), and the build. Each row is in `briefs/claims19.py`. T560 to
+T568 are the independent review's, a reader who did not write the step
+(2026-11-28; `briefs/step19-review/README.md`, `differential.py`).
 
 | | Program | perl prints | Step | Way out |
 |---|---|---|---|---|
@@ -888,6 +890,17 @@ for this step), and the build. Each row is in `briefs/claims19.py`.
 | T557 | `"-" =~ /^[--0]$/`; `/[--\n]/` | `1`: `--` first in a class is a range from `-`; the second dies, a range backwards | 19 | Refuse `--` first in a class (D238) |
 | T558 | `"a" =~ /a$ x?/x`, `"a" =~ /a$ #c\n/x` | `1`, `1`: under `/x` a `$` before a blank or a comment is an anchor | 19 | Agree (D238) |
 | T559 | `"a)" =~ m(a\))`, `"aa" =~ m{a\{2\}}` | `1`, `0`: a backslash before a bracket of the delimiter's kind is kept, the character itself | 19 | Agree (D238); the proposal had refused it |
+| T560 | `$s !~ /a/ =~ /1/` | an empty line, and a warning: Possible precedence problem between ! and pattern match; `!~` is `!` of a match, so it is T547 again | 19 | Refuse a `!~` match unbracketed on the left of `=~` or `!~` (D239) |
+| T561 | `for ("a") { say "1" =~ /a/ ** 2; }` | `1`, in silence: `**` binds tighter than `=~`, so the right side is `/a/ ** 2`, `$_` matched and raised, and that number is the pattern. **The compiler printed `0`.** | 19 | Refuse `**` after the pattern of `=~` or `!~` (D239) |
+| T562 | `"\x04-" =~ /\x4-/`, `/[\x4]/` | `1`, and a warning: Non-hex character '-' terminates \x early, for anything after one hex digit but the pattern's end | 19 | Refuse `\x` and one hex digit (D239); the build had refused it before a letter or a digit only |
+| T563 | `"ab" =~ /b$#c` and a newline, `/x` | dies: `$#c` is the last index of an array `@c`; with nothing after the `#`, `$# is no longer supported as of Perl 5.30`. T558 had `$` before a comment for an anchor: it is one before a blank, and before `#` it is `$#` | 19 | Refuse `$#` under `/x` (D239) |
+| T564 | `"aa" =~ /a{02}/`, `/a{1,03}/` | dies: Invalid quantifier in {,} | 19 | Refuse a count with a leading zero (D239) |
+| T565 | `/[:alpha:]/`, `/[.a.]/`, `/[=a=]/`, `/[:word]/`, `/[.,ord]/` | each matches as the class of those characters, and warns: POSIX syntax [: :] belongs inside character classes; perl guesses at near misses too (`[:alph:]`, `[xdigit:]`, a stray character before the name), and `[:a:]`, `[http:]` and `[\:alpha\:]` are silent | 19 | Refuse a class with `:`, `=` or `.` twice, or one of them and three letters in a row, unescaped: wider than every shape perl was seen to warn of: 2,361 of 344,164 classes, none missed (`briefs/step19-review/posix-classes.pl`; D239) |
+| T566 | `/[^\d\D]*/`, `/[^\S\D]{2}/`, `/[^ \x{0}-\x{10FFFF}\S]{0,0}/` | warns: matches null string many times, or Quantifier unexpected on zero-length expression: a class of no character is of no length to perl | 19 | Refuse a negated class that leaves no character (D239) |
+| T567 | `" " =~ /[\N{U+41} ]/x`; `/[\N{U+41}#]/x` | `0`: after `\N{U+...}` under `/x` perl skips blanks and a comment, in a class too, where it skips them nowhere else (`/[ \N{U+41}]/x` and `/[\x{41} ]/x` are `1`); the second dies, Unmatched [. **The compiler printed `1`.** | 19 | Refuse `\N{U+...}` before a blank or `#` in a class under `/x` (D239) |
+| T568 | `("x" x 2260) =~ /x+y/`; `(" " x 5000) . "x" =~ /\s+$/`; `("a" x 28) =~ /(a+)+b/` | `0` at once, each: perl looks for the `y` first, or gives up early | 19 | The fault past the step limit (D232), where it was not expected: a failing match that begins with a repeat is quadratic here, and faults on a run of about 2,250 characters; and the limit is the same for every string, so it is a limit on a string's length too: `/needle/` faults on twelve million characters with no needle before the end, `/(\w+)/g` on 4.5 MB of words, `/^a*$/` on four million `a`. Not WRONG; for Stevan (D239's note) |
+| T569 | `my @l = "ab" =~ /x??\x{100}\|.+/g;` | `a b`: after a lazy quantifier before a character past U+00FF, which a string perl keeps as bytes cannot hold, perl 5.42 leaves its "lazy" mark set, and the next quantifier it runs is lazy too. For an equal string kept as UTF-8 (`utf8::upgrade`, or `substr` of a wider one) it prints `ab`: **two answers by the string's past. The compiler printed `ab`.** Also `\w+?[\x{100}]`, `x{2,3}?\x{212a}`, `(x)??`, `x??y\x{100}`; not `x?\x{100}`, `x??\x{ff}`, `(?:xy)??\x{100}` | 19 | Refuse a pattern with a lazy quantifier and a character past U+00FF written in it (D239); `briefs/step19-review/pasts.py` asks perl of every taken pattern, as bytes and upgraded |
+| T570 | `"b&aaaa" =~ /b+&(?:a{2}){2}/`; `"bxaaaay" =~ /b+x(?:a{2}){2}y/`; `"bxaa" =~ /.+x{1}(?:a{1}){2}/` | `0`, each, **and each pattern matches its string: a bug of perl 5.42's.** Its optimiser works out a string every match must hold, and for a count of one string inside a group repeated at least twice it works it out wrongly (`use re "debug"`: `floating "b&aa" at 2..`, `floating "bxaay"`), when something of any length stands before. `(?:aa){2}`, `(?:a{2})+`, `(?:.{2}){2}` and `b&(?:a{2}){2}` are right. **The compiler printed `1`.** Found by the generator once in 700,000 matches; `briefs/step19-review/counts.py` then found 714 such patterns in 20,000 of the family | 19 | Refuse a count `{n}` of one string inside a group repeated at least twice (D239): every one of the 714 |
 
 ## The checks themselves
 

@@ -1,0 +1,2 @@
+t/5488-re-lazy-and-wide.pl:5:20: a lazy quantifier and a character past U+00FF in one pattern: perl 5.42's answer goes by how it happens to keep the string, a bug of its own (T569)
+exit: 1

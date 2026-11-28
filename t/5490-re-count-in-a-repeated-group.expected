@@ -1,0 +1,2 @@
+t/5490-re-count-in-a-repeated-group.pl:4:21: a count of a string, a{2}, inside a group repeated at least twice: perl 5.42 says no to strings such a pattern matches, a bug of its own (T570); write the count out, (?:aa){2}
+exit: 1

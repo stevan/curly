@@ -1,0 +1,2 @@
+t/5482-re-posix-near-miss.pl:5:12: '.' and letters in a row in a class: perl may take it for a POSIX class without its brackets, and warn (T565); write \.
+exit: 1

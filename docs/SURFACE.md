@@ -326,6 +326,8 @@ that names it.
 | The empty pattern, `$s =~ //` | Cut | D227 |
 | A pattern alone matching `$_` | Cut: `$_ =~ /.../` | D234 |
 | A quantifier on what can match the empty string; a capturing group inside a repeated group, but the repeated group itself | Cut | D231 |
+| `**` after a pattern, a `!~` match on the left of a match; `\x` and one hex digit, a count with a leading zero, a class shaped like a POSIX class without its brackets, a negated class of no character, `$#` and `\N{U+...}` before a blank in a class under `/x` | Cut: perl reads, warns of or dies at each | D239 |
+| A lazy quantifier with a character past U+00FF; a count of a string inside a group repeated at least twice, `(?:ab{2}){2}` | Cut while perl 5.42 answers them wrongly (T569, T570) | D239 |
 | Lookaround, possessive quantifiers, POSIX classes, `(?i)` and `(?...)` but `(?:...)`, `\h \v \R \N \X \K \G`, the flags `/a /u /l /n /p /xx` | Later | 19 |
 | `/m /s /x` | In | 19 |
 | `/i` | In, ASCII's: a pattern under it holds no character past ASCII, and matching a string that holds one is a fault | 19 (D230) |
