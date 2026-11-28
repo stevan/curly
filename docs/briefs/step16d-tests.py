@@ -174,7 +174,7 @@ same(P2, 'case-escapes', 'the case escapes in double quotes, qq and a heredoc (D
      'say "\\uab\\Ucd";\nsay "\\u\\lABC";\nsay "\\l\\uabc";\nsay "\\U\\uabc\\E";\nsay "x\\L\\uABC\\E-\\uyz";\nsay "a\\u";\nsay "\\Q\\E|";\nmy @a = ("ab", "cd");\nsay "\\u@a";\nsay "\\U$a[0]\\E$a[1]";\n'
      'say qq{\\Ux\\E}, qq(\\u$x);\nprint <<"END";\n\\Uhere $x\\E done \\Q[.]\\E\nEND\nsay "\\Q$y\\E";\nsay quotemeta("a.b"), " ", quotemeta("-_x1 ");')
 same(P2, 'line-and-file', '__LINE__, the line of the token itself, and __FILE__, the path perl was given (D255).',
-     'say __LINE__;\nsay "a",\n  __LINE__,\n  "b";\nsay __LINE__\n  + 1;\nsay __LINE__ . __LINE__;\nmy %h = (__LINE__ => 1);\nsay sort keys %h;\nsay __FILE__;\nmy $s = "__LINE__ __FILE__";\nsay $s;\nsub where() {\n    return __LINE__;\n}\nsay where();')
+     'say __LINE__;\nsay "a",\n  __LINE__,\n  "b";\nsay __LINE__\n  + 1;\nmy $l = 0 +\n  __LINE__;\nsay $l;\nsay __LINE__ . __LINE__;\nmy %h = (__LINE__ => 1);\nsay sort keys %h;\nsay __FILE__;\nmy $s = "__LINE__ __FILE__";\nsay $s;\nsub where() {\n    return __LINE__;\n}\nsay where();')
 same(P2, 'pod-and-end', 'POD where a statement may begin, to =cut or the end; __END__ (D255).',
      'say 1;\n\n=head1 NAME\n\npod-and-end: say ? not perl\n\n=cut\n\nsay 2;\n=pod\n=cutting is not the end\nsay "no";\n=cut back to code\nsay 3;\nif (1) {\n\n=begin comment\n\ninside a block\n\n=end comment\n\n=cut\n\n    say 4;\n}\n=cut\nthis is POD too, to the next =cut\n=cut\nsay 5;\n__END__\nsay 6; not perl ( {')
 same(P2, 'case-past-ascii', "uc, lc, ucfirst and lcfirst past ASCII, by perl's own tables (D257).",
@@ -226,7 +226,8 @@ same(P3, 'lone-range', "a loop over one range whose ends name an array or a hash
      '@a = (1, 2, 3);\n$n = 0;\nfor my $i (1 .. @a) {\n    push @a, 1;\n    $n++;\n}\nsay $n;\nmy %h = (a => 1, b => 2);\n$n = 0;\nfor my $i (1 .. scalar(keys %h)) {\n    $h{$i} = 1;\n    $n++;\n}\nsay $n, " ", scalar(%h);\n'
      'my $r = [1, 2, 3];\nfor my $i (0 .. $#{$r}) {\n    push $r->@*, $i;\n}\nsay scalar $r->@*;\n@a = (1, 2, 3);\nfor my $i (0 .. $#a) {\n    $#a = 0 if $i == 0;\n    say $a[$i] // "u";\n}\n'
      'my @b = (5, 1, 4, 2);\nfor my $i (1 .. $#b) {\n    my $v = $b[$i];\n    my $j = $i - 1;\n    while ($j >= 0 && $b[$j] > $v) {\n        $b[$j + 1] = $b[$j];\n        $j--;\n    }\n    $b[$j + 1] = $v;\n}\nsay "@b";\n'
-     'my @c = (1, 2, 3);\n$c[$_] *= 10 for 0 .. $#c;\nsay "@c";\nfor (reverse 0 .. 1) {\n    say $_;\n}')
+     'my @c = (1, 2, 3);\n$c[$_] *= 10 for 0 .. $#c;\nsay "@c";\n'
+     'for my $i (+(0 .. $#c)) {\n    push @c, $i;\n}\nsay scalar(@c);\nfor (reverse 0 .. 1) {\n    say $_;\n}')
 same(P3, 'range-end-changed', "a lone range's scalar end changed in the block: perl fixed the ends as the loop began (T172).",
      'my $n = 3;\nfor my $i (1 .. $n) {\n    $n = 1;\n    print $i;\n}\nprint "\\n";\nmy ($lo, $hi) = (1, 4);\nfor my $i ($lo .. $hi) {\n    $lo++;\n    $hi--;\n    print $i;\n}\nprint "\\n";\nsub bump($x) {\n    $n = $x;\n    return 0;\n}\nfor my $i (1 .. $n + 1) {\n    bump($i);\n    print $i;\n}\nprint " $n\\n";')
 same(P3, 'range-closures', "a sub with no name over the variable of a loop over a range with a scalar end: each sub its own number (T669).",
@@ -241,6 +242,13 @@ refused(P3, 'list-end-changed', "perl prints 12: the list is a range and a value
 refused(P3, 'closure-list-scalar', "perl's subs share the scalar: '9,2' (T371).", 'my $n = 1;\nmy @s;\nfor my $i ($n, 2) {\n    push @s, sub { $i };\n}', '$i }', 'a sub with no name takes $i, the variable of a loop whose list names $n: to perl the sub has the scalar itself, and sees whatever is stored to it later (D166); take the value into a my in the block first, my $y = $i;')
 refused(P3, 'range-variable-stored', "perl changes its own copy: 2, 3.", 'my $n = 2;\nfor my $i (1 .. $n) {\n    $i++;\n}', '++', "$i is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my")
 fault(P3, 'map-over-range', "perl's map has the range's values once, too; the exception is the loop's alone, and a map's list is frozen: perl prints 0, 1.", 'my @a = (1, 2);\nsay "start";\nmy @b = map { push @a, 1; $_ } 0 .. $#a;', 'my @b', 'an array was changed while a foreach is over it')
+
+
+# ---- a hole the breakages showed (briefs/step16d-mutations.py): a
+# concatenation over two lines whose last piece is no newline.
+refused(P1, 'die-concat-two-lines', "perl names its own line: 'a1 at FILE line 5.'", 'my $n = 1;\ndie "a" . $n\n    if $n;', 'die', 'a die in a statement, a test or a header over more than one line: perl names a line of its own choosing there, and the message would carry it; put it on one line, or end the message in a newline')
+
+refused(P1, 'last-index-makes-a-listed-scalar', "perl makes $r an array as the loop walks it, and its alias $x sees it: 'd', 'd' (D109: $#{$r} = N may make its head).", 'my $r;\nfor my $x ($r, 1) {\n    $#{$r} = 1;\n    say defined $x ? "d" : "u";\n}', '= 1', "this can change $r, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop")
 
 
 def write(n):

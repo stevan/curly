@@ -51,6 +51,10 @@ say "@b";
 my @c = (1, 2, 3);
 $c[$_] *= 10 for 0 .. $#c;
 say "@c";
+for my $i (+(0 .. $#c)) {
+    push @c, $i;
+}
+say scalar(@c);
 for (reverse 0 .. 1) {
     say $_;
 }

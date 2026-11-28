@@ -6,6 +6,9 @@ say "a",
   "b";
 say __LINE__
   + 1;
+my $l = 0 +
+  __LINE__;
+say $l;
 say __LINE__ . __LINE__;
 my %h = (__LINE__ => 1);
 say sort keys %h;

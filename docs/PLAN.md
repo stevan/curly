@@ -6884,6 +6884,105 @@ ASCII now and asks nothing else (158 and 159 fault where the character
 is printed, without `use open`).
 
 
+#### What the census's reading asked for, 16d and the lone range, as built
+
+**Built** (2026-11-27, by Fable 5.2, in the worktree `step-16d`): the
+seven items of the census's part, 16d whole, and the lone range's
+exception, each to its proposal above; two commits for the lot, the
+proposal and then the build, since the parts share every file of the
+compiler (the order asked for was kept in the work, not in the
+history).
+
+**The review was the builder's own**: no second agent could be spawned
+in this session (no tool for it), so each part's review was a separate
+pass with generators held to perl, kept in `briefs/step16d-review/`:
+`part1.py` (random programs over the census's seven items and what they
+meet: 450 programs in two runs, then 150 more with items 5 to 7; no
+WRONG), `part2.py` (every character from U+0080 to U+10FFFF through
+`uc`, `lc`, `ucfirst`, `lcfirst` and `quotemeta`, 9,883 lines of
+mappings, the same as perl's; 200 random strings of case escapes and
+variables; 60 programs of `substr` of four and `scalar reverse`),
+`part3.py` (200 random loops over one range whose ends name arrays,
+hashes, scalars, references and subs, the block changing all of them,
+a quarter with a second item: 182 SAME, 11 LOUD, 7 refused, no WRONG).
+**What the review found, writing and running it**: T672 (`scalar
+reverse` of an empty list reverses `$_`: a fault now), T663 (perl runs
+`do { } while (die ...)` for ever), T664 (perl's `uc` of two U+0345), and
+that `substr` of four with a start before the string but an end inside
+it inserts at the start, as perl does (a test of the builder's had it
+wrong: 6131 is the edge now).
+
+**In the compiler.** The parser: `scalar` bare (`arrayOp`, `shut`), `$#a
+= N` an `arrayop` `$#=` (a name of `names.ts`, shape `resize`) in a
+block, at a statement's head alone (`statementAt`); `undef EXPR;` an
+assignment in a block; `do { } while` a `while` with `post` and one
+block; `EXPR or die` an `if` with `modifier` and `joined`, whose test
+may hold a `my`; `sort(` hard against the word read as the bare form
+(`sortBody`); D150's newline through a concatenation or a `sprintf`
+(`newlineAtEnd`); `substr` of four (`changes` on its name) an assignment
+in a block; `scalar reverse` a `listop` `scalar reverse`; `__LINE__` an
+Int, `__FILE__` a Str (`parse` takes the path). The lexer: `%` after
+`undef` is a hash; POD and `__END__` (`statementMayBegin`); the case
+escapes (`casing`, a stack of runs; a `case` piece the parser makes an
+`apply`). The resolver: `do { } while`'s block a bare one marked `post`;
+a lone range binds no frozen arrays (`loneRange`, in `shapes.ts`). The
+checker: D77 and D166 skip a lone range; `$#=`'s argument one value and
+a maker of what it goes through.
+
+**In the runtime**, `runtime/more16d.c`, which rt.c includes:
+`rt_last_index_store`, `rt_substr4`, `rt_reverse_string` and
+`rt_reverse_some`, `rt_quotemeta`, and `case_string`, which `rt_uc`,
+`rt_lc`, `rt_ucfirst` and `rt_lcfirst` now call (the old ASCII-only
+functions are gone); `runtime/cases16d.c`, generated.
+
+**Tests** (`briefs/step16d-tests.py` writes them all, `same` programs
+without their `.expected`, which is perl's): 6000 to 6006 `same`, 6020
+to 6034 faults, 6050 to 6097 refusals (the census's part, 6097 a hole
+the breakages showed); 6100 to 6106, 6130 to 6143, 6160 to 6178 (16d);
+6200 to 6202, 6220 to 6224, 6250 to 6252 (the lone range); 768, 1255,
+2146, 209, 2636, 2820, 2821, 3109, 3110, 3537, 762, 868 and 972 moved
+kind, refusals or faults before and perl's answers now; 110, 158 and
+159 move with the `str` model (rerun, not patched: it knows the two
+characters past ASCII its tests change, and leaves the rest out as it
+leaves a fault out); two fixtures of the oracle's reading rule, which
+takes `undef %h` as owning the hash (`same-hash-undef`, and
+`same-hash-undef-shown`, which fails without the rule's change and with
+it). 2,291 golden tests.
+
+**Broken on purpose**: MUTATIONS_PLAN.
+
+**The census** (`make census`, then the reason table's rows for the new
+messages and `--sort`; against `census-read`'s 1,363 SAME, 181 LOUD, 720
+REFUSED of which 655 later and 65 open, 4 UNJUDGED, of 2,268 run, 3,616
+by design): **1,415 SAME, 170 LOUD, 668 REFUSED (639 later, 29 open), 4
+UNJUDGED, of 2,257 run; 3,627 by design; no WRONG**, no probe left
+SAME. 52 probes became SAME: 13 `scalar` without brackets, 12 the
+freeze, 8 `$#a = N`, 8 `do { } while`, 5 `undef`, 3 POD, 2 `substr` of
+four, 1 `scalar reverse`; one became LOUD (`scalar reverse` of an empty
+list); 11 moved to `by-design/` (behind D17, D254, D43, D20). **Of the
+85 LOUD probes that were the freeze, 12 are SAME and 73 stay LOUD**:
+those walk the array itself (`for my $x (@a) { $a[0] = 7 }`, perl5-son's
+aliasing probes), which the reading had counted with the range's; none
+became WRONG. The table: rows for D250 to D256, D260 and D262; the rows
+of `scalar needs brackets`, `$#a = N` and 16d's old messages out;
+`\N{...}` is D43's (it was put at 16d).
+
+**The builder's defaults** (each in its decision): `$#a = N` with `=`
+alone and below -1 a fault; `undef` of a slice refused; a `my` or a
+`die` in a `do { } while`'s test refused; `substr` of four on a scalar
+variable alone; the case escapes' subset; `uc` of two U+0345 a fault;
+`scalar reverse` with `scalar` written; the lone range's exception for
+`foreach` alone, not `map`, `grep` or `sort`; `or die` with four
+statements after the word and nothing after them; `sort(` with every
+bare refusal inside; D150's newline through two shapes and no more.
+
+**Doubtful or left**: D259 overturns D81's note and is Stevan's to
+veto; `do { }` as a value, `exists`/`delete` of an array's element and a
+bare `shift` stay out, as asked; `\F` is cut where perl's fold could be
+tabled as the case functions are; `quotemeta` is in as a word, which no
+one asked for, because `\Q` is it; a path with a character past ASCII
+makes `__FILE__` a refusal; the review was not a second agent's.
+
 ### 17. Classes
 
 Referee: perl, and for roles a perl with Stevan's roles (D181).

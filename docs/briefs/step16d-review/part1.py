@@ -28,7 +28,7 @@ def num(rnd):
 
 
 def stmt(rnd, depth=0):
-    k = rnd.randrange(22)
+    k = rnd.randrange(23)
     if k == 0:
         return f'$#a = {num(rnd)};'
     if k == 1:
@@ -74,6 +74,13 @@ def stmt(rnd, depth=0):
         return f'{rnd.choice(["$#a", "$#b"])} = {num(rnd)} if {rnd.choice(["$i", "!$i", "scalar @a"])};'
     if k == 20:
         return f'undef {rnd.choice(["$n", "@a", "$a[0]", "%h"])} unless {rnd.choice(["$i", "!$i"])};'
+    if k == 21:
+        # Items 5 to 7 (D260 to D262), asked for after the first runs.
+        return rnd.choice([
+            f'$n or last;', f'$i and next OUT;', f'my $q{rnd.randrange(99)} = $a[{rnd.choice(["0", "5"])}] or next;',
+            f'scalar(@a) < {rnd.choice(["3", "9"])} or die "big\\n";', f'$a[0] and say "first";' if False else 'say join(",", sort(@a));',
+            f'say join(",", sort({{ $b <=> $a }} @b));', f'$n > 1 and die sprintf("n %d\\n", $n);', f'f(1) or die "f" . "\\n";',
+            f'say "x" . f(0) or die "never\\n";'])
     return f'say scalar @a == {rnd.choice(["0", "1", "3"])} ? "t" : "f";'
 
 
@@ -122,8 +129,9 @@ def run(text):
             return ('BOTH-HANG' if p is None else 'HANGS', text, '', '' if p is None else p.stdout)
         if p is None:
             return ('LOUD' if r.returncode == 1 else 'PERL-HANGS', text, r.stdout + r.stderr, '')
-        if r.returncode == 0:
-            return ('SAME' if r.stdout == p.stdout else 'WRONG', text, r.stdout, p.stdout + p.stderr)
+        if r.returncode == 0 or r.returncode == 255:
+            same = r.stdout == p.stdout and r.returncode == p.returncode and (r.returncode == 0 or r.stderr == p.stderr)
+            return ('SAME' if same else 'WRONG', text, r.stdout + r.stderr, p.stdout + p.stderr)
         if r.returncode == 1 and r.stderr.startswith('fault:') and p.stdout.startswith(r.stdout):
             return ('LOUD', text, r.stderr, '')
         return ('WRONG', text, r.stdout + r.stderr, p.stdout + p.stderr)
