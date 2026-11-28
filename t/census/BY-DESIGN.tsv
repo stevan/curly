@@ -7,6 +7,7 @@ chalk/c3t3.pl	D17	'srand' is not in the language
 chalk/c3t4.pl	D17	'srand' is not in the language
 chalk/c3t5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 chalk/fk2.pl	D19	'our' is not in the language
+chalk/fk6.pl	D19	'bless' is not in the language
 chalk/hc1.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 chalk/hc2.pl	D19	'our' is not in the language
 chalk/hc3.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
@@ -26,7 +27,19 @@ pvm/arithmetic-01.pl	D55	$a is not a name a program may declare: $a and $b are t
 pvm/arithmetic-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/arithmetic-03.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/arithmetic-04.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+pvm/bless-dispatch-05.pl	D19	'package' is not in the language
+pvm/bless-dispatch-08.pl	D19	'package' is not in the language
 pvm/blocks-and-terminations-04.pl	D13	'eval' is not in the language
+pvm/class-feature-01.pl	D16	'use feature' is not in the language
+pvm/class-feature-02.pl	D16	'use feature' is not in the language
+pvm/class-feature-03.pl	D16	'use feature' is not in the language
+pvm/class-feature-04.pl	D16	'use feature' is not in the language
+pvm/class-feature-05.pl	D16	'use feature' is not in the language
+pvm/class-feature-06.pl	D16	'use feature' is not in the language
+pvm/class-feature-07.pl	D16	'use feature' is not in the language
+pvm/class-feature-08.pl	D16	'use feature' is not in the language
+pvm/class-feature-09.pl	D16	'use feature' is not in the language
+pvm/class-feature-10.pl	D16	'use feature' is not in the language
 pvm/code-references-01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 pvm/comparison-01.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 pvm/comparison-02.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
@@ -191,10 +204,12 @@ son-audit/a/aun15.pl	D19	'our' is not in the language
 son-audit/a/aun154.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/a/aun156.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/a/aun16.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/a/aun160.pl	D19	'package' is not in the language
 son-audit/a/aun167.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aun16b.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/a/aun16d.pl	D21	a sub may not be called DESTROY: perl has a meaning of its own for the word
 son-audit/a/aun16e.pl	D19	'package' is not in the language
+son-audit/a/aun16f.pl	D19	expected a value, found 'bless'
 son-audit/a/aun17.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/a/aun173.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/a/aun174.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -231,7 +246,11 @@ son-audit/a/aun51.pl	D19	'our' is not in the language
 son-audit/a/aun53.pl	D13	expected a value, found 'eval'
 son-audit/a/aun5b.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/a/aun6.pl	D19	'our' is not in the language
+son-audit/a/aun60.pl	D19	'bless' is not in the language
 son-audit/a/aun61.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/a/aun62.pl	D19	expected a value, found 'bless'
+son-audit/a/aun63.pl	D19	'package' is not in the language
+son-audit/a/aun64.pl	D19	'package' is not in the language
 son-audit/a/aun7.pl	D19	'our' is not in the language
 son-audit/a/aun70.pl	D19	'our' is not in the language
 son-audit/a/aun71.pl	D19	'our' is not in the language
@@ -241,6 +260,7 @@ son-audit/a/aun74.pl	D19	'our' is not in the language
 son-audit/a/aun75.pl	D19	'our' is not in the language
 son-audit/a/aun76.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aun77.pl	D19	'our' is not in the language
+son-audit/a/aun78.pl	D19	'our' is not in the language
 son-audit/a/aun79.pl	D19	'our' is not in the language
 son-audit/a/aun8.pl	D19	'our' is not in the language
 son-audit/a/aun80.pl	D19	'our' is not in the language
@@ -271,6 +291,7 @@ son-audit/a/aux2.pl	D19	'our' is not in the language
 son-audit/a/aux5.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/a/aux6.pl	D19	'our' is not in the language
 son-audit/a/aux7.pl	D19	'our' is not in the language
+son-audit/a/aux8.pl	D19	'our' is not in the language
 son-audit/al/c01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c02.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/al/c03.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -372,6 +393,7 @@ son-audit/f/b31.pl	D13	expected a value, found 'eval'
 son-audit/f/b32.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/b33.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/b35.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/b36.pl	D19	'package' is not in the language
 son-audit/f/b39.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
 son-audit/f/b41.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/f/b42.pl	D78	an assignment of a list is a statement: perl gives the count of its right side as its value (D78)
@@ -554,6 +576,8 @@ son-audit/f/g47.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/f/g48.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/g56.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/g57.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/g58.pl	D19	'package' is not in the language
+son-audit/f/g59.pl	D19	'package' is not in the language
 son-audit/f/g60.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/f/h01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/h02.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -735,12 +759,19 @@ son-audit/f/o02.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/o03.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/o04.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/o05.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/o06.pl	D19	'package' is not in the language
 son-audit/f/o07.pl	D108	%$ before a name is cut (D108): a hash through a reference is written $r->%* (step 13b)
 son-audit/f/o08.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/f/o09.pl	D19	'package' is not in the language
+son-audit/f/o10.pl	D19	'::' hard after $D in a string: perl reads a variable of another package; write ${D}:: or $D\::
+son-audit/f/o11.pl	D16	'use feature' is not in the language
+son-audit/f/o12.pl	D19	'package' is not in the language
+son-audit/f/o13.pl	D19	expected a value, found 'bless'
 son-audit/f/o14.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/f/o15.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/o16.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/o17.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/f/o18.pl	D19	'::' hard after $A in a string: perl reads a variable of another package; write ${A}:: or $A\::
 son-audit/f/o19.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/o20.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/f/p01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -945,7 +976,10 @@ son-audit/p/ar6.pl	D17	$_[ is an element of perl's own @_ or %_, which are not i
 son-audit/p/ar7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ar8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ar9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/bless1.pl	D19	'bless' is not in the language
+son-audit/p/bless2.pl	D19	expected a value, found 'bless'
 son-audit/p/ca1.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-audit/p/ca11.pl	D19	'package' is not in the language
 son-audit/p/ca13.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/ca14.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ca16.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -972,9 +1006,16 @@ son-audit/p/cl18.pl	D108	$$ before a name is cut (D108): an element through a re
 son-audit/p/cl23.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/cl24.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/p/cl7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/cr1.pl	D19	'bless' is not in the language
+son-audit/p/cr2.pl	D19	'bless' is not in the language
+son-audit/p/cr4.pl	D19	'bless' is not in the language
 son-audit/p/cr5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/cr6.pl	D19	'bless' is not in the language
+son-audit/p/cr8.pl	D19	'bless' is not in the language
 son-audit/p/dyn1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/dyn2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/ef10.pl	D19	expected a value, found 'bless'
+son-audit/p/ef11.pl	D19	'package' is not in the language
 son-audit/p/ef23.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/p/ef24.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/p/ef25.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
@@ -983,6 +1024,7 @@ son-audit/p/ef27.pl	D19	'our' is not in the language
 son-audit/p/ef28.pl	D19	'our' is not in the language
 son-audit/p/ef30.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/ef6.pl	D17	expected a value, found 'each'
+son-audit/p/ef9.pl	D19	'bless' is not in the language
 son-audit/p/ev1.pl	D13	'eval' is not in the language
 son-audit/p/ev10.pl	D16	'use feature' is not in the language
 son-audit/p/ev11.pl	D13	expected a value, found 'eval'
@@ -999,6 +1041,7 @@ son-audit/p/ev7.pl	D92	'$' in a double-quoted string begins a variable, and no n
 son-audit/p/ev8.pl	D13	expected a value, found 'eval'
 son-audit/p/ev9.pl	D13	expected a value, found 'eval'
 son-audit/p/ex3.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/fl12.pl	D13	expected a value, found 'eval'
 son-audit/p/fl14.pl	D16	'use warnings' is not in the language
 son-audit/p/fl20.pl	D16	'use warnings' is not in the language
 son-audit/p/fl3.pl	D13	expected a value, found 'eval'
@@ -1008,13 +1051,17 @@ son-audit/p/hs3.pl	D19	'our' is not in the language
 son-audit/p/hs7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/hs8.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/p/hs9.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/im1.pl	D19	'package' is not in the language
 son-audit/p/im15.pl	D87	sort takes no brackets of its own: sort LIST, or sort { ... } LIST
 son-audit/p/im17.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
 son-audit/p/im19.pl	D92	'$' in a double-quoted string begins a variable, and no name is hard against it: write \$ for the character
+son-audit/p/im2.pl	D19	'package' is not in the language
 son-audit/p/im21.pl	D13	expected a value, found 'eval'
 son-audit/p/im23.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/p/im3.pl	D19	'package' is not in the language
 son-audit/p/im4.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im5.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/p/im6.pl	D19	'package' is not in the language
 son-audit/p/im7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im8.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/im9.pl	D16	'no warnings' goes at the top, after 'use v5.42;' and before anything else
@@ -1055,6 +1102,7 @@ son-audit/p/pa4.pl	D19	'our' is not in the language
 son-audit/p/pg1.pl	D19	'our' is not in the language
 son-audit/p/pg10.pl	D19	'our' is not in the language
 son-audit/p/pg11.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/p/pg12.pl	D19	'::' hard after $Cnt in a string: perl reads a variable of another package; write ${Cnt}:: or $Cnt\::
 son-audit/p/pg13.pl	D19	'our' is not in the language
 son-audit/p/pg14.pl	D19	'our' is not in the language
 son-audit/p/pg15.pl	D19	'our' is not in the language
@@ -1082,6 +1130,7 @@ son-audit/p/pl4.pl	D19	'our' is not in the language
 son-audit/p/pl5.pl	D19	'our' is not in the language
 son-audit/p/pl6.pl	D19	'our' is not in the language
 son-audit/p/pl7.pl	D19	'our' is not in the language
+son-audit/p/pl8.pl	D19	'our' is not in the language
 son-audit/p/pl9.pl	D19	'our' is not in the language
 son-audit/p/rn1.pl	D17	'srand' is not in the language
 son-audit/p/rn2.pl	D17	'srand' is not in the language
@@ -1090,9 +1139,15 @@ son-audit/p/st1.pl	D55	$a is not a name a program may declare: $a and $b are the
 son-audit/p/st10.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/st11.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/st12.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/p/st13.pl	D19	'our' is not in the language
 son-audit/p/st14.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
+son-audit/p/st15.pl	D19	'bless' is not in the language
+son-audit/p/st16.pl	D19	'bless' is not in the language
+son-audit/p/st17.pl	D19	'bless' is not in the language
 son-audit/p/st3.pl	D19	'package' is not in the language
+son-audit/p/st4.pl	D19	'package' is not in the language
 son-audit/p/st5.pl	D21	'&' before a sub's name or a reference: a call by '&' is cut (D21, D165); call a sub by its name with brackets, name(...), or through a reference, $f->(...)
+son-audit/p/st6.pl	D19	expected a value, found 'bless'
 son-audit/p/st7.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/p/st8.pl	D55	$a is not a name a program may declare: $a and $b are the two values a sort gives its block
 son-audit/p/tp1.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
@@ -1140,6 +1195,7 @@ son-audit/q/vp10.pl	D76	a later part of '+' can change %h, which an earlier part
 son-audit/q/vp11.pl	D19	'our' is not in the language
 son-audit/q/vp12.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/q/vp15.pl	D55	$_ outside the block of a for, a map or a grep: it is the value they give their block, and is seen there alone (D17)
+son-audit/q/vp19.pl	D19	expected a value, found 'bless'
 son-audit/q/vp20.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/q/vp21.pl	D57	a later piece of a concatenation changes %h, which an earlier piece reads: perl joins the pieces as one operation and reads each late; make the change a statement of its own
 son-audit/q/vp4.pl	D130	chomp is a statement here, and has no value: perl gives how many characters it took (D130)
@@ -1206,6 +1262,7 @@ son-audit/r/b40.pl	D19	'our' is not in the language
 son-audit/r/c01.pl	D19	'our' is not in the language
 son-audit/r/c02.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/r/c03.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/r/c04.pl	D19	'our' is not in the language
 son-audit/r/c05.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/r/c06.pl	D19	'our' is not in the language
 son-audit/r/c07.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -1343,8 +1400,13 @@ son-audit/r/l20.pl	D108	@$ before a name is cut (D108): an array through a refer
 son-audit/r/m01.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/r/m02.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/m03.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/r/m04.pl	D19	'package' is not in the language
 son-audit/r/m05.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/r/m06.pl	D19	'package' is not in the language
+son-audit/r/m07.pl	D19	'package' is not in the language
 son-audit/r/m08.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
+son-audit/r/m09.pl	D19	'package' is not in the language
+son-audit/r/m10.pl	D19	'package' is not in the language
 son-audit/r/m11.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/m12.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/r/m14.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -1401,6 +1463,7 @@ son-audit/r/q25.pl	D108	$$ before a name is cut (D108): an element through a ref
 son-audit/r/q26.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/r/q27.pl	D109	a later part of this list can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/r/q28.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/r/q29.pl	D19	'package' is not in the language
 son-audit/r/q30.pl	D19	'package' is not in the language
 son-audit/r/q31.pl	D19	'our' is not in the language
 son-audit/r/q32.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
@@ -1515,6 +1578,7 @@ son-audit/y/ya77.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya78.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya79.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/ya80.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-audit/y/yb03.pl	D19	'package' is not in the language
 son-audit/y/yb07.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
 son-audit/y/yb10.pl	D17	$x is its loop's variable, and read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yb11.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
@@ -1536,6 +1600,7 @@ son-audit/y/yb49.pl	D17	$_ is read-only: in perl, changing it changes the list's
 son-audit/y/yb54.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/y/yc08.pl	D17	'chop' is not in the language
 son-audit/y/yc09.pl	D130	chomp takes one scalar variable here, chomp($x): its value, an array, a hash, an element and $_ are not in the language (D130)
+son-audit/y/yc101.pl	D21	a sub may not be called m: perl has a meaning of its own for the word
 son-audit/y/yc104.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yc106.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yc107.pl	D109	a later part of '+' can change what references reach, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -1560,6 +1625,7 @@ son-audit/y/yc128.pl	D76	a later part of this list can change %h, which an earli
 son-audit/y/yc129.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc130.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc131.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
+son-audit/y/yc132.pl	D19	'package' is not in the language
 son-audit/y/yc133.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc134.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
 son-audit/y/yc135.pl	D76	a later part of this list can change @a, which an earlier part names: perl reads it after the change; take the value into a my first
@@ -1888,11 +1954,23 @@ son-audit/y/yj81.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yj82.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yj83.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/y/yj84.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/y/yk01.pl	D19	'package' is not in the language
+son-audit/y/yk02.pl	D19	'package' is not in the language
 son-audit/y/yk03.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yk04.pl	D19	'package' is not in the language
+son-audit/y/yk05.pl	D19	'package' is not in the language
+son-audit/y/yk06.pl	D19	'package' is not in the language
+son-audit/y/yk07.pl	D19	'package' is not in the language
+son-audit/y/yk08.pl	D19	'package' is not in the language
+son-audit/y/yk09.pl	D19	'package' is not in the language
+son-audit/y/yk10.pl	D19	'package' is not in the language
+son-audit/y/yk11.pl	D19	'package' is not in the language
 son-audit/y/yk12.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk13.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yk14.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk15.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yk16.pl	D19	'package' is not in the language
+son-audit/y/yk17.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk18.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yk19.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/y/yk20.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -1900,6 +1978,21 @@ son-audit/y/yk21.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/y/yk22.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk23.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/y/yk24.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yk25.pl	D19	'package' is not in the language
+son-audit/y/yk27.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yk32.pl	D16	'use feature' is not in the language
+son-audit/y/yk33.pl	D16	'use feature' is not in the language
+son-audit/y/yk34.pl	D16	'use feature' is not in the language
+son-audit/y/yk35.pl	D16	'use feature' is not in the language
+son-audit/y/yk36.pl	D16	'use feature' is not in the language
+son-audit/y/yk37.pl	D16	'use feature' is not in the language
+son-audit/y/yk38.pl	D16	'use feature' is not in the language
+son-audit/y/yk39.pl	D16	'use feature' is not in the language
+son-audit/y/yk40.pl	D16	'use feature' is not in the language
+son-audit/y/yk41.pl	D16	'use feature' is not in the language
+son-audit/y/yk42.pl	D16	'use feature' is not in the language
+son-audit/y/yk43.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-audit/y/yk44.pl	D16	'use feature' is not in the language
 son-audit/y/ym02.pl	D87	sort takes no brackets of its own: sort LIST, or sort { ... } LIST
 son-audit/y/ym14.pl	D91	in a string an index is a whole number or a scalar variable (D91): take the index into a my first
 son-audit/y/ym20.pl	D17	expected a value, found 'each'
@@ -2278,6 +2371,7 @@ son-audit/z/pa97.pl	D17	$_[ is an element of perl's own @_ or %_, which are not 
 son-audit/z/pa98.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-audit/z/pa99.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-audit/z/pk24.pl	D19	'package' is not in the language
+son-audit/z/pk25.pl	D19	'package' is not in the language
 son-audit/z/pk27.pl	D19	'package' is not in the language
 son-audit/z/pk29.pl	D19	'our' is not in the language
 son-audit/z/pk30.pl	D19	'our' is not in the language
@@ -2368,6 +2462,7 @@ son-audit/z/qc02.pl	D19	'our' is not in the language
 son-audit/z/qc08.pl	D77	this can change $y, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop
 son-audit/z/qc09.pl	D17	$_ is read-only: in perl, changing it changes the list's own element; take the value into a my
 son-audit/z/qc15.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
+son-audit/z/qc16.pl	D19	'package' is not in the language
 son-audit/z/qc17.pl	D77	this can change $o, which the list of the loop it is in names: perl's loop walks the variable itself; take the value into a my before the loop
 son-audit/z/qc25.pl	D108	$$ before a name is cut (D108): an element through a reference is written $r->[...] or $r->{...}, and the scalar $r->$* (step 13c)
 son-audit/z/qd14.pl	D19	'our' is not in the language
@@ -2501,6 +2596,7 @@ son-audit/z/un68.pl	D19	'our' is not in the language
 son-audit/z/un69.pl	D19	'our' is not in the language
 son-audit/z/un70.pl	D19	'our' is not in the language
 son-audit/z/un71.pl	D19	'our' is not in the language
+son-audit/z/un72.pl	D19	'::' hard after $C in a string: perl reads a variable of another package; write ${C}:: or $C\::
 son-audit/z/un73.pl	D19	'our' is not in the language
 son-audit/z/un74.pl	D19	'our' is not in the language
 son-audit/z/un75.pl	D19	'our' is not in the language
@@ -2559,6 +2655,10 @@ son-corpus/bl-ac1.pl	D108	@$ before a name is cut (D108): an array through a ref
 son-corpus/bl-ac2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/bl-as1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/bl-as2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/bl-b1.pl	D19	expected a value, found 'bless'
+son-corpus/bl-c052.pl	D19	expected a value, found 'bless'
+son-corpus/bl-c053.pl	D19	expected a value, found 'bless'
+son-corpus/bl-c054.pl	D19	'package' is not in the language
 son-corpus/bl-c085.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/bl-c1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/bl-c185.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
@@ -2663,8 +2763,10 @@ son-corpus/lr-s175.pl	D17	$_[ is an element of perl's own @_ or %_, which are no
 son-corpus/lr-ua1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/lr-ua2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/lr-w216.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/lt-hd2.pl	D19	'package' is not in the language
 son-corpus/lt-st1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/lt-st3.pl	D17	@_ is not in the language: a sub has a signature (D17)
+son-corpus/mc-m1.pl	D19	'package' is not in the language
 son-corpus/mc-m2.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/own-h1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/own-k2.pl	D17	@_ is not in the language: a sub has a signature (D17)
@@ -2709,6 +2811,7 @@ son-corpus/pp-so189.pl	D108	%$ before a name is cut (D108): a hash through a ref
 son-corpus/pp-so222.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/pp-w1.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
 son-corpus/pp-x149.pl	D17	$_[ is an element of perl's own @_ or %_, which are not in the language
+son-corpus/pp-x249.pl	D16	'use feature' is not in the language
 son-corpus/pp-z1.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/pp-z2.pl	D17	@_ is not in the language: a sub has a signature (D17)
 son-corpus/push2-p10.pl	D108	@$ before a name is cut (D108): an array through a reference is written $r->@* (step 13b)
