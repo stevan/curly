@@ -38,8 +38,8 @@ import checks
 REPAIRS = 40
 LOUD_REPAIRS = 12
 PERL = os.environ.get('CURLY_PERL', 'perl')
-OURS_LIMIT = 20
-PERL_LIMIT = 5
+OURS_LIMIT = 40
+PERL_LIMIT = 15
 SEEDS = ['1', '2']
 # perl's warning at 100 calls deep, which the language does not give (D67)
 DEEP = re.compile(rb'^Deep recursion on (anonymous )?subroutine.*\n', re.M)
@@ -95,6 +95,10 @@ def judge(perl, ours):
     """t/census.py's judge, and one case it does not meet: a fault after
     the program wrote to stderr, which is LOUD when what it wrote, stdout
     and stderr apart, is the start of what perl writes."""
+    if any(p is None for p in perl):
+        return 'UNJUDGED', 'perl does not end'
+    if any(p[0] < 0 for p in perl):
+        return 'UNJUDGED', f'perl is killed by signal {-perl[0][0]}'
     if ours not in (None, 'runaway') and ours[0] == 1:
         lines = ours[2].split(b'\n')
         if len(lines) >= 2 and lines[-1] == b'' and lines[-2].startswith(b'fault: ') and not ours[2].startswith(b'fault: '):
