@@ -2597,3 +2597,82 @@ now, a walk that refuses whatever would let a program see the order
 of construction, which would refuse most `ADJUST`s that print and
 every default that reads a variable a default above it changes, and
 is better decided beside the protocol that may change the order.
+
+**D245. A sub called for nothing: a `sort` it gives back is skipped,
+and a range, `(LIST) x N` or `reverse` it gives back is a fault.**
+*(The builder's recommendation, under Stevan's standing instruction of
+2026-11-27; his to overturn. Found by the differential fuzzer,
+`briefs/fuzz/`, T600 and T601.)* perl works a sub's value out in the
+context of its call, and for a call that wants nothing (`f();`) that is
+no context at all, which several operators read as one value: a range
+is the flip-flop (it works out its left end, compares a constant end
+with `$.` and warns, and may never work out its right end), `(LIST) x
+N` repeats one value, `reverse` joins and reverses a string (and warns
+of an undef), and `sort` returns at once, its list worked out and its
+block never run. The language worked each out as for a list: a block
+that prints, or a range whose left end is a call, printed what perl
+does not, and the others were silent where perl warns. **What is done**:
+where a call hands its context on in what a sub gives back (behind a
+unary plus, to each item of a list, to both branches of `? :`, to the
+right of `|| && //`), a sort, with or without a block, is replaced in
+a call for nothing by the list it was given, which is what perl does,
+and a call there is a call for nothing in turn (an item of a list too:
+`return (g(), 1);` calls `g` for nothing, to perl);
+and a range, a `(LIST) x N` or a `reverse` there is the fault `f is
+called for nothing, and gives back a range, (LIST) x N or reverse,
+which perl works out for one value then`, raised as the `return` or
+the last statement begins, before any of it is worked out, whichever
+branch would have been taken. Rejected: perl's flip-flop, string
+`reverse` and scalar repeat for a call for nothing (three operators'
+meanings for one rare shape; D2 lets the language fault instead);
+refusing the sub (whether a call wants nothing is known only as it
+runs: a call through a reference, a `return g()`); faulting every
+list-shaped value given to a call for nothing (`return @list;` called
+as a statement is common, and perl does nothing with it); faulting on
+the sort too (agreeing is the generated list without the sort).
+
+**D246. An index or key of a chain may not change what holds the
+container before it.** *(The builder's recommendation, under Stevan's
+standing instruction of 2026-11-27; his to overturn. Found by the
+differential fuzzer, `briefs/fuzz/`, T602.)* perl works a chain out
+left to right: the variable, then each container, then the index or
+key after it, holding no count on the container while it does. An
+index that assigns the variable the chain starts from (`$v->[f()]`
+with `f` storing to `$v`, or `$v->[($v = [7, 8]) ? 0 : 1]`), that
+assigns the array or hash whose element it starts from, or that stores
+through a reference to what holds a container past the first, can free
+the container perl has taken: perl then reads undef from it, with a
+warning, or dies (`Modification of a read-only value attempted`, `Not
+a HASH reference`), or stores into it and loses the store, where the
+language, whose collector keeps what it took, read or stored the old
+container, or vivified the new one. Refused, by the checker, for every
+chain, read or stored, in `exists` and `delete` and a list assignment
+too: the index of hop k may not change the variable or the array or
+hash the chain starts from, nor, from an element or past the first
+hop, what references reach (D109). Rejected: agreeing with perl (the
+container freed, a read undef and a store a death, depends on whether
+anything else holds it, which perl counts and the language does not);
+faulting as it runs (the language would have to count what holds a
+container); refusing only where the container is certainly freed
+(when another reference holds it perl agrees with the language, but
+whether one does is known only as the program runs). Stricter than
+perl where something else holds the container, and where an index
+stores through some reference that does not reach it.
+
+**D247. In a branch of `? :` or after a logical operator, a list may
+not be repeated by 1, nor by a count perl folds as it compiles.** *(The
+builder's recommendation, under Stevan's standing instruction of
+2026-11-27; his to overturn. Found by the differential fuzzer,
+`briefs/fuzz/`, T603.)* perl 5.42 compiles `(LIST) x 1`, the integer
+1 written or folded (`0x1`, `2 - 1`, `!0`, `length("a")`), to the list
+alone, and where the repeat is what a `? :` or an `&&`, `||`, `//`,
+`and`, `or` may jump to or past, the jump lands on the wrong op:
+`my @l = ($v ? (7) x 1 : 0); say scalar(@l), " @l";` prints `70 `, `for my $x ($v ? (7) x 1 : 0)` runs out of memory. A bug of
+perl's, like T194's crash; the language printed the sane list. Refused,
+by the checker, in those places, through brackets and the items of a
+list: the count must be a number written out other than the integer 1
+(`1.0`, `"1"` and `2` are fine to perl), or anything with a variable in
+it. Rejected: agreeing with perl (garbage); refusing `(LIST) x 1`
+everywhere (perl is right outside those places, and model tests write
+it); a constant folder to tell which counts perl folds to 1 (the
+refusal is cheaper, and a count that folds is rare).

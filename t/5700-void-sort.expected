@@ -1,0 +1,32 @@
+p2
+p1
+p2
+p1
+p2
+p1
+p3
+for nothing: done
+p2
+p1
+cmp
+1 2
+cmp
+1 2
+p2
+p1
+cmp
+1 2
+cmp
+cmp
+1,2,3,1,1,2,1,2
+p2
+p1
+cmp
+p3
+cmp
+1,2,3,1,1,2
+p2
+p1
+p2
+p1
+end

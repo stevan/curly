@@ -135,7 +135,7 @@ comparison: *in*, *out*, or *n/a*.
 | `say;`, `print;` with no argument | Cut | | | D85: `$_` is always written |
 | A builtin's brackets and then an operator, `say (1 + 2) * 3;` | Cut | | | D21, T25: perl prints 3 |
 | `say (...)` after one space, not ending on its line, or with a bracket in a string or a comment that perl's count of them trips on | Cut | | | T76, T100: perl warns. `say(...)`, hard against, may run over lines |
-| `(LIST) x N`, a list repeated, where a list is wanted | In | 9 | | D80, T101. After `return` and as a sub's last statement too, from step 10 (T143); a comma list on the left of `x` where one value is wanted: Cut (T168) |
+| `(LIST) x N`, a list repeated, where a list is wanted | In | 9 | | D80, T101. After `return` and as a sub's last statement too, from step 10 (T143); a comma list on the left of `x` where one value is wanted: Cut (T168); in a branch of `? :` or after a logical operator, a count of 1, or one perl folds as it compiles: Cut (D247, T603: perl 5.42 loses its place) |
 | `print STDERR ...`, `say STDERR ...` | In | 15 | | 15b, with `warn`: `STDERR` and a list not in brackets of its own (T320); no other handle |
 | `1;` ending a module | In | 18 | | Not needed under `use v5.42`; harmless |
 
@@ -170,7 +170,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | The comma operator in scalar position, `my $x = (4, 5, 6)` | Cut | | perl warns (D15). In the slots of a C-style `for`: In, step 6 |
 | `-bareword` | Cut | | perl gives the string `-foo`, even under strict (T69) |
 | `^^`, `^^=` | Later | 4 | New in perl 5.40 and 5.42 |
-| `..` in list context | In | 9 | D80. Whole numbers, each end cut toward zero; a string or an undef for either end faults (T154: perl's string ranges are string increment); where one value is wanted it is perl's flip-flop, and refused (T151) |
+| `..` in list context | In | 9 | D80. Whole numbers, each end cut toward zero; a string or an undef for either end faults (T154: perl's string ranges are string increment); where one value is wanted it is perl's flip-flop, and refused (T151); given back by a sub to a call that wants nothing, a fault, as `(LIST) x N` and `reverse` are there (D245, T600) |
 | `..` and `...` in scalar context (flip-flop) | Cut | | |
 | `x` on a list, `(1, 2) x 3` | Later | 10 | |
 | `& \| ^ ~ << >>` | In | 22 | Numeric, as under `use v5.42`; a non-number faults |
@@ -261,6 +261,7 @@ Precedence and associativity are `perlop`'s. Chalk's
 | Reading the scalar through undef, `defined $$r` and a loop's list too | Fault | 13c | D107: perl makes `$r` in silence there (T350), and dies everywhere else a read stands |
 | `reftype`, `blessed`, `refaddr` | In | 17 | Imported by `use v5.42`; `refaddr`'s number is unspecified |
 | A later part changing what a reference reaches, read through by an earlier part | Cut | | D109, D114 (T235, T236, T249): refused, in every walk over names |
+| An index or key of a chain changing what holds the container before it, `$v->{f()}` with `f` assigning `$v` | Cut | | D246 (T602): perl reads or stores a freed container; refused |
 | `weaken`, `unweaken`, `is_weak`, `is_tainted` | Cut | | D26; all imported by `use v5.42`, so the names are still taken (D21) |
 | Typeglobs, `*name`, filehandles as barewords | Cut | | Except `STDIN`, `STDOUT`, `STDERR` |
 | `=>` quoting the word on its left, `q`, `y`, `s`, `if` and a sub's name included | In | 12a | T214. The word and its `=>` on one line: across a line, Cut (D102, T224) |
@@ -294,7 +295,7 @@ Opal's notation, `docs/BUILTINS.md`.
 | `sort` with `$a` and `$b` (see the rows below) | In | 10 |
 | `any`, `all` (experimental in 5.42, and not in the bundle) | Later | 10 |
 | `map EXPR, LIST`, `grep EXPR, LIST` | Cut | | D85: a block always |
-| `sort LIST`, `sort { } LIST`, `reverse sort ...` | In | 10 | D82, D83, D87. By string with no block; with one, `$a` and `$b`, read-only and the block's alone. **perl's own merge, ported: every comparison is perl's, in perl's order** (T3, T173), and stable (T4). The block's value: a whole number, a fault outside 32 bits (T173). The list is copied, its arrays frozen, D77, T188's fault past the end. Refused where one value is wanted (D84); list-shaped after `return`. A lone value is looked at for the four blocks perl throws away (T190) |
+| `sort LIST`, `sort { } LIST`, `reverse sort ...` | In | 10 | D82, D83, D87. By string with no block; with one, `$a` and `$b`, read-only and the block's alone. **perl's own merge, ported: every comparison is perl's, in perl's order** (T3, T173), and stable (T4). The block's value: a whole number, a fault outside 32 bits (T173). The list is copied, its arrays frozen, D77, T188's fault past the end. Refused where one value is wanted (D84); list-shaped after `return`. A lone value is looked at for the four blocks perl throws away (T190). Given back to a call that wants nothing, skipped, as perl skips it: the list worked out, the block never run (D245, T601) |
 | `sort NAME LIST`, `sort NAME(...)`, `sort $f LIST`, a word or a scalar first after `sort`; `sort(...)` with brackets of its own | Cut | | T29, T189, T190, D21: perl takes the first for a sub to compare by |
 | `@a = sort { } @a` with an undef in `@a` | Fault | 10 | T187, D87: perl sorts in place and drops what was never stored |
 | `ceil`, `floor`, `trim`, `indexed` (imported by `use v5.42`), `fc` | Later | 16, 22 |

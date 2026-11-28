@@ -1,0 +1,2 @@
+t/5733-fuzz-repeat-one-after-and.pl:5:22: a list repeated by 1, or by a count perl works out as it compiles, in a branch of ? : or after a logical operator: perl 5.42 loses its place there (D247); write the list once, or the count as a number
+exit: 1

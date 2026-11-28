@@ -52,6 +52,29 @@ export const shaped = (in_: Expr, gives: Gives): boolean => {
     }
 };
 
+// Where a call that wants nothing hands that on, in what a sub gives back
+// (D245): behind a unary plus, to each item of a list, to both branches of
+// `? :` and to the right of `|| && //`. perl works out what stands there
+// for nothing, which is not what it does for a list: a range is a
+// flip-flop, `(LIST) x N` and `reverse` work for one value, a sort is
+// skipped, its list worked out and its block never run, and a call is
+// for nothing too (T600, T601; codegen's genVoid).
+const voidReach = (in_: Expr, found: (e: Expr) => boolean): boolean => {
+    const e = behind(in_);
+    if (found(e)) return true;
+    switch (e.kind) {
+    case 'list': return e.items.some(item => voidReach(item, found));
+    case 'ternary': return voidReach(e.then, found) || voidReach(e.else, found);
+    case 'binary': return infixOp(e.op)?.when !== undefined && voidReach(e.right, found);
+    default: return false;
+    }
+};
+
+// A range, `(LIST) x N` or `reverse` where a call for nothing reaches it:
+// a fault, as the call begins to give it back (D245).
+export const voidOneValue = (e: Expr): boolean =>
+    voidReach(e, x => isRange(x) || isRepeat(x) || (x.kind === 'listop' && x.op === 'reverse'));
+
 // What a sub may give back: the value of each `return` in it, and its last
 // statement if that is an expression.
 const returned = (s: Sub): Expr[] => {

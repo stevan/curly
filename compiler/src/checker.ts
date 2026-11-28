@@ -386,6 +386,45 @@ const checkMaking = (w: World, target: Chain | Deref | Sderef, value: Expr, scal
     }
 };
 
+// D247: a list repeated by 1, or by a count perl folds, where a `? :`
+// or a logical operator passes it, through brackets and the items of a
+// list (T603).
+const checkPassedRepeat = (in_: Expr): void => {
+    const e = plain(in_);
+    if (e.kind === 'list') return e.items.forEach(checkPassedRepeat);
+    if (e.kind !== 'binary' || !isRepeat(e)) return;
+    const count = plain(e.right);
+    const written = (count.kind === 'int' && count.value !== 1n) || count.kind === 'num' || count.kind === 'str';
+    if (!written && folds(count)) {
+        refuse('a list repeated by 1, or by a count perl works out as it compiles, in a branch of ? : or after a logical operator: perl 5.42 loses its place there (D247); write the list once, or the count as a number', e.right.pos);
+    }
+};
+
+// D246: perl takes each container of a chain before it works out the
+// index or key after it, and holds no count on it while it does: an index
+// that lets go of the container (an assignment to the variable the chain
+// starts from, to the array or hash whose element it starts from, or
+// through a reference to what holds it) leaves perl reading undef from a
+// freed container or dying, `Modification of a read-only value attempted`,
+// where the language would read or store what it took (T602). So an index
+// or key may not change the variable or the array the chain starts from,
+// nor, past the first container or from an element, what references reach.
+const checkHops = (w: World, c: Chain): void => {
+    const hops: Chain[] = [];
+    for (let x: Expr = c; x.kind === 'chain'; x = x.head) hops.unshift(x);
+    const base = hops[0]!.head;
+    hops.forEach((hop, k) => {
+        const held = new Set<number>();
+        if (base.kind === 'var' || base.kind === 'elem') addId(w, held, w.names.of.get(base)!);
+        if (k >= 1 || base.kind === 'elem') held.add(REACH);
+        for (const id of changeSet(w, hop.index)) {
+            if (held.has(id)) {
+                refuse(`this ${hop.hash ? 'key' : 'index'} can change ${sigil(w, id)}, which holds the container it is ${hop.hash ? 'a key' : 'an index'} of: perl takes the container first, and reads or stores a freed one when the ${hop.hash ? 'key' : 'index'} lets go of it (D246); take the ${hop.hash ? 'key' : 'index'} into a my first`, hop.index.pos);
+            }
+        }
+    });
+};
+
 // D76: of parts worked out in this order, a later one may not change what
 // an earlier one names. `also` is what else runs after them all (a sub's
 // defaults, for its arguments).
@@ -652,6 +691,15 @@ const checkExpr = (w: World, e: Expr, my: boolean, ctx: Ctx = 'scalar', root = f
     if (e.kind === 'apply' && (e.name === 'length' || e.name === 'defined') && (of?.kind === 'array' || (of?.kind === 'deref' && !of.last))) {
         refuse(`${e.name} of ${of.hash ? 'a hash' : 'an array'}: perl ${e.name === 'length' ? 'warns, and means the length of its count' : 'refuses it'}; scalar(${of.hash ? '%h' : '@a'}) is how many it holds`, e.pos);
     }
+    if (e.kind === 'chain') checkHops(w, e);
+    // D247: perl 5.42 folds away a list repeated by the integer 1 as it
+    // compiles, and where a `? :` or a logical operator may jump past it
+    // the program goes on at the wrong op: garbage, or out of memory
+    // (T603). So there a list's count may not be 1, nor what perl works
+    // out as it compiles, which this does not: a number written out,
+    // other than the integer 1, or a string, is the count.
+    if (e.kind === 'ternary') { checkPassedRepeat(e.then); checkPassedRepeat(e.else); }
+    if (e.kind === 'binary' && infixOp(e.op)?.when) checkPassedRepeat(e.right);
     // D76, for what this node works out in order.
     if (e.kind === 'binary' && !infixOp(e.op)?.when) checkOrder(w, `'${e.op}'`, [e.left, e.right], ctx === 'list' && isRepeat(e));
     if (e.kind === 'apply') checkOrder(w, e.name, e.args, false);

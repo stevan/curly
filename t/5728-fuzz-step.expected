@@ -1,0 +1,2 @@
+t/5728-fuzz-step.pl:9:6: this key can change $v, which holds the container it is a key of: perl takes the container first, and reads or stores a freed one when the key lets go of it (D246); take the key into a my first
+exit: 1

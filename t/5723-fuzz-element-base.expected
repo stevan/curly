@@ -1,0 +1,2 @@
+t/5723-fuzz-element-base.pl:9:11: this index can change @a, which holds the container it is an index of: perl takes the container first, and reads or stores a freed one when the index lets go of it (D246); take the index into a my first
+exit: 1

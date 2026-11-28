@@ -1415,6 +1415,18 @@ A call hands on how it was called: `return g();`, a last statement
 `and` and `or`, brackets and a unary plus all pass to `g` whether a
 value, a list or nothing was wanted of the sub they are in.
 
+**A call that wants nothing**, `f();` as a statement, is one perl
+works the sub's value out for nothing, and that is not always what it
+does for a list. A `sort` given back then is skipped: its list is
+worked out and its block never runs, as in perl; and a call given back,
+an item of a list too, is a call for nothing in turn. A range, `(LIST) x
+N` or `reverse` that a call for nothing may give back, through any of
+the places above or as an item of a list, is a fault as the sub begins
+to give it back: `f is called for nothing, and gives back a range,
+(LIST) x N or reverse, which perl works out for one value then` (perl
+makes the range a flip-flop, which may work out only its left end, and
+repeats or reverses one string).
+
 ### Variables in a sub
 
 A `my` in a sub is the sub's own, and new at every call: a sub that
@@ -1514,6 +1526,14 @@ another thing.
 **`(LIST) x N`**, a list in brackets and a count, is the list N times,
 where a list is wanted: `my @zeros = (0) x 10;`. Without the brackets,
 or where one value is wanted, `x` repeats a string, as before.
+
+In a branch of `? :`, or on the right of `&&`, `||` or `//` (and their
+words), a list may not be repeated by 1, nor by a count perl works out
+as it compiles (`(7) x 0x1`, `(7) x (2 - 1)`): perl 5.42 folds that
+away as it compiles and then loses its place there, printing garbage or
+running out of memory (D247). A count written as a number other than
+the integer 1, a variable, or a string is fine, and so is `(LIST) x 1`
+anywhere else.
 
 A call of a sub in a list is its value; a sub that returned nothing
 (`return;`) is no value there, so `(1, none(), 2)` is two values.
@@ -2540,6 +2560,17 @@ in the program counts as reached by every reference. A store through a
 chain also changes the variable it starts from, since a hop that is
 undef is made in it: `my @l = ($r, ($r->[0] = 1));` is refused. Take
 the value into a `my` first.
+
+**An index or a key in a chain may not change what holds the container
+it is an index of**: `$v->{f()}` is refused when `f`, or anything it
+calls, assigns `$v`; `$a[0][f()]` when it changes `@a`; and
+`$r->[0][f()]`, or a chain that starts from an element, when it stores
+through any reference. perl takes each container before it works out
+the index after it, and keeps no hold on it, so an index that lets go
+of it leaves perl reading undef from a container that is gone, or dying
+with `Modification of a read-only value attempted`, where the language
+would read or store what it took (D246). Work the index out first, into
+a `my`.
 
 In a string: code, `"@{[ ... ]}"`, `"${\ ... }"`; a dereference without
 braces, `"@$r"`, `"$$r[0]"`; anything but a scalar variable and its
