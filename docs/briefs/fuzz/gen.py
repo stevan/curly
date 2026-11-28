@@ -582,7 +582,7 @@ class Gen:
             return self.ch(a)
         if k < 0.42:
             lo = self.ch(['0', '1', '-2', '3'])
-            hi = self.ch(['3', '5', '0', '2'] + [f'$#{x[1:]}' for x in a] + [self.expr(0, 'num')])
+            hi = self.ch(['3', '5', '0', '2'] + [f'$#{x[1:]}' for x in a] + [self.ch(self.vars('$', {'int'}) or ['4'])])
             if self.p(0.1):
                 lo = self.call(0, 'num')
             return f'({lo} .. {hi})'
