@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""t/4700 to t/4733 and the faults t/4740 to t/4765: stdin, @ARGV, %ENV,
+"""t/4700 to t/4716, t/4719 to t/4733, and the faults t/4740 to t/4766: stdin, @ARGV, %ENV,
 exit, STDOUT and printf to a handle (step 21a; D211 to D219).
 
 The definition, which is all this file knows of them:
@@ -66,6 +66,8 @@ Every command that writes a file, one a line (t/checks.py runs them all):
     python3 t/models/io.py 4715 > t/4715-io-numbers.expected
     python3 t/models/io.py --program 4716 > t/4716-io-tested.pl
     python3 t/models/io.py 4716 > t/4716-io-tested.expected
+    python3 t/models/io.py --program 4719 > t/4719-io-returned.pl
+    python3 t/models/io.py 4719 > t/4719-io-returned.expected
     python3 t/models/io.py --program 4720 > t/4720-exit-3.pl
     python3 t/models/io.py 4720 > t/4720-exit-3.expected
     python3 t/models/io.py --program 4721 > t/4721-exit-256.pl
@@ -146,6 +148,8 @@ Every command that writes a file, one a line (t/checks.py runs them all):
     python3 t/models/io.py 4764 > t/4764-fault-utf8-lead-past-the-last.expected
     python3 t/models/io.py --program 4765 > t/4765-fault-printf-stderr-without-open.pl
     python3 t/models/io.py 4765 > t/4765-fault-printf-stderr-without-open.expected
+    python3 t/models/io.py --program 4766 > t/4766-fault-return-of-lines-for-one-value.pl
+    python3 t/models/io.py 4766 > t/4766-fault-return-of-lines-for-one-value.expected
 """
 
 import random
@@ -502,6 +506,25 @@ def case_tested(rnd):
     return program(stdin=data, body=body), out
 
 
+def case_returned(rnd):
+    # (A hole the breakages found: a sub that gives back <STDIN> gives a
+    # list, every line that is left, D18.)
+    data = random_lines(rnd, 4)
+    lines = lines_of(data)
+    body = [
+        'sub first_line() { my $l = <STDIN>; return $l }',
+        'sub the_rest() { return <STDIN> }',
+        'sub also_the_rest() { <STDIN> }',
+        'my $one = first_line();',
+        'my @rest = the_rest();',
+        'my @none = also_the_rest();',
+        'print "[$one]";',
+        'say scalar(@rest), " ", scalar(@none);',
+    ]
+    out = f'[{show(lines[0])}]{len(lines) - 1} 0\n'
+    return program(stdin=data, body=body), out
+
+
 EXITS = {
     4720: (['say "a";', 'exit 3;', 'say "b";'], 'a\nexit: 3\n'),
     4721: (['exit 256;'], ''),
@@ -583,6 +606,9 @@ def case_fault(n):
     if n == 4760:
         head, _, _ = program(stdin=b'')
         return fault(head, [], ['say "before";', 'chomp(my $l = <STDIN>);', 'say "not reached";'], 'before\n', 'undef where a string is wanted', 2)
+    if n == 4766:
+        head, _, _ = program(stdin=b'a\nb\n')
+        return fault(head, [], ['sub lines() { return <STDIN> }', 'say "before";', 'my $l = lines();', 'say "not reached";'], 'before\n', 'lines returned a list where one value is wanted', 1)
     if n == 4765:
         # (A hole the breakages found: printf STDERR looks at what it prints.)
         return fault([], ['use utf8;'], ['say "before";', 'printf STDERR "%s\\n", "é";', 'say "not reached";'], 'before\n', "a character past ASCII printed without 'use open'", 2)
@@ -595,7 +621,7 @@ def case_fault(n):
 SAME = {4700: case_lines, 4701: case_rest, 4702: case_call, 4703: case_list_assign, 4704: case_loop_list,
         4705: case_map, 4706: case_repeat, 4707: case_bytes, 4708: case_utf8, 4709: case_eof, 4710: case_argv,
         4711: case_env, 4712: case_stdout, 4713: case_printf_err, 4714: case_chomp, 4715: case_numbers,
-        4716: case_tested}
+        4716: case_tested, 4719: case_returned}
 
 NAMES = {
     4740: 'fault-utf8-latin1-byte', 4741: 'fault-utf8-surrogate', 4742: 'fault-utf8-past-the-last',
@@ -605,7 +631,7 @@ NAMES = {
     4753: 'fault-env-through-a-reference', 4754: 'fault-env-step', 4755: 'fault-env-new-key',
     4756: 'fault-exit-not-a-number', 4757: 'fault-exit-undef', 4758: 'fault-exit-reference',
     4759: 'fault-line-past-the-end', 4760: 'fault-chomp-past-the-end', 4761: 'fault-wide-line-without-open',
-    4762: 'fault-env-slice-store', 4763: 'fault-utf8-overlong-three', 4764: 'fault-utf8-lead-past-the-last', 4765: 'fault-printf-stderr-without-open',
+    4762: 'fault-env-slice-store', 4763: 'fault-utf8-overlong-three', 4764: 'fault-utf8-lead-past-the-last', 4765: 'fault-printf-stderr-without-open', 4766: 'fault-return-of-lines-for-one-value',
 }
 
 

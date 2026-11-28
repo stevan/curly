@@ -48,6 +48,9 @@ MUTATIONS = [
     ("U+FDD0 is no noncharacter", IO, "(u >= 0xFDD0 && u <= 0xFDEF) || ", ""),
     ("a surrogate is UTF-8", IO, "        if (u >= 0xD800 && u <= 0xDFFF) return -1;\n", ""),
     ("an overlong form is UTF-8", IO, "        if ((more == 2 && u < 0x800) || (more == 3 && u < 0x10000) || u > 0x10FFFF) return -1;", "        if (u > 0x10FFFF) return -1;"),
+    # (Nothing can see this one: a sequence begun by F5 to F7 is past
+    # U+10FFFF, which the check of the character itself refuses too. 4764
+    # holds the fault all the same.)
     ("past U+10FFFF is UTF-8", IO, "c >= 0xF0 && c <= 0xF4 ? 3", "c >= 0xF0 && c <= 0xF7 ? 3"),
     ("a character cut short is dropped", IO, "            if (k + j >= n || (b[k + j] & 0xC0) != 0x80) return -1;", "            if (k + j >= n) return chars;\n            if ((b[k + j] & 0xC0) != 0x80) return -1;"),
     ("C0 and C1 begin a character", IO, "size_t more = c >= 0xC2 &&", "size_t more = c >= 0xC0 &&"),
@@ -103,10 +106,14 @@ MUTATIONS = [
 ]
 
 only = sys.argv[1:]
-# `--from N`: begin at the Nth breakage (a run under a time limit, resumed).
-start = 0
+# `--from N` and `--to M`: the Nth breakage to the one before the Mth (a run
+# under a time limit, in pieces).
+start, stop = 0, None
 if only[:1] == ['--from']:
     start = int(only[1])
+    only = only[2:]
+if only[:1] == ['--to']:
+    stop = int(only[1])
     only = only[2:]
 if only == ['--match']:
     for name, path, old, new in MUTATIONS:
@@ -163,7 +170,7 @@ whole = golden(driver)
 assert whole == [], f'things as they are fail: {whole}'
 print(f'{len(tests)} tests pass as things are', flush=True)
 missed = []
-for name, path, old, new in MUTATIONS[start:]:
+for name, path, old, new in MUTATIONS[start:stop]:
     if only and not any(o in name for o in only):
         continue
     copy()
@@ -180,4 +187,4 @@ for name, path, old, new in MUTATIONS[start:]:
     else:
         print(f'{name}: 0   <-- NOT CAUGHT', flush=True)
         missed.append(name)
-print(f'{len(missed)} of {len(MUTATIONS) if not only else "those run"} not caught: {missed}')
+print(f'{len(missed)} of {len(MUTATIONS[start:stop]) if not only else "those run"} not caught: {missed}')

@@ -7213,7 +7213,7 @@ between machines, so a `same` test can't print it).
 instruction of 2026-11-27 ("I pre-approve all your recommendations"):
 each question is answered by its recommendation, D210 to D221, his to
 overturn.** Its statements about perl are `briefs/claims21.py`, which
-`claims.py` reads (88 programs, each run under perl 5.42.0 as it was
+`claims.py` reads (85 programs, each run under perl 5.42.0 as it was
 written; a row there may give perl its stdin, arguments and
 environment, as a golden test's headers do). The size matches the
 workbench's model for a step that adds a kind of value and a harness
@@ -7438,7 +7438,8 @@ in a newline names the handle and how many lines it has given, `oops
 at FILE line 7, <STDIN> line 2.`; not after `eof(STDIN)` alone, nor
 after a read that found nothing. Mended by agreeing: the runtime
 counts the lines read, and `unwind.c`'s message says so (4717, 4718,
-and four claims). Rerun after the build: see "21a, as built".
+and four claims, T516 to T516-newline). Rerun after the build: see
+"21a, as built".
 
 #### 21a, as built
 
@@ -7492,10 +7493,12 @@ header comes before `use utf8;`, T73), so the bytes of `@ARGV` and
 `%ENV` past ASCII are held to perl by claims (T503) and by the line
 read without `use open`, which goes through the same function.
 
-**Tests.** 4700 to 4716 and 4720 to 4733 from `t/models/io.py` (lines
+**Tests.** 4700 to 4716, 4719 and 4720 to 4733 from `t/models/io.py` (lines
 in every context, bytes, UTF-8, `eof`, `@ARGV`, `%ENV`, STDOUT,
 `printf STDERR` as a `warns` test, `chomp` of an assignment, numbers
-read, a line tested, and `exit` at each of its edges); 4717 (`dies`)
+read, a line tested, a sub that gives the lines back, and `exit` at
+each of its edges; 4719 and 4763 to 4766 close the breakages' holes);
+4717 (`dies`)
 and 4718 (`warns`) by hand, written by `make oracle`, for T516; the
 faults 4740 to 4762 from the model (each kind of malformed UTF-8, the
 cut character alone and after text, in a line and in a list; `%ENV`
@@ -7509,7 +7512,15 @@ past the end printed and chomped; a byte past ASCII printed without
 same, 90 faults, 70 refusals, no WRONG.
 
 **Broken on purpose** (`briefs/step21-mutations.py`, 55 breakages of
-the runtime and every pass): MUTATIONS-PLAN
+the runtime and every pass): 51 of 55 caught the first time.
+Three holes, closed: an overlong form of three bytes (4763), `printf
+STDERR` not looking at what it prints for a character past ASCII
+(4765), and a sub that gives `<STDIN>` back counted as one value
+(4719, 4766). One breakage nothing can see: a sequence begun by F5 to
+F7 is past U+10FFFF, which the check of the character refuses too
+(4764 holds the fault all the same). Run again whole, after the holes
+were closed (in two pieces, `--to 28` and `--from 28`, under the
+machine's time limit): 54 of 55 caught, the 55th that one.
 
 **The census** (`make census`, sorted): 49 probes are SAME that were refused (45 at `%ENV`, `@ARGV` or `exit`, four of step 21's rows), 4 LOUD (three change `%ENV`, D216), 11 that stopped at `open` stop at `<$fh>` now, still 21b's, and 3 are refused by design (D211: `<DATA>` and a glob) and moved; **1,349 SAME, 182 LOUD, 1,195 REFUSED (435 for a later step, 760 open), 4 UNJUDGED, of 2,730 run, 2,850 by design, no WRONG**, no probe left SAME.
 
