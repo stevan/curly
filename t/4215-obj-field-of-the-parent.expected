@@ -1,0 +1,2 @@
+t/4215-obj-field-of-the-parent.pl:6:30: $x is not declared: my $x
+exit: 1

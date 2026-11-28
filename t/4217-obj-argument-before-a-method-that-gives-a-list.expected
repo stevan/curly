@@ -1,0 +1,2 @@
+t/4217-obj-argument-before-a-method-that-gives-a-list.pl:10:23: a later part of the arguments of first can change $x, which an earlier part names: perl reads it after the change; take the value into a my first
+exit: 1

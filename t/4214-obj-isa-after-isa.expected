@@ -1,0 +1,2 @@
+t/4214-obj-isa-after-isa.pl:7:22: 'isa' after 'isa': perl does not compile it
+exit: 1

@@ -606,6 +606,9 @@ export const lex = (src: string): Token[] => {
             || (last?.kind === '}' && (last.subscript === true || last.anon === true || last.deref === true || last.sub === true))
             || (last?.kind === 'op' && WHOLE.has(last.text))
             || (last?.kind === 'word' && (NAMES.get(last.text)?.kind === 'constant' || NAMES.get(last.text)?.kind === 'cursub' || NAMES.get(last.text)?.kind === 'curclass'))
+            // A class's name after `isa` (step 17a): an operator comes
+            // next.
+            || (last?.kind === 'word' && tokens.at(-2)?.kind === 'op' && tokens.at(-2)!.text === 'isa')
             // A method's name after its arrow (step 17a): an operator comes
             // next, as perl has it, `$p->m - 1`.
             || (last?.kind === 'word' && isArrow(tokens.at(-2)));
