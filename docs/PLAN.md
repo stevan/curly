@@ -7631,7 +7631,8 @@ one: nothing showed that perl does not fold `rand`, `srand` and `time`
 program can see: errno is never set on this machine's library where
 the answer is not also subnormal or vanished, which the runtime notes
 anyway; and a seed past 32 bits shifts its high bits out of the
-generator's 48. The second run, after the hole was closed: SECOND.
+generator's 48. The second run, after the hole was closed: 75 of 77,
+the two that nothing can see.
 
 **The census** (`make census`, then `--sort`): of the 37 probes that
 waited for step 22, **18 are SAME now**, 1 LOUD (`~0`, D204), 7 wait for
